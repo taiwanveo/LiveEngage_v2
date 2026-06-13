@@ -7,7 +7,7 @@ WORKDIR /src/frontend/apps/participant
 ARG VITE_API_BASE=https://le-api.zeabur.app
 ENV VITE_API_BASE=$VITE_API_BASE
 
-RUN npm install && npm run build
+RUN npm install && npx vite build
 
 FROM docker.io/zeabur/caddy-static:latest
 
