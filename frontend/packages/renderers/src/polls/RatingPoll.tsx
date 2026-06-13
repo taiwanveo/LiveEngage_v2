@@ -5,7 +5,7 @@ import { RatingDisplay } from "../present/RatingDisplay";
 import { RatingBarChart } from "../present/RatingBarChart";
 import { SubmitFooter } from "../SubmitFooter";
 import type { PollRendererProps } from "../types";
-import { canAnswer, readNumber } from "../utils";
+import { canAnswer, readNumber, shouldShowParticipantResults } from "../utils";
 
 export function RatingPoll({
   mode,
@@ -29,7 +29,7 @@ export function RatingPoll({
 
   const showResults =
     mode === "present" ||
-    (mode === "answer" && poll.result_visible && results != null);
+    (mode === "answer" && shouldShowParticipantResults(poll, results != null));
 
   const values = Array.from({ length: max - min + 1 }, (_, i) => min + i);
 

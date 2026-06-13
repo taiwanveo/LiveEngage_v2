@@ -294,6 +294,7 @@ def test_poll_start_stop_lifecycle(
     )
     assert start.status_code == 200
     assert start.json()["status"] == "active"
+    assert start.json()["result_visible"] is False
 
     stop = client.post(
         f"/api/v1/polls/{poll_id}/actions",

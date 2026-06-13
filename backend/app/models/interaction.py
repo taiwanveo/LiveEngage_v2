@@ -46,7 +46,7 @@ class Interaction(UUIDPrimaryKeyMixin, TimestampMixin, Base):
         JSONB, nullable=False, default=dict
     )
     result_visible: Mapped[bool] = mapped_column(
-        Boolean, nullable=False, default=True
+        Boolean, nullable=False, default=False
     )
     started_at: Mapped[dt.datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True

@@ -197,3 +197,51 @@ export const createExport = (payload: {
   format: "csv" | "xlsx";
 }): Promise<ExportJobData> =>
   api<ExportJobData>("/api/v1/admin/exports", { method: "POST", body: payload });
+
+// ── Analytics ─────────────────────────────────────────────────────────────────
+
+export interface AdminStatsOverview {
+  sessions_total: number;
+  sessions_live: number;
+  participants_total: number;
+  poll_responses_total: number;
+  export_jobs_total: number;
+  ai_requests_total: number;
+}
+
+export interface EngagementAnalytics {
+  participants_total: number;
+  participants_qa: number;
+  participants_poll_voters: number;
+  engaged_score_percent: number;
+  poll_votes_total: number;
+  qa_questions_total: number;
+}
+
+export const getStatsOverview = (): Promise<AdminStatsOverview> =>
+  api<AdminStatsOverview>("/api/v1/admin/stats/overview");
+
+export const getEngagementAnalytics = (): Promise<EngagementAnalytics> =>
+  api<EngagementAnalytics>("/api/v1/admin/analytics/engagement");
+
+// ── Integrations ──────────────────────────────────────────────────────────────
+
+export interface WebhookData {
+  id: string;
+  url: string;
+  events: string[];
+  enabled: boolean;
+  created_at: string;
+}
+
+export const listWebhooks = (): Promise<{ items: WebhookData[] }> =>
+  api<{ items: WebhookData[] }>("/api/v1/admin/integrations/webhooks");
+
+export const createWebhook = (payload: {
+  url: string;
+  events?: string[];
+}): Promise<WebhookData> =>
+  api<WebhookData>("/api/v1/admin/integrations/webhooks", {
+    method: "POST",
+    body: payload,
+  });

@@ -9,6 +9,7 @@ import {
   setParticipantSession,
 } from "../lib/participantAuth";
 import { joinSession, resolveSessionByCode } from "../lib/sessionApi";
+import { fetchSsoConfig, ssoAuthorizeUrl } from "../lib/authApi";
 import { AuthCard } from "@liveengage/ui";
 
 interface Props {
@@ -21,6 +22,13 @@ export function JoinPage({ code }: Props): React.JSX.Element {
   const [passcode, setPasscode] = useState("");
   const [isAnonymous, setIsAnonymous] = useState(true);
   const [formError, setFormError] = useState<string | null>(null);
+  const [ssoEnabled, setSsoEnabled] = useState(false);
+
+  useEffect(() => {
+    void fetchSsoConfig()
+      .then((cfg) => setSsoEnabled(cfg.enabled))
+      .catch(() => setSsoEnabled(false));
+  }, []);
 
   const sessionQuery = useQuery({
     queryKey: ["session-by-code", code],
@@ -97,6 +105,7 @@ export function JoinPage({ code }: Props): React.JSX.Element {
   }
 
   const needsPasscode = session.visibility === "passcode";
+  const needsSso = session.visibility === "sso";
   const notLive = session.status !== "live";
 
   return (
@@ -114,6 +123,16 @@ export function JoinPage({ code }: Props): React.JSX.Element {
       {notLive ? (
         <div className="rounded-xl border border-warning/30 bg-warning/10 px-4 py-3 text-sm text-warning">
           活動尚未開始，請等待主持人開放後再試。
+        </div>
+      ) : needsSso && ssoEnabled ? (
+        <div className="space-y-4">
+          <p className="text-sm text-muted">此活動需使用組織 SSO 登入後才能加入。</p>
+          <a
+            href={ssoAuthorizeUrl("participant", `join/${code}`)}
+            className="le-btn-primary w-full"
+          >
+            使用 SSO 登入
+          </a>
         </div>
       ) : (
         <form

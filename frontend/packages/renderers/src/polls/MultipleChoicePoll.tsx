@@ -5,7 +5,7 @@ import { ResultBars } from "../present/ResultBars";
 import { ResultBarChart } from "../present/ResultBarChart";
 import { SubmitFooter } from "../SubmitFooter";
 import type { PollRendererProps } from "../types";
-import { canAnswer, readBool } from "../utils";
+import { canAnswer, readBool, shouldShowParticipantResults } from "../utils";
 
 export function MultipleChoicePoll({
   mode,
@@ -51,7 +51,8 @@ export function MultipleChoicePoll({
 
   const showResults =
     mode === "present" ||
-    (mode === "answer" && poll.result_visible && results != null);
+    (mode === "answer" &&
+      shouldShowParticipantResults(poll, results?.option_counts != null));
 
   return (
     <PollShell

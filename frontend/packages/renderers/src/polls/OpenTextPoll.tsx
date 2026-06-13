@@ -4,7 +4,7 @@ import { PollShell } from "../PollShell";
 import { OpenTextList } from "../present/OpenTextList";
 import { SubmitFooter } from "../SubmitFooter";
 import type { PollRendererProps } from "../types";
-import { canAnswer, readBool, readNumber } from "../utils";
+import { canAnswer, readBool, readNumber, shouldShowParticipantResults } from "../utils";
 
 export function OpenTextPoll({
   mode,
@@ -33,7 +33,8 @@ export function OpenTextPoll({
 
   const showResults =
     mode === "present" ||
-    (mode === "answer" && poll.result_visible && results?.entries);
+    (mode === "answer" &&
+      shouldShowParticipantResults(poll, Boolean(results?.entries?.length)));
 
   return (
     <PollShell

@@ -22,8 +22,15 @@ from app.core.ids import uuid7
 from app.core.security import hash_secret
 from app.models.audit_log import AuditLog
 from app.models.enums import SessionStatus, UserRole
+from app.models.export_job import ExportJob
+from app.models.interaction import Interaction
 from app.models.organization import Organization
+from app.models.participant import Participant
+from app.models.poll import PollResponse as PollResponseRow
+from app.models.question import Question
+from app.models.room import Room
 from app.models.session import Session
+from app.models.sprint9 import AiRequestLog
 from app.models.user import User
 from app.schemas.admin import (
     AdminSessionListResponse,
@@ -40,6 +47,12 @@ from app.schemas.admin import (
     OrgResponse,
     OrgUpdateRequest,
     PublicBrandingResponse,
+)
+from app.schemas.admin_stats import (
+    AdminStatsOverview,
+    AiRequestLogItem,
+    AiRequestLogListResponse,
+    EngagementAnalytics,
 )
 from app.services import audit_service
 
@@ -454,4 +467,149 @@ async def get_public_branding_by_code(
         logo_url=branding.logo_url,
         favicon_url=branding.favicon_url,
         primary_color=branding.primary_color,
+    )
+
+
+# ── Analytics / Stats ─────────────────────────────────────────────────────────
+
+
+async def get_stats_overview(db: AsyncSession, actor: User) -> AdminStatsOverview:
+    org_id = actor.org_id
+    sessions_total = (
+        await db.execute(select(func.count()).select_from(Session).where(Session.org_id == org_id))
+    ).scalar_one()
+    sessions_live = (
+        await db.execute(
+            select(func.count())
+            .select_from(Session)
+            .where(Session.org_id == org_id, Session.status == SessionStatus.LIVE)
+        )
+    ).scalar_one()
+    participants_total = (
+        await db.execute(
+            select(func.count())
+            .select_from(Participant)
+            .join(Session, Participant.session_id == Session.id)
+            .where(Session.org_id == org_id)
+        )
+    ).scalar_one()
+    poll_responses_total = (
+        await db.execute(
+            select(func.count())
+            .select_from(PollResponseRow)
+            .join(Interaction, PollResponseRow.interaction_id == Interaction.id)
+            .join(Room, Interaction.room_id == Room.id)
+            .join(Session, Room.session_id == Session.id)
+            .where(Session.org_id == org_id)
+        )
+    ).scalar_one()
+    export_jobs_total = (
+        await db.execute(
+            select(func.count()).select_from(ExportJob).where(ExportJob.org_id == org_id)
+        )
+    ).scalar_one()
+    ai_requests_total = (
+        await db.execute(
+            select(func.count()).select_from(AiRequestLog).where(AiRequestLog.org_id == org_id)
+        )
+    ).scalar_one()
+    return AdminStatsOverview(
+        sessions_total=sessions_total,
+        sessions_live=sessions_live,
+        participants_total=participants_total,
+        poll_responses_total=poll_responses_total,
+        export_jobs_total=export_jobs_total,
+        ai_requests_total=ai_requests_total,
+    )
+
+
+async def get_engagement_analytics(db: AsyncSession, actor: User) -> EngagementAnalytics:
+    org_id = actor.org_id
+    participants_total = (
+        await db.execute(
+            select(func.count())
+            .select_from(Participant)
+            .join(Session, Participant.session_id == Session.id)
+            .where(Session.org_id == org_id)
+        )
+    ).scalar_one()
+    participants_qa = (
+        await db.execute(
+            select(func.count(func.distinct(Question.participant_id)))
+            .select_from(Question)
+            .join(Session, Question.session_id == Session.id)
+            .where(Session.org_id == org_id, Question.participant_id.is_not(None))
+        )
+    ).scalar_one()
+    participants_poll_voters = (
+        await db.execute(
+            select(func.count(func.distinct(PollResponseRow.participant_id)))
+            .select_from(PollResponseRow)
+            .join(Participant, PollResponseRow.participant_id == Participant.id)
+            .join(Session, Participant.session_id == Session.id)
+            .where(Session.org_id == org_id)
+        )
+    ).scalar_one()
+    poll_votes_total = (
+        await db.execute(
+            select(func.count())
+            .select_from(PollResponseRow)
+            .join(Interaction, PollResponseRow.interaction_id == Interaction.id)
+            .join(Room, Interaction.room_id == Room.id)
+            .join(Session, Room.session_id == Session.id)
+            .where(Session.org_id == org_id)
+        )
+    ).scalar_one()
+    qa_questions_total = (
+        await db.execute(
+            select(func.count())
+            .select_from(Question)
+            .join(Session, Question.session_id == Session.id)
+            .where(Session.org_id == org_id)
+        )
+    ).scalar_one()
+    engaged = participants_qa + participants_poll_voters
+    score = int(round(engaged / participants_total * 100)) if participants_total else 0
+    return EngagementAnalytics(
+        participants_total=participants_total,
+        participants_qa=participants_qa,
+        participants_poll_voters=participants_poll_voters,
+        engaged_score_percent=min(score, 100),
+        poll_votes_total=poll_votes_total,
+        qa_questions_total=qa_questions_total,
+    )
+
+
+async def list_ai_request_logs(
+    db: AsyncSession,
+    actor: User,
+    *,
+    page: int = 1,
+    page_size: int = 20,
+) -> AiRequestLogListResponse:
+    page_size = min(page_size, 100)
+    offset = (page - 1) * page_size
+    base = select(AiRequestLog).where(AiRequestLog.org_id == actor.org_id)
+    total = (
+        await db.execute(
+            select(func.count())
+            .select_from(AiRequestLog)
+            .where(AiRequestLog.org_id == actor.org_id)
+        )
+    ).scalar_one()
+    rows = await db.execute(
+        base.order_by(AiRequestLog.created_at.desc()).offset(offset).limit(page_size)
+    )
+    items = [
+        AiRequestLogItem(
+            id=log.id,
+            feature=log.feature,
+            status=log.status,
+            latency_ms=log.latency_ms,
+            created_at=log.created_at,
+        )
+        for log in rows.scalars().all()
+    ]
+    return AiRequestLogListResponse(
+        items=items, total=total, page=page, page_size=page_size
     )

@@ -14,6 +14,55 @@
   --le-font-mono: "JetBrains Mono", ui-monospace, monospace;
 }
 
+/* ── Slido：白底深綠、扁平無紋理（仿 Slido 控場介面） ── */
+[data-theme="slido"] {
+  --le-bg: 245 245 245;
+  --le-fg: 23 23 23;
+  --le-surface: 255 255 255;
+  --le-surface-elevated: 255 255 255;
+  --le-muted: 115 115 115;
+  --le-border: 229 229 229;
+  --le-accent: 11 102 35;
+  --le-accent-fg: 255 255 255;
+  --le-accent-muted: 232 245 233;
+  --le-primary-50: 232 245 233;
+  --le-primary-100: 200 230 201;
+  --le-primary-500: 46 125 50;
+  --le-primary-600: 11 102 35;
+  --le-primary-700: 9 82 28;
+  --le-success: 46 125 50;
+  --le-warning: 245 158 11;
+  --le-danger: 211 47 47;
+  --le-shadow-card: 0 1px 2px rgb(0 0 0 / 0.04);
+  --le-shadow-elevated: 0 2px 8px rgb(0 0 0 / 0.06);
+  --le-shadow-glow: none;
+  --le-bg-mesh: none;
+  --le-bg-grid: none;
+}
+
+[data-theme="slido"] body {
+  background-image: none;
+}
+
+[data-theme="slido"] .le-page-bg::before {
+  display: none;
+}
+
+[data-theme="slido"] .le-btn-primary {
+  box-shadow: none;
+  border-radius: 9999px;
+}
+
+[data-theme="slido"] .le-btn-secondary {
+  border-radius: 9999px;
+}
+
+[data-theme="slido"] .le-card,
+[data-theme="slido"] .le-card-elevated {
+  border-radius: 0.75rem;
+  backdrop-filter: none;
+}
+
 /* ── Light：專業淺色（預設） ── */
 [data-theme="light"],
 :root:not([data-theme]) {

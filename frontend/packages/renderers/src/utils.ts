@@ -1,4 +1,4 @@
-import type { InteractionStatus, RenderMode } from "./types";
+import type { InteractionStatus, PollDetail, RenderMode } from "./types";
 
 export function modeLabel(mode: RenderMode): string {
   switch (mode) {
@@ -31,6 +31,16 @@ export function canAnswer(
 ): boolean {
   if (status !== "active") return false;
   if (mySubmitted && !allowChange) return false;
+  return true;
+}
+
+/** 參與者作答模式：進行中且尚未提交時，不應以結果圖表取代作答 UI。 */
+export function shouldShowParticipantResults(
+  poll: Pick<PollDetail, "status" | "result_visible" | "my_submitted">,
+  hasResultsData: boolean
+): boolean {
+  if (!poll.result_visible || !hasResultsData) return false;
+  if (poll.status === "active" && !poll.my_submitted) return false;
   return true;
 }
 

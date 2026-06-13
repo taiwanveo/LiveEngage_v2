@@ -33,7 +33,13 @@ from app.schemas.admin import (
     OrgResponse,
     OrgUpdateRequest,
 )
-from app.services import admin_service, export_service
+from app.schemas.admin_stats import (
+    AdminStatsOverview,
+    AiRequestLogListResponse,
+    EngagementAnalytics,
+)
+from app.schemas.integration import WebhookCreateRequest, WebhookListResponse, WebhookResponse
+from app.services import admin_service, export_service, integration_service
 
 router = APIRouter(prefix="/admin", tags=["admin"])
 
@@ -234,3 +240,88 @@ async def create_export(
     return await export_service.create_export_job(
         db, actor=actor, payload=payload, base_url=base_url
     )
+
+
+# ── Analytics / Stats ─────────────────────────────────────────────────────────
+
+@router.get("/stats/overview", response_model=AdminStatsOverview, dependencies=[_require_admin])
+async def stats_overview(
+    db: Annotated[AsyncSession, Depends(get_session)],
+    actor: Annotated[User, Depends(get_current_user)],
+) -> AdminStatsOverview:
+    """組織 KPI 總覽。"""
+    return await admin_service.get_stats_overview(db, actor)
+
+
+@router.get(
+    "/analytics/engagement",
+    response_model=EngagementAnalytics,
+    dependencies=[_require_admin],
+)
+async def analytics_engagement(
+    db: Annotated[AsyncSession, Depends(get_session)],
+    actor: Annotated[User, Depends(get_current_user)],
+) -> EngagementAnalytics:
+    """參與度 Analytics（Slido 風格儀表板）。"""
+    return await admin_service.get_engagement_analytics(db, actor)
+
+
+@router.get(
+    "/ai-request-logs",
+    response_model=AiRequestLogListResponse,
+    dependencies=[_require_admin],
+)
+async def ai_request_logs(
+    db: Annotated[AsyncSession, Depends(get_session)],
+    actor: Annotated[User, Depends(get_current_user)],
+    page: Annotated[int, Query(ge=1)] = 1,
+    page_size: Annotated[int, Query(ge=1, le=100)] = 20,
+) -> AiRequestLogListResponse:
+    """AI 請求紀錄。"""
+    return await admin_service.list_ai_request_logs(
+        db, actor, page=page, page_size=page_size
+    )
+
+
+# ── Integrations ──────────────────────────────────────────────────────────────
+
+@router.get(
+    "/integrations/webhooks",
+    response_model=WebhookListResponse,
+    dependencies=[_require_admin],
+)
+async def list_webhooks(
+    db: Annotated[AsyncSession, Depends(get_session)],
+    actor: Annotated[User, Depends(get_current_user)],
+) -> WebhookListResponse:
+    """列出 Webhook 訂閱。"""
+    return await integration_service.list_webhooks(db, actor)
+
+
+@router.post(
+    "/integrations/webhooks",
+    response_model=WebhookResponse,
+    status_code=201,
+    dependencies=[_require_admin],
+)
+async def create_webhook(
+    payload: WebhookCreateRequest,
+    db: Annotated[AsyncSession, Depends(get_session)],
+    actor: Annotated[User, Depends(get_current_user)],
+) -> WebhookResponse:
+    """建立 Webhook 訂閱。"""
+    return await integration_service.create_webhook(db, actor=actor, payload=payload)
+
+
+@router.delete(
+    "/integrations/webhooks/{webhook_id}",
+    status_code=204,
+    dependencies=[_require_admin],
+)
+async def delete_webhook(
+    webhook_id: str,
+    db: Annotated[AsyncSession, Depends(get_session)],
+    actor: Annotated[User, Depends(get_current_user)],
+) -> None:
+    """刪除 Webhook 訂閱。"""
+    await integration_service.delete_webhook(db, actor=actor, webhook_id=webhook_id)

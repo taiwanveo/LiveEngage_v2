@@ -326,6 +326,89 @@ async def join_session(
     )
 
 
+async def join_with_sso(
+    db: AsyncSession,
+    *,
+    session_id: uuid.UUID,
+    email: str,
+    name: str | None,
+    room_id: uuid.UUID | None = None,
+) -> JoinResponse:
+    """Participant SSO 加入（visibility=sso）。"""
+    session = await _get_session_or_404(db, session_id)
+    settings = _parse_settings(session.settings_jsonb)
+
+    if session.visibility != SessionVisibility.SSO:
+        raise AppError(ErrorCode.FORBIDDEN, "此活動不需 SSO 登入")
+    if session.status == SessionStatus.ENDED:
+        raise AppError(ErrorCode.SESSION_ENDED, "活動已結束")
+    if session.status == SessionStatus.ARCHIVED:
+        raise AppError(ErrorCode.SESSION_NOT_FOUND, "找不到活動")
+    if session.status != SessionStatus.LIVE:
+        raise AppError(ErrorCode.SESSION_NOT_LIVE, "活動尚未開放")
+
+    if settings.allowed_email_domains:
+        match = _EMAIL_DOMAIN_RE.match(email)
+        domain = match.group(1).lower() if match else ""
+        allowed = {d.lower() for d in settings.allowed_email_domains}
+        if domain not in allowed:
+            raise AppError(ErrorCode.EMAIL_DOMAIN_RESTRICTED, "Email 網域不符合限制")
+
+    room: Room
+    if room_id:
+        result = await db.execute(
+            select(Room).where(Room.id == room_id, Room.session_id == session.id)
+        )
+        found = result.scalar_one_or_none()
+        if found is None:
+            raise AppError(ErrorCode.NOT_FOUND, "找不到房間")
+        room = found
+    else:
+        room = await _get_default_room(db, session.id)
+
+    now = dt.datetime.now(dt.UTC)
+    participant = Participant(
+        id=uuid7(),
+        session_id=session.id,
+        room_id=room.id,
+        display_name=name or email.split("@")[0],
+        email=email,
+        is_anonymous=False,
+        auth_method=AuthMethod.SSO,
+        joined_at=now,
+        last_seen_at=now,
+    )
+    db.add(participant)
+    await db.commit()
+    await db.refresh(participant)
+
+    anon_allowed = settings.anonymity_mode != "force_named"
+    token = create_participant_token(
+        participant_id=participant.id,
+        session_id=session.id,
+        room_id=room.id,
+        anon_allowed=anon_allowed,
+        session_end_at=session.end_at,
+    )
+    output = mask_identity(
+        {
+            "participant_id": participant.id,
+            "display_name": participant.display_name,
+            "email": participant.email,
+            "is_anonymous": participant.is_anonymous,
+        }
+    )
+    return JoinResponse(
+        participant_token=token,
+        session_id=session.id,
+        room_id=room.id,
+        participant_id=participant.id,
+        display_name=output.get("display_name"),
+        email=output.get("email"),
+        is_anonymous=participant.is_anonymous,
+    )
+
+
 async def ensure_host_seed(
     db: AsyncSession,
     *,

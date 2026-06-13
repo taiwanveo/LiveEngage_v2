@@ -1,7 +1,13 @@
-/** API client：JWT bearer + 統一錯誤信封解析。 */
+/** API client：JWT bearer + 401 自動 refresh + 統一錯誤信封解析。 */
 
 import { apiUrl } from "@liveengage/realtime";
-import { getAccessToken } from "./auth";
+import {
+  getAccessToken,
+  getRefreshToken,
+  isAccessTokenExpired,
+  setAuthTokens,
+  clearAccessToken,
+} from "./auth";
 
 export interface ApiError {
   code: string;
@@ -24,13 +30,73 @@ export interface RequestOptions {
   method?: "GET" | "POST" | "PATCH" | "PUT" | "DELETE";
   body?: unknown;
   idempotencyKey?: string;
+  _retried?: boolean;
+}
+
+const AUTH_NO_REFRESH = [
+  "/api/v1/auth/login",
+  "/api/v1/auth/refresh",
+  "/api/v1/auth/sso/config",
+  "/api/v1/auth/sso/exchange",
+];
+
+function skipRefresh(path: string): boolean {
+  return AUTH_NO_REFRESH.some((p) => path.startsWith(p));
+}
+
+let refreshInFlight: Promise<boolean> | null = null;
+
+async function refreshAccessToken(): Promise<boolean> {
+  const refresh = getRefreshToken();
+  if (!refresh) return false;
+
+  if (refreshInFlight) {
+    return refreshInFlight;
+  }
+
+  refreshInFlight = (async () => {
+    try {
+      const res = await fetch(apiUrl("/api/v1/auth/refresh"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ refresh_token: refresh }),
+      });
+      if (!res.ok) {
+        clearAccessToken();
+        return false;
+      }
+      const body = (await res.json()) as {
+        access_token: string;
+        refresh_token: string;
+      };
+      setAuthTokens(body.access_token, body.refresh_token);
+      return true;
+    } catch {
+      clearAccessToken();
+      return false;
+    } finally {
+      refreshInFlight = null;
+    }
+  })();
+
+  return refreshInFlight;
+}
+
+async function resolveAccessToken(path: string): Promise<string | null> {
+  let token = getAccessToken();
+  if (!token || skipRefresh(path)) return token;
+
+  if (!isAccessTokenExpired(token)) return token;
+
+  const ok = await refreshAccessToken();
+  return ok ? getAccessToken() : null;
 }
 
 export async function api<T>(
   path: string,
   options: RequestOptions = {}
 ): Promise<T> {
-  const token = getAccessToken();
+  const token = await resolveAccessToken(path);
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
   };
@@ -42,6 +108,18 @@ export async function api<T>(
     headers,
     body: options.body !== undefined ? JSON.stringify(options.body) : null,
   });
+
+  if (
+    res.status === 401 &&
+    !skipRefresh(path) &&
+    !options._retried &&
+    getRefreshToken()
+  ) {
+    const refreshed = await refreshAccessToken();
+    if (refreshed) {
+      return api<T>(path, { ...options, _retried: true });
+    }
+  }
 
   if (!res.ok) {
     let payload: { error?: ApiError } = {};

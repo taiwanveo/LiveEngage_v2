@@ -1,7 +1,7 @@
 /** 參與者房間：顯示 active Poll 並作答（P-3 E2E）+ WS 即時推送（P-4/P-WS-1）。 */
 
 import * as React from "react";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   POLL_RESULT_HIDDEN,
@@ -35,7 +35,8 @@ export function RoomPage(): React.JSX.Element {
   const queryClient = useQueryClient();
   const [tab, setTab] = useState<"poll" | "qa" | "ideas" | "quiz">("poll");
   const [submitError, setSubmitError] = useState<string | null>(null);
-  const [submitOk, setSubmitOk] = useState(false);
+  const [pollSubmitOk, setPollSubmitOk] = useState(false);
+  const [quizSubmitOk, setQuizSubmitOk] = useState(false);
   const [quizQuestion, setQuizQuestion] = useState<ActiveQuizQuestion | null>(null);
   const [quizSubmitting, setQuizSubmitting] = useState(false);
 
@@ -80,6 +81,14 @@ export function RoomPage(): React.JSX.Element {
     refetchInterval: 30_000,
   });
 
+  useEffect(() => {
+    setPollSubmitOk(false);
+    setSubmitError(null);
+    if (activePollId) {
+      void queryClient.removeQueries({ queryKey: ["poll-results", activePollId] });
+    }
+  }, [activePollId, queryClient]);
+
   // WS 事件處理：依事件類型決定 invalidate 策略
   const handleWsEvent = useCallback(
     (event: WsEvent) => {
@@ -87,8 +96,15 @@ export function RoomPage(): React.JSX.Element {
         void queryClient.invalidateQueries({ queryKey: ["qa-public", ctx?.roomId] });
       }
       switch (event.type) {
-        case POLL_STARTED:
+        case POLL_STARTED: {
           setTab("poll");
+          setPollSubmitOk(false);
+          setSubmitError(null);
+          const startedPollId =
+            typeof event.payload.poll_id === "string" ? event.payload.poll_id : activePollId;
+          if (startedPollId) {
+            void queryClient.removeQueries({ queryKey: ["poll-results", startedPollId] });
+          }
           void queryClient.invalidateQueries({
             queryKey: ["session-state", ctx?.sessionId],
           });
@@ -96,6 +112,7 @@ export function RoomPage(): React.JSX.Element {
             void queryClient.invalidateQueries({ queryKey: ["poll", activePollId] });
           }
           break;
+        }
         case POLL_STOPPED:
           void queryClient.invalidateQueries({
             queryKey: ["session-state", ctx?.sessionId],
@@ -159,12 +176,14 @@ export function RoomPage(): React.JSX.Element {
       submitPollResponse(activePollId!, answer),
     onSuccess: () => {
       setSubmitError(null);
-      setSubmitOk(true);
+      setPollSubmitOk(true);
       void pollQuery.refetch();
-      void resultsQuery.refetch();
+      if (pollQuery.data?.result_visible) {
+        void resultsQuery.refetch();
+      }
     },
     onError: (err: unknown) => {
-      setSubmitOk(false);
+      setPollSubmitOk(false);
       if (err instanceof ApiException) {
         setSubmitError(err.error.message);
       } else {
@@ -257,14 +276,12 @@ export function RoomPage(): React.JSX.Element {
                       setQuizSubmitting(true);
                       setSubmitError(null);
                       void submitQuizAnswer(quizQuestion.id, [opt.id])
-                        .then((res) => {
-                          setSubmitOk(true);
-                          if (res.is_correct) {
-                            setSubmitError(null);
-                          }
+                        .then(() => {
+                          setQuizSubmitOk(true);
+                          setSubmitError(null);
                         })
                         .catch((err: unknown) => {
-                          setSubmitOk(false);
+                          setQuizSubmitOk(false);
                           setSubmitError(
                             err instanceof ApiException ? err.error.message : "提交失敗"
                           );
@@ -278,13 +295,16 @@ export function RoomPage(): React.JSX.Element {
                 </li>
               ))}
             </ul>
+            {quizSubmitOk ? (
+              <p className="mt-3 text-sm text-success">Quiz 已提交</p>
+            ) : null}
             {submitError ? (
               <p className="mt-3 text-sm text-danger">{submitError}</p>
             ) : null}
           </div>
         ) : (
           <>
-        {submitOk ? (
+        {pollSubmitOk ? (
           <p className="mb-4 rounded-xl border border-success/30 bg-success/10 px-4 py-2 text-sm text-success">
             已提交，感謝參與！
           </p>
@@ -309,7 +329,7 @@ export function RoomPage(): React.JSX.Element {
             poll={poll}
             results={poll.result_visible ? resultsQuery.data ?? null : null}
             onSubmit={(answer) => {
-              setSubmitOk(false);
+              setPollSubmitOk(false);
               submitMutation.mutate(answer);
             }}
             submitting={submitMutation.isPending}

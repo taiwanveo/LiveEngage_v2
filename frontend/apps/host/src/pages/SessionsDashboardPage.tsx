@@ -43,7 +43,7 @@ export function SessionsDashboardPage({ onLogout }: Props): React.JSX.Element {
       setError(null);
       void qc.invalidateQueries({ queryKey: ["host-sessions"] });
       if (session.default_room_id) {
-        window.location.hash = `#/rooms/${session.default_room_id}/moderation`;
+        window.location.hash = `#/rooms/${session.default_room_id}/workbench`;
       }
     },
     onError: (err: unknown) => {
@@ -195,11 +195,14 @@ function SessionCard(props: {
 
       {roomId ? (
         <div className="mt-4 flex flex-wrap gap-2 border-t border-border pt-4">
-          <a href={`#/rooms/${roomId}/moderation`} className="le-nav-link le-nav-link-active !text-xs">
+          <a href={`#/rooms/${roomId}/workbench`} className="le-btn-primary !min-h-[36px] !px-4 !text-xs">
+            進入工作台
+          </a>
+          <a href={`#/rooms/${roomId}/moderation`} className="le-nav-link !text-xs">
             Q&amp;A 審核
           </a>
-          <a href={`#/rooms/${roomId}/polls`} className="le-nav-link !text-xs">
-            Poll 管理
+          <a href={`#/rooms/${roomId}/sprint9`} className="le-nav-link !text-xs">
+            Quiz / Ideas
           </a>
         </div>
       ) : (

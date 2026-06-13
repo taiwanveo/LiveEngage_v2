@@ -12,6 +12,7 @@ from app.core.client_ip import get_client_ip
 from app.core.db import get_session
 from app.core.deps import get_current_user
 from app.models.user import User
+from app.schemas.room import RoomCreateRequest, RoomListResponse, RoomResponse
 from app.schemas.session import (
     JoinRequest,
     JoinResponse,
@@ -22,7 +23,7 @@ from app.schemas.session import (
     SessionUpdateRequest,
 )
 from app.schemas.state import SessionStateResponse
-from app.services import session_service, state_service
+from app.services import room_service, session_service, state_service
 
 router = APIRouter(prefix="/sessions", tags=["sessions"])
 
@@ -106,4 +107,27 @@ async def join_session(
         session_id=session_id,
         payload=payload,
         client_ip=get_client_ip(request),
+    )
+
+
+@router.get("/{session_id}/rooms", response_model=RoomListResponse)
+async def list_session_rooms(
+    session_id: uuid.UUID,
+    db: Annotated[AsyncSession, Depends(get_session)],
+    host: Annotated[User, Depends(get_current_user)],
+) -> RoomListResponse:
+    """列出活動房間（多房間）。"""
+    return await room_service.list_rooms(db, session_id=session_id, host=host)
+
+
+@router.post("/{session_id}/rooms", response_model=RoomResponse, status_code=201)
+async def create_session_room(
+    session_id: uuid.UUID,
+    payload: RoomCreateRequest,
+    db: Annotated[AsyncSession, Depends(get_session)],
+    host: Annotated[User, Depends(get_current_user)],
+) -> RoomResponse:
+    """新增活動房間。"""
+    return await room_service.create_room(
+        db, session_id=session_id, host=host, payload=payload
     )

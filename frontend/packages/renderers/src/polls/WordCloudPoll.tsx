@@ -4,7 +4,7 @@ import { PollShell } from "../PollShell";
 import { WordCloudDisplay } from "../present/WordCloudDisplay";
 import { SubmitFooter } from "../SubmitFooter";
 import type { PollRendererProps } from "../types";
-import { canAnswer, readNumber } from "../utils";
+import { canAnswer, readNumber, shouldShowParticipantResults } from "../utils";
 
 export function WordCloudPoll({
   mode,
@@ -36,7 +36,8 @@ export function WordCloudPoll({
 
   const showResults =
     mode === "present" ||
-    (mode === "answer" && poll.result_visible && results?.word_counts);
+    (mode === "answer" &&
+      shouldShowParticipantResults(poll, Boolean(results?.word_counts?.length)));
 
   return (
     <PollShell

@@ -257,6 +257,7 @@ async def _action_start(
 
     await _optimistic_status_update(
         db, interaction.id, interaction.status, InteractionStatus.ACTIVE,
+        extra={"result_visible": False},
     )
     await db.commit()
 

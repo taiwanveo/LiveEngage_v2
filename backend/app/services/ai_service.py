@@ -94,6 +94,56 @@ async def _stub_llm_call(feature: AiFeature, payload: dict[str, Any]) -> dict[st
     return await _run_with_timeout(_inner())
 
 
+async def _real_llm_call(feature: AiFeature, payload: dict[str, Any]) -> dict[str, Any]:
+    """OpenAI-compatible Chat Completions（JSON 回應）。"""
+    import json
+
+    import httpx
+
+    settings = get_settings()
+    if feature == AiFeature.GENERATE_POLLS:
+        prompt = (
+            f"Generate {payload.get('count', 3)} poll questions about "
+            f"「{payload.get('topic', '')}」. Context: {payload.get('context', '')}. "
+            'Return JSON: {"polls":[{"title":"...","options":["A","B","C"]}]}'
+        )
+    elif feature == AiFeature.REWRITE:
+        prompt = (
+            f"Rewrite in tone {payload.get('tone', 'neutral')}: "
+            f"{payload.get('text', '')}. Return JSON: {{\"text\":\"...\"}}"
+        )
+    else:
+        prompt = (
+            f"Suggest follow-up questions for: {payload.get('question', '')}. "
+            f"Context: {payload.get('context', '')}. "
+            'Return JSON: {"suggestions":["..."]}'
+        )
+
+    async with httpx.AsyncClient(timeout=9.0) as client:
+        resp = await client.post(
+            f"{settings.ai_base_url.rstrip('/')}/chat/completions",
+            headers={"Authorization": f"Bearer {settings.ai_api_key}"},
+            json={
+                "model": settings.ai_model,
+                "messages": [{"role": "user", "content": prompt}],
+                "response_format": {"type": "json_object"},
+            },
+        )
+        resp.raise_for_status()
+        content = resp.json()["choices"][0]["message"]["content"]
+        return json.loads(content)
+
+
+async def _llm_call(feature: AiFeature, payload: dict[str, Any]) -> dict[str, Any]:
+    settings = get_settings()
+    if settings.ai_enabled:
+        try:
+            return await _run_with_timeout(_real_llm_call(feature, payload))
+        except Exception:
+            pass
+    return await _stub_llm_call(feature, payload)
+
+
 async def generate_polls(
     db: AsyncSession,
     *,
@@ -104,7 +154,7 @@ async def generate_polls(
     _require_ai_key()
     started = time.perf_counter()
     try:
-        result = await _stub_llm_call(
+        result = await _llm_call(
             AiFeature.GENERATE_POLLS,
             {"topic": payload.topic, "count": payload.count, "context": payload.context},
         )
@@ -133,7 +183,7 @@ async def rewrite(
     _require_ai_key()
     started = time.perf_counter()
     try:
-        result = await _stub_llm_call(
+        result = await _llm_call(
             AiFeature.REWRITE,
             {"text": payload.text, "tone": payload.tone},
         )
@@ -162,7 +212,7 @@ async def question_assist(
     _require_ai_key()
     started = time.perf_counter()
     try:
-        result = await _stub_llm_call(
+        result = await _llm_call(
             AiFeature.QUESTION_ASSIST,
             {"question": payload.question, "context": payload.context},
         )

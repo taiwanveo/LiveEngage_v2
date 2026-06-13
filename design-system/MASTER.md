@@ -6,7 +6,8 @@
 
 | ID | 名稱 | 風格 | 預設對象 |
 |----|------|------|----------|
-| `light` | 專業淺色 | DM Sans + Instrument Sans，藍色強調 | Host / Admin / Participant |
+| `slido` | Slido | 白底深綠、扁平控場（**預設**） | Host / Admin / Participant |
+| `light` | 專業淺色 | DM Sans + Instrument Sans，藍色強調 | 全 app |
 | `dark` | 專業深色 | 低眩光控場介面 | 長時間操作 |
 | `cursor` | Cursor | `#14120b` 底 + `#f54e00` 琥珀、JetBrains Mono | IDE 風格偏好者 |
 | `claude` | Claude | `#faf9f5` 奶油底 + `#d97757` 赤陶、Source Serif 4 | 暖色編輯感 |

@@ -81,6 +81,26 @@ class Settings(BaseSettings):
     ai_api_key: str = ""
     ai_enabled: bool = False
 
+    # SSO / OIDC（Host / Admin 登入）
+    sso_enabled: bool = False
+    sso_test_mode: bool = False
+    sso_test_email: str = ""
+    sso_oidc_issuer: str = ""
+    sso_oidc_client_id: str = ""
+    sso_oidc_client_secret: str = ""
+    sso_oidc_scopes: str = "openid email profile"
+    sso_button_label: str = "使用 SSO 登入"
+    sso_auto_provision: bool = True
+    sso_default_org_id: str = ""
+    api_public_url: str = "http://localhost:8000"
+    sso_host_frontend_url: str = "http://localhost:5173"
+    sso_admin_frontend_url: str = "http://localhost:5176"
+    sso_participant_frontend_url: str = "http://localhost:5174"
+
+    # AI（OpenAI-compatible）
+    ai_model: str = "gpt-4o-mini"
+    ai_base_url: str = "https://api.openai.com/v1"
+
     # JWT（骨架；完整簽發於任務 2）
     jwt_secret: str = "change-me-in-production"
     jwt_algorithm: str = "HS256"

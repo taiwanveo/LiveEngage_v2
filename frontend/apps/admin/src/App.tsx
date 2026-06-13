@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { useEffect, useState } from "react";
-import { getAccessToken, clearAccessToken } from "./lib/auth";
+import { hasValidSession, clearAccessToken } from "./lib/auth";
 import { LoginPage } from "./pages/LoginPage";
 import { DashboardPage } from "./pages/DashboardPage";
 import { OrganizationPage } from "./pages/OrganizationPage";
@@ -10,6 +10,7 @@ import { SessionsPage } from "./pages/SessionsPage";
 import { AuditPage } from "./pages/AuditPage";
 import { BrandingPage } from "./pages/BrandingPage";
 import { ExportsPage } from "./pages/ExportsPage";
+import { SsoCallbackPage, parseSsoCallbackHash } from "./pages/SsoCallbackPage";
 import type { AdminRoute } from "./lib/nav";
 
 type Route = { name: AdminRoute } | { name: "login" };
@@ -38,7 +39,7 @@ function parseHash(): Route {
 
 export function App(): React.JSX.Element {
   const [route, setRoute] = useState<Route>(parseHash());
-  const [authed, setAuthed] = useState<boolean>(Boolean(getAccessToken()));
+  const [authed, setAuthed] = useState<boolean>(hasValidSession());
 
   useEffect(() => {
     const onHashChange = (): void => setRoute(parseHash());
@@ -51,6 +52,17 @@ export function App(): React.JSX.Element {
     setAuthed(false);
     window.location.hash = "";
   };
+
+  const ssoCallback = parseSsoCallbackHash();
+  if (ssoCallback) {
+    return (
+      <SsoCallbackPage
+        ticket={ssoCallback.ticket}
+        returnTo={ssoCallback.returnTo}
+        onLoggedIn={() => setAuthed(true)}
+      />
+    );
+  }
 
   if (!authed) {
     return (

@@ -1,6 +1,6 @@
 /** 主題識別與中繼資料。 */
 
-export type ThemeId = "light" | "dark" | "cursor" | "claude";
+export type ThemeId = "light" | "dark" | "cursor" | "claude" | "slido";
 
 export interface ThemeMeta {
   id: ThemeId;
@@ -11,6 +11,12 @@ export interface ThemeMeta {
 }
 
 export const THEMES: ThemeMeta[] = [
+  {
+    id: "slido",
+    label: "Slido",
+    description: "白底深綠、簡潔控場（預設）",
+    preview: { bg: "#f5f5f5", accent: "#0b6623" },
+  },
   {
     id: "light",
     label: "專業淺色",
@@ -39,7 +45,7 @@ export const THEMES: ThemeMeta[] = [
 
 export const THEME_STORAGE_KEY = "liveengage-theme";
 
-export const DEFAULT_THEME: ThemeId = "light";
+export const DEFAULT_THEME: ThemeId = "slido";
 
 export function isThemeId(value: string): value is ThemeId {
   return THEMES.some((t) => t.id === value);

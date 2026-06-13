@@ -11,9 +11,11 @@ import { PollHubPage } from "./pages/PollHubPage";
 import { PollRenderersDemoPage } from "./pages/PollRenderersDemoPage";
 import { PresentPage } from "./pages/PresentPage";
 import { SessionsDashboardPage } from "./pages/SessionsDashboardPage";
+import { SsoCallbackPage, parseSsoCallbackHash } from "./pages/SsoCallbackPage";
+import { SessionWorkbenchPage } from "./pages/SessionWorkbenchPage";
 import { Sprint9ConsolePage } from "./pages/Sprint9ConsolePage";
 import { Sprint9HubPage } from "./pages/Sprint9HubPage";
-import { getAccessToken, clearAccessToken } from "./lib/auth";
+import { hasValidSession, clearAccessToken } from "./lib/auth";
 
 type Route =
   | { name: "login" }
@@ -26,6 +28,7 @@ type Route =
   | { name: "poll-answer"; roomId: string; pollId: string }
   | { name: "poll-present"; roomId: string; pollId: string }
   | { name: "sprint9"; roomId: string }
+  | { name: "workbench"; roomId: string; pollId?: string | undefined }
   | { name: "sprint9-console"; roomId: string; interactionId: string };
 
 function parseHash(): Route {
@@ -41,6 +44,9 @@ function parseHash(): Route {
 
   if (parts[0] === "rooms" && parts[1]) {
     const roomId = parts[1];
+    if (parts[2] === "workbench") {
+      return { name: "workbench", roomId, pollId: parts[3] };
+    }
     if (parts[2] === "moderation") {
       return { name: "moderation", roomId };
     }
@@ -72,7 +78,7 @@ function parseHash(): Route {
 
 export function App(): React.JSX.Element {
   const [route, setRoute] = useState<Route>(parseHash());
-  const [authed, setAuthed] = useState<boolean>(Boolean(getAccessToken()));
+  const [authed, setAuthed] = useState<boolean>(hasValidSession());
 
   useEffect(() => {
     const onHashChange = (): void => setRoute(parseHash());
@@ -85,6 +91,17 @@ export function App(): React.JSX.Element {
     setAuthed(false);
     window.location.hash = "";
   };
+
+  const ssoCallback = parseSsoCallbackHash();
+  if (ssoCallback) {
+    return (
+      <SsoCallbackPage
+        ticket={ssoCallback.ticket}
+        returnTo={ssoCallback.returnTo}
+        onLoggedIn={() => setAuthed(true)}
+      />
+    );
+  }
 
   if (route.name === "poll-renderers-demo") {
     return (
@@ -114,6 +131,14 @@ export function App(): React.JSX.Element {
   switch (route.name) {
     case "dashboard":
       return <SessionsDashboardPage onLogout={logout} />;
+    case "workbench":
+      return (
+        <SessionWorkbenchPage
+          roomId={route.roomId}
+          pollId={route.pollId}
+          onLogout={logout}
+        />
+      );
     case "polls":
       return <PollHubPage roomId={route.roomId} onLogout={logout} />;
     case "poll-builder":

@@ -1,8 +1,8 @@
 import * as React from "react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { AuthCard } from "@liveengage/ui";
-import { login } from "../lib/authApi";
-import { setAccessToken } from "../lib/auth";
+import { fetchSsoConfig, login, ssoAuthorizeUrl } from "../lib/authApi";
+import { setAuthTokens } from "../lib/auth";
 import { ApiException } from "../lib/api";
 
 interface Props {
@@ -14,6 +14,17 @@ export function LoginPage({ onLoggedIn }: Props): React.JSX.Element {
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [ssoEnabled, setSsoEnabled] = useState(false);
+  const [ssoLabel, setSsoLabel] = useState("使用 SSO 登入");
+
+  useEffect(() => {
+    void fetchSsoConfig()
+      .then((cfg) => {
+        setSsoEnabled(cfg.enabled);
+        setSsoLabel(cfg.label);
+      })
+      .catch(() => setSsoEnabled(false));
+  }, []);
 
   async function onSubmit(e: React.FormEvent): Promise<void> {
     e.preventDefault();
@@ -21,7 +32,7 @@ export function LoginPage({ onLoggedIn }: Props): React.JSX.Element {
     setLoading(true);
     try {
       const res = await login(email, password);
-      setAccessToken(res.access_token);
+      setAuthTokens(res.access_token, res.refresh_token);
       onLoggedIn();
     } catch (err) {
       if (err instanceof ApiException) {
@@ -77,6 +88,17 @@ export function LoginPage({ onLoggedIn }: Props): React.JSX.Element {
         <button type="submit" disabled={loading} className="le-btn-primary w-full">
           {loading ? "登入中…（signing in）" : "登入（sign in）"}
         </button>
+
+        {ssoEnabled ? (
+          <>
+            <div className="relative py-1 text-center text-xs text-muted">
+              <span className="bg-surface-elevated px-2">或</span>
+            </div>
+            <a href={ssoAuthorizeUrl("host")} className="le-btn-secondary w-full">
+              {ssoLabel}
+            </a>
+          </>
+        ) : null}
       </form>
     </AuthCard>
   );

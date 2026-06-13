@@ -9,8 +9,8 @@
         try {
           var k = "liveengage-theme";
           var t = localStorage.getItem(k);
-          var ok = ["light", "dark", "cursor", "claude"];
-          if (!t || ok.indexOf(t) < 0) t = "dark";
+          var ok = ["slido", "light", "dark", "cursor", "claude"];
+          if (!t || ok.indexOf(t) < 0) t = "slido";
           document.documentElement.setAttribute("data-theme", t);
         } catch (e) {}
       })();

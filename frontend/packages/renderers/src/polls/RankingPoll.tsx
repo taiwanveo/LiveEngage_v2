@@ -5,7 +5,7 @@ import { ResultBars } from "../present/ResultBars";
 import { ResultBarChart } from "../present/ResultBarChart";
 import { SubmitFooter } from "../SubmitFooter";
 import type { PollRendererProps } from "../types";
-import { canAnswer, readNumber } from "../utils";
+import { canAnswer, readNumber, shouldShowParticipantResults } from "../utils";
 
 export function RankingPoll({
   mode,
@@ -47,7 +47,8 @@ export function RankingPoll({
 
   const showResults =
     mode === "present" ||
-    (mode === "answer" && poll.result_visible && results?.option_counts);
+    (mode === "answer" &&
+      shouldShowParticipantResults(poll, results?.option_counts != null));
 
   return (
     <PollShell
