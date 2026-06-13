@@ -9,8 +9,8 @@
 ### 專案基本資訊
 - **Repo**：https://github.com/ColdRighter/LiveEngage.git（`master`）
 - **本地路徑**：`c:\Vibe_Coidng_Local\LiveEngage`
-- **最新 commit（已 push）**：待 push — Present app + S7-1 Admin 骨架
-- **GitHub**：`origin/master` 同步至 P-fix-1
+- **最新 commit（已 push）**：`5eea6bb` Present app + S7-1 Admin 骨架
+- **GitHub**：`origin/master` 同步至 Present + S7-1
 - **資料庫**：Neon Postgres（`taiwanveo@gmail.com` 帳號專案，`ap-southeast-1`）
 - **Redis**：Upstash 雲端（`LE_REDIS_URL=rediss://default:<token>@sweeping-gecko-35121.upstash.io:6379`）
 - **Neon MCP**：`project-0-LiveEngage-neon` 已授權（org: TAIWANVEO，project: LiveEngage `damp-tooth-60940518`）
@@ -41,8 +41,8 @@
 | P-1~P-3 | Participant app（join + Poll 作答 E2E） | ✅ pushed `8425411` |
 | P-4/P-WS-1 | WS 即時推送，取代 REST 輪詢 | ✅ pushed `51643a0` |
 | P-fix-1 | ModerationPage 繁中還原 | ✅ pushed `94288a5` |
-| Present app | 獨立投影端（mode=present WS） | ✅ 本回合 |
-| S7-1 | Admin 管理後台骨架 | ✅ 本回合 |
+| Present app | 獨立投影端（mode=present WS） | ✅ pushed `5eea6bb` |
+| S7-1 | Admin 管理後台骨架 | ✅ pushed `5eea6bb` |
 
 ### API 端點（已實作）
 | Method | Path | 說明 |
@@ -123,7 +123,7 @@
 
 ## HISTORY
 
-### 2026-06-13 — Present app + S7-1 Admin 骨架
+### 2026-06-13 — Present app + S7-1 Admin 骨架（commit `5eea6bb`）
 
 **`frontend/apps/present`**（dev port **5175**）
 - Vite + React 19 + TS strict + Tailwind；alias `@liveengage/renderers`、`@liveengage/realtime`
