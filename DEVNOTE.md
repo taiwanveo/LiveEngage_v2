@@ -9,7 +9,7 @@
 ### 專案基本資訊
 - **Repo**：https://github.com/ColdRighter/LiveEngage.git（`master`）
 - **本地路徑**：`c:\Vibe_Coidng_Local\LiveEngage`
-- **最新 commit（已 push）**：`e043c82` S6-2/S6-3 Poll Host UI + Present + Recharts
+- **最新 commit（已 push）**：`8425411` P-1~P-3 Participant app
 - **GitHub**：`origin/master` 同步至 S5-3
 - **資料庫**：Neon Postgres（`taiwanveo@gmail.com` 帳號專案，`ap-southeast-1`）
 - **Redis**：Upstash 雲端（`LE_REDIS_URL=rediss://default:<token>@sweeping-gecko-35121.upstash.io:6379`）
@@ -38,7 +38,7 @@
 | S6-1 | renderers 核心（3 mode） | ✅ pushed `7fbbc8b` |
 | S6-2 | Host Builder + 控制台 UI | ✅ pushed `e043c82` |
 | S6-3 | Present 控制列 + Recharts | ✅ pushed `e043c82` |
-| P-1~P-3 | Participant app（join + Poll 作答 E2E） | ✅ 本地完成（待 push） |
+| P-1~P-3 | Participant app（join + Poll 作答 E2E） | ✅ pushed `8425411` |
 
 ### API 端點（已實作）
 | Method | Path | 說明 |
