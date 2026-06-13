@@ -7,7 +7,7 @@
 ## SNAPSHOT（2026-06-13）
 
 - **Repo**：https://github.com/ColdRighter/LiveEngage.git（master）
-- **最新 commit**：（待 push）UI 設計系統 + 四主題切換
+- **最新 commit**：d6a0499 UI 設計系統 + 四主題切換
 - **pytest**：63+ passed（含 `test_s9_phase_d`）
 - **Zeabur**：**六服務** — api / host / participant / present / admin / **worker**
 
