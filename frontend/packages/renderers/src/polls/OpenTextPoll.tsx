@@ -1,0 +1,88 @@
+import * as React from "react";
+import { useState } from "react";
+import { PollShell } from "../PollShell";
+import { OpenTextList } from "../present/OpenTextList";
+import { SubmitFooter } from "../SubmitFooter";
+import type { PollRendererProps } from "../types";
+import { canAnswer, readBool, readNumber } from "../utils";
+
+export function OpenTextPoll({
+  mode,
+  poll,
+  results,
+  onSubmit,
+  submitting = false,
+  submitError,
+}: PollRendererProps): React.JSX.Element {
+  const settings = poll.settings_public;
+  const maxLength = readNumber(settings, "max_length", 200);
+  const multiline = readBool(settings, "multiline");
+  const allowMultiple = readBool(settings, "allow_multiple");
+  const interactive = mode === "answer";
+  const answerable =
+    interactive && canAnswer(poll.status, poll.my_submitted, allowMultiple);
+
+  const [text, setText] = useState("");
+
+  const handleSubmit = (): void => {
+    const trimmed = text.trim();
+    if (!onSubmit || !trimmed) return;
+    onSubmit({ text: trimmed });
+    setText("");
+  };
+
+  const showResults =
+    mode === "present" ||
+    (mode === "answer" && poll.result_visible && results?.entries);
+
+  return (
+    <PollShell
+      mode={mode}
+      status={poll.status}
+      title={poll.title}
+      description={poll.description}
+      footer={
+        interactive && answerable ? (
+          <SubmitFooter
+            onSubmit={handleSubmit}
+            submitting={submitting}
+            disabled={text.trim().length === 0}
+            submitError={submitError}
+          />
+        ) : undefined
+      }
+    >
+      {showResults && results?.entries ? (
+        <OpenTextList entries={results.entries} large={mode === "present"} />
+      ) : mode === "preview" ? (
+        multiline ? (
+          <div className="h-24 rounded-lg border border-dashed border-slate-300 bg-slate-50" />
+        ) : (
+          <div className="h-10 rounded-lg border border-dashed border-slate-300 bg-slate-50" />
+        )
+      ) : interactive && answerable ? (
+        multiline ? (
+          <textarea
+            value={text}
+            maxLength={maxLength}
+            onChange={(e) => setText(e.target.value)}
+            rows={4}
+            placeholder="輸入您的回答…"
+            className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+          />
+        ) : (
+          <input
+            type="text"
+            value={text}
+            maxLength={maxLength}
+            onChange={(e) => setText(e.target.value)}
+            placeholder="輸入您的回答…"
+            className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+          />
+        )
+      ) : (
+        <p className="text-sm text-slate-500">目前無法作答</p>
+      )}
+    </PollShell>
+  );
+}

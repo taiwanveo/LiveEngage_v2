@@ -14,18 +14,7 @@
     "noUnusedParameters": true,
     "skipLibCheck": true,
     "isolatedModules": true,
-    "verbatimModuleSyntax": false,
-    "esModuleInterop": true,
-    "resolveJsonModule": true,
-    "forceConsistentCasingInFileNames": true,
-    "useDefineForClassFields": true,
-    "allowImportingTsExtensions": false,
-    "noEmit": true,
-    "baseUrl": ".",
-    "paths": {
-      "@liveengage/renderers": ["../../packages/renderers/src/index.ts"],
-      "@liveengage/renderers/*": ["../../packages/renderers/src/*"]
-    }
+    "noEmit": true
   },
   "include": ["src"]
 }

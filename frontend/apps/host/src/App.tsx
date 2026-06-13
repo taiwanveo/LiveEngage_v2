@@ -4,13 +4,20 @@ import * as React from "react";
 import { useEffect, useState } from "react";
 import { LoginPage } from "./pages/LoginPage";
 import { ModerationPage } from "./pages/ModerationPage";
+import { PollRenderersDemoPage } from "./pages/PollRenderersDemoPage";
 import { getAccessToken, clearAccessToken } from "./lib/auth";
 
-type Route = { name: "login" } | { name: "moderation"; roomId: string };
+type Route =
+  | { name: "login" }
+  | { name: "moderation"; roomId: string }
+  | { name: "poll-renderers-demo" };
 
 function parseHash(): Route {
   const hash = window.location.hash.replace(/^#/, "");
   const parts = hash.split("/").filter(Boolean);
+  if (parts[0] === "poll-renderers-demo") {
+    return { name: "poll-renderers-demo" };
+  }
   if (parts[0] === "rooms" && parts[1] && parts[2] === "moderation") {
     return { name: "moderation", roomId: parts[1] };
   }
@@ -26,6 +33,16 @@ export function App(): React.JSX.Element {
     window.addEventListener("hashchange", onHashChange);
     return () => window.removeEventListener("hashchange", onHashChange);
   }, []);
+
+  if (route.name === "poll-renderers-demo") {
+    return (
+      <PollRenderersDemoPage
+        onBack={() => {
+          window.location.hash = authed ? "#/rooms/_/moderation" : "";
+        }}
+      />
+    );
+  }
 
   if (!authed || route.name === "login") {
     return (

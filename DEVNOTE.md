@@ -9,7 +9,7 @@
 ### 專案基本資訊
 - **Repo**：https://github.com/ColdRighter/LiveEngage.git（`master`）
 - **本地路徑**：`c:\Vibe_Coidng_Local\LiveEngage`
-- **最新 commit（已 push）**：`1365be4` S5-4 四題型作答與聚合
+- **最新 commit（已 push）**：`1365be4` S5-4 四題型作答與聚合（S6-1 待 push）
 - **GitHub**：`origin/master` 同步至 S5-3
 - **資料庫**：Neon Postgres（`taiwanveo@gmail.com` 帳號專案，`ap-southeast-1`）
 - **Redis**：Upstash 雲端（`LE_REDIS_URL=rediss://default:<token>@sweeping-gecko-35121.upstash.io:6379`）
@@ -35,7 +35,8 @@
 | S5-2 | Poll Service + 狀態機 + Redis 分散式鎖 | ✅ pushed `11fcef5` |
 | S5-3 | Poll REST API + multiple_choice 作答與結果 | ✅ pushed `31bc8f0` |
 | S5-4 | word_cloud / open_text / rating / ranking 作答與聚合 | ✅ pushed `1365be4` |
-| S6-1 | renderers 核心（3 mode） | 待開始 |
+| S6-1 | renderers 核心（3 mode） | ✅ 本地完成（待 push） |
+| S6-2 | Host Builder + 控制台 UI | 待開始 |
 
 ### API 端點（已實作）
 | Method | Path | 說明 |
@@ -66,7 +67,8 @@
 ### 前端
 | App | 路徑 | 狀態 |
 |-----|------|------|
-| Host | `frontend/apps/host`（Vite + React 19 + TS strict + Tailwind） | ✅ PM-002 三欄審核 UI（pending / approved / answered）、登入頁；`npm install && npm run build` 通過 |
+| Host | `frontend/apps/host`（Vite + React 19 + TS strict + Tailwind） | ✅ PM-002 審核 UI；S6-1 `#/poll-renderers-demo` 展示 Poll renderers |
+| `@liveengage/renderers` | `frontend/packages/renderers` | ✅ S6-1：`PollRenderer` 五題型 × 三 mode（answer/present/preview） |
 | Participant / Present / Admin | — | 尚未建立 |
 
 ---
@@ -90,7 +92,7 @@
 - ✅ upvote rate limit 30/min
 
 ### 仍待補（後續 Sprint）
-- S6-1~S6-3：WebSocket events、前端 Poll UI（FE-006~010）、整合測試
+- S6-2~S6-3：Host Poll Builder / 控制台、Present 控制列 + Recharts 圖表
 - Sprint 7–8：管理後台
 - Sprint 9+：Quiz / Survey / Ideas / AI / Integrations / Admin
 - 相似問題偵測、Question AI、participant 互相回覆、label CRUD
@@ -101,6 +103,24 @@
 ---
 
 ## HISTORY
+
+### 2026-06-13 — S6-1：Poll renderers 核心（3 mode）
+
+**`frontend/packages/renderers`**
+- **`PollRenderer`**：依 `poll.type` 分派五題型元件
+- **Mode**：`answer`（作答 + onSubmit）、`present`（投影深色殼 + 結果視覺化）、`preview`（Builder 靜態預覽）
+- **題型**：multiple_choice、word_cloud、open_text、rating、ranking
+- **呈現**：`PollShell`、`ResultBars`（CSS 長條，非 Recharts）、`WordCloudDisplay`、`RatingDisplay`、`OpenTextList`
+- **型別**：對齊 `backend/app/schemas/poll.py`（`PollDetail`、`PollResults`）
+
+**Host 整合**
+- Vite alias `@liveengage/renderers`、Tailwind content 掃描 renderers
+- Demo 路由：`#/poll-renderers-demo`（免登入，mock 資料切換題型/mode）
+
+**品質**
+- renderers `npm run typecheck` ✅ · host `npm run build` ✅
+
+---
 
 ### 2026-06-13 — S5-4：四題型作答與聚合（FE-007~010）
 
