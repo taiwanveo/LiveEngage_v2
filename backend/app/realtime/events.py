@@ -22,8 +22,18 @@ QUESTION_DOWNVOTED = "question_downvoted"
 QUESTION_HIGHLIGHTED = "question_highlighted"
 QUESTION_ANSWERED = "question_answered"
 
+# Poll 事件型別（SDS §6.3；Sprint 5–6）
+POLL_STARTED = "poll_started"
+POLL_STOPPED = "poll_stopped"
+POLL_LOCKED = "poll_locked"
+POLL_UNLOCKED = "poll_unlocked"
+POLL_RESULT_REVEALED = "poll_result_revealed"
+POLL_RESULT_HIDDEN = "poll_result_hidden"
+POLL_RESPONSE_SUBMITTED = "poll_response_submitted"
+
 # 接收端 mode 集合
 MODE_HOST = {"host"}
+MODE_PRESENT_HOST = {"present", "host"}
 MODE_ALL = {"participant", "present", "host"}
 
 
