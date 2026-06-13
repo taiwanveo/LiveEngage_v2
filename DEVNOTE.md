@@ -7,7 +7,7 @@
 ## SNAPSHOT（2026-06-13）
 
 - **Repo**：https://github.com/ColdRighter/LiveEngage.git（master）
-- **最新 commit**：（本輪）修正 `VITE_API_BASE` 未內嵌導致 admin 登入 HTTP 405
+- **最新 commit**：70732de 修正 `VITE_API_BASE` 未內嵌（admin 登入 HTTP 405）
 - **pytest**：50 passed（本地；未重跑）
 - **Zeabur 專案**：[liveengage](https://zeabur.com/projects/6a2d1bc82871baed5fc633ef?envID=6a2d1bc9cf558888ca4bc9da)
 - **Zeabur MCP**：可用（user-zeabur）
