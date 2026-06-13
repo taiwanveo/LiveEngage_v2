@@ -9,8 +9,8 @@
 ### 專案基本資訊
 - **Repo**：https://github.com/ColdRighter/LiveEngage.git（`master`）
 - **本地路徑**：`c:\Vibe_Coidng_Local\LiveEngage`
-- **最新 commit（已 push）**：`8425411` P-1~P-3 Participant app
-- **GitHub**：`origin/master` 同步至 S5-3
+- **最新 commit（已 push）**：`51643a0` P-4/P-WS-1 WS 即時推送
+- **GitHub**：`origin/master` 同步至 P-4/P-WS-1
 - **資料庫**：Neon Postgres（`taiwanveo@gmail.com` 帳號專案，`ap-southeast-1`）
 - **Redis**：Upstash 雲端（`LE_REDIS_URL=rediss://default:<token>@sweeping-gecko-35121.upstash.io:6379`）
 - **Neon MCP**：`project-0-LiveEngage-neon` 已授權（org: TAIWANVEO，project: LiveEngage `damp-tooth-60940518`）
@@ -39,6 +39,7 @@
 | S6-2 | Host Builder + 控制台 UI | ✅ pushed `e043c82` |
 | S6-3 | Present 控制列 + Recharts | ✅ pushed `e043c82` |
 | P-1~P-3 | Participant app（join + Poll 作答 E2E） | ✅ pushed `8425411` |
+| P-4/P-WS-1 | WS 即時推送，取代 REST 輪詢 | ✅ pushed `51643a0` |
 
 ### API 端點（已實作）
 | Method | Path | 說明 |
@@ -70,9 +71,10 @@
 ### 前端
 | App | 路徑 | 狀態 |
 |-----|------|------|
-| Host | `frontend/apps/host` | ✅ Q&A 審核 + Poll Hub/Builder/Console/Present/Answer 路由 |
+| Host | `frontend/apps/host` | ✅ Q&A 審核 + Poll Hub/Builder/Console/Present/Answer 路由；**WS mode=host** |
 | `@liveengage/renderers` | `frontend/packages/renderers` | ✅ 五題型三 mode + Recharts 投影圖表（S6-3） |
-| Participant | `frontend/apps/participant`（port **5174**） | ✅ P-1~P-3：`#/join/{code}` → `#/room` Poll 作答 E2E |
+| `@liveengage/realtime` | `frontend/packages/realtime` | ✅ `useRoomWebSocket` hook（P-4/P-WS-1）：自動重連、replay、ping/pong |
+| Participant | `frontend/apps/participant`（port **5174**） | ✅ P-1~P-3 E2E + **P-4 WS mode=participant** 即時 Poll 推播 |
 | Present / Admin | — | 尚未建立 |
 
 ---
@@ -96,7 +98,6 @@
 - ✅ upvote rate limit 30/min
 
 ### 仍待補（後續 Sprint）
-- **P-4 / P-WS-1**：`packages/realtime` + Host Console/Present/Participant 改 WS（取代 3s 輪詢）
 - **P-fix-1**：ModerationPage 繁中編碼還原（`???`）
 - Present 獨立 app
 - Sprint 7–8：管理後台
@@ -105,6 +106,33 @@
 ---
 
 ## HISTORY
+
+### 2026-06-13 — P-4/P-WS-1：WS 即時推送，取代 REST 輪詢（commit `51643a0`）
+
+**新增 `frontend/packages/realtime`**（`@liveengage/realtime`）
+- **`useRoomWebSocket(options)`** React hook
+  - 自動重連：指數退讓 1 s → 最大 30 s；`intentionalClose` flag 防 unmount 重連
+  - `last_event_id` 追蹤：斷線重連帶入 query param，由後端補送 Redis Stream 遺漏事件
+  - ping/pong：收到 `{type:"ping"}` 自動回傳純文字 `"pong"`
+  - 回傳 `{ connected: boolean }` 供 UI 顯示連線指示燈
+- **`WsEvent` 型別**、`WsMode` union、`POLL_*` 事件常數（對齊 `backend/app/realtime/events.py`）
+
+**Host app**
+- `PollConsolePage`：`useRoomWebSocket(mode="host")`，Poll 事件立即 `invalidateQueries`；`refetchInterval` 降至 30s（安全備援）；標題列新增連線指示燈
+- `PresentPage`：同上策略；投影右上角指示燈 + 「輪詢備援中」提示
+
+**Participant app**
+- `RoomPage`：`useRoomWebSocket(mode="participant")`，按事件類型精確 invalidate：
+  - `poll_started / poll_stopped` → 先刷新 `session-state`（active_interactions 清單）
+  - `poll_locked / poll_unlocked` → 刷新 `poll`
+  - `poll_result_revealed / poll_result_hidden` → 刷新 `poll` + `poll-results`
+  - `poll_response_submitted` → 刷新 `poll-results`（Host 廣播聚合計數）
+- 標頭新增綠色連線指示燈
+
+**品質**
+- `tsc -b --noEmit` ✅（realtime / host / participant 三套件均零錯誤）
+
+---
 
 ### 2026-06-13 — P-1~P-3：Participant app（join + Poll 作答 E2E）
 
