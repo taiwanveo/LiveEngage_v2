@@ -63,3 +63,24 @@ class InteractionStatus(StrEnum):
     ACTIVE = "active"
     LOCKED = "locked"
     STOPPED = "stopped"
+
+
+class QuestionStatus(StrEnum):
+    """questions.status — Q&A 狀態機（FE-004-FR9）。
+
+    pending → approved | dismissed；approved → answered | archived；
+    dismissed 為終態（Host 可還原至 pending）。
+    """
+
+    PENDING = "pending"
+    APPROVED = "approved"
+    DISMISSED = "dismissed"
+    ANSWERED = "answered"
+    ARCHIVED = "archived"
+
+
+class ReplyAuthorType(StrEnum):
+    """question_replies.author_type"""
+
+    HOST = "host"
+    PARTICIPANT = "participant"

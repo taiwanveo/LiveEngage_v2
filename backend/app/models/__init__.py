@@ -11,6 +11,12 @@ from app.models.base import Base
 from app.models.interaction import Interaction
 from app.models.organization import Organization
 from app.models.participant import Participant
+from app.models.question import (
+    Question,
+    QuestionLabel,
+    QuestionReply,
+    QuestionVote,
+)
 from app.models.room import Room
 from app.models.session import Session
 from app.models.user import User
@@ -20,6 +26,10 @@ __all__ = [
     "Interaction",
     "Organization",
     "Participant",
+    "Question",
+    "QuestionLabel",
+    "QuestionReply",
+    "QuestionVote",
     "Room",
     "Session",
     "User",

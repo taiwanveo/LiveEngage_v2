@@ -61,6 +61,18 @@ async def get_participant_claims(
     return decode_participant_token(credentials.credentials)
 
 
+async def get_optional_participant_claims(
+    credentials: Annotated[HTTPAuthorizationCredentials | None, Depends(bearer_scheme)],
+) -> ParticipantTokenClaims | None:
+    """選填 participant token；缺少或無效時回 None（供公開列表計算本人投票）。"""
+    if credentials is None or credentials.scheme.lower() != "bearer":
+        return None
+    try:
+        return decode_participant_token(credentials.credentials)
+    except AppError:
+        return None
+
+
 def require_role(min_role: UserRole) -> Callable[..., object]:
     """要求 JWT 角色 >= min_role。"""
 

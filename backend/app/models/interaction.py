@@ -10,7 +10,7 @@ import datetime as dt
 import uuid
 from typing import Any
 
-from sqlalchemy import Boolean, ForeignKey, Index, Integer, String, Text
+from sqlalchemy import Boolean, DateTime, ForeignKey, Index, Integer, String, Text
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.dialects.postgresql import UUID as PgUUID
 from sqlalchemy.orm import Mapped, mapped_column
@@ -48,8 +48,12 @@ class Interaction(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     result_visible: Mapped[bool] = mapped_column(
         Boolean, nullable=False, default=True
     )
-    started_at: Mapped[dt.datetime | None] = mapped_column(nullable=True)
-    stopped_at: Mapped[dt.datetime | None] = mapped_column(nullable=True)
+    started_at: Mapped[dt.datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    stopped_at: Mapped[dt.datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
     created_by: Mapped[uuid.UUID | None] = mapped_column(
         PgUUID(as_uuid=True),
         ForeignKey("users.id", ondelete="SET NULL"),
