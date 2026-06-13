@@ -88,10 +88,7 @@ export function LoginPage({ onLoggedIn }: Props): React.JSX.Element {
         </button>
 
         <p className="text-center text-xs text-slate-500">
-          登入後請開啟投影網址，例如{" "}
-          <code className="rounded bg-slate-800 px-1">
-            #/rooms/&lt;roomId&gt;/polls/&lt;pollId&gt;/present
-          </code>
+          登入後選擇活動與 Poll 即可投影到大螢幕。
         </p>
       </form>
     </main>

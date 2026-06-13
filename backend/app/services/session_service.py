@@ -116,7 +116,7 @@ async def create_session(
             await db.rollback()
             continue
         await db.refresh(session)
-        return _to_host_response(session)
+        return await _to_host_response(db, session)
 
     raise AppError(ErrorCode.INTERNAL, "無法產生活動代碼，請重試")
 
@@ -148,7 +148,38 @@ async def update_session(
 
     await db.commit()
     await db.refresh(session)
-    return _to_host_response(session)
+    return await _to_host_response(db, session)
+
+
+async def list_host_sessions(
+    db: AsyncSession,
+    *,
+    host: User,
+) -> list[SessionHostResponse]:
+    """主持人自己的活動列表（依建立時間新到舊）。"""
+    result = await db.execute(
+        select(Session)
+        .where(Session.host_user_id == host.id)
+        .order_by(Session.created_at.desc())
+    )
+    sessions = result.scalars().all()
+    out: list[SessionHostResponse] = []
+    for session in sessions:
+        out.append(await _to_host_response(db, session))
+    return out
+
+
+async def get_host_session(
+    db: AsyncSession,
+    *,
+    session_id: uuid.UUID,
+    host: User,
+) -> SessionHostResponse:
+    """取得單一活動（需為主持人）。"""
+    session = await _get_session_or_404(db, session_id)
+    if session.host_user_id != host.id:
+        raise AppError(ErrorCode.FORBIDDEN, "無權限檢視此活動")
+    return await _to_host_response(db, session)
 
 
 async def resolve_session_by_code(db: AsyncSession, code: str) -> SessionPublicResponse:
@@ -305,7 +336,15 @@ async def ensure_host_seed(
     return user
 
 
-def _to_host_response(session: Session) -> SessionHostResponse:
+async def _to_host_response(
+    db: AsyncSession, session: Session
+) -> SessionHostResponse:
+    room_id: uuid.UUID | None = None
+    try:
+        room = await _get_default_room(db, session.id)
+        room_id = room.id
+    except AppError:
+        room_id = None
     return SessionHostResponse(
         id=session.id,
         org_id=session.org_id,
@@ -314,6 +353,7 @@ def _to_host_response(session: Session) -> SessionHostResponse:
         status=session.status,
         visibility=session.visibility,
         settings=_parse_settings(session.settings_jsonb),
+        default_room_id=room_id,
         created_at=session.created_at,
         updated_at=session.updated_at,
     )

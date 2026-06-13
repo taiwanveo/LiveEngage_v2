@@ -59,8 +59,13 @@ class SessionHostResponse(BaseModel):
     status: SessionStatus
     visibility: SessionVisibility
     settings: SessionSettings
+    default_room_id: uuid.UUID | None = None
     created_at: dt.datetime
     updated_at: dt.datetime
+
+
+class SessionHostListResponse(BaseModel):
+    items: list[SessionHostResponse] = Field(default_factory=list)
 
 
 class JoinRequest(BaseModel):

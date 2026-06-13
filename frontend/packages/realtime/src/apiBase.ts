@@ -1,3 +1,5 @@
+/// <reference path="./vite-env.d.ts" />
+
 /** 生產環境 API / WebSocket 基底（Vite `VITE_API_BASE`）。 */
 
 function normalizeBase(raw: string | undefined): string {
@@ -6,7 +8,6 @@ function normalizeBase(raw: string | undefined): string {
 }
 
 function readViteApiBase(): string | undefined {
-  // 須直接讀取，Vite 才能在 build 時靜態替換 env
   return import.meta.env.VITE_API_BASE;
 }
 

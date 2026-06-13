@@ -15,6 +15,7 @@ from app.schemas.session import (
     JoinRequest,
     JoinResponse,
     SessionCreateRequest,
+    SessionHostListResponse,
     SessionHostResponse,
     SessionPublicResponse,
     SessionUpdateRequest,
@@ -23,6 +24,37 @@ from app.schemas.state import SessionStateResponse
 from app.services import session_service, state_service
 
 router = APIRouter(prefix="/sessions", tags=["sessions"])
+
+
+@router.get("", response_model=SessionHostListResponse)
+async def list_sessions(
+    db: Annotated[AsyncSession, Depends(get_session)],
+    host: Annotated[User, Depends(get_current_user)],
+) -> SessionHostListResponse:
+    """主持人活動列表。"""
+    items = await session_service.list_host_sessions(db, host=host)
+    return SessionHostListResponse(items=items)
+
+
+@router.get("/by-code/{code}", response_model=SessionPublicResponse)
+async def get_session_by_code(
+    code: str,
+    db: Annotated[AsyncSession, Depends(get_session)],
+) -> SessionPublicResponse:
+    """依活動代碼解析（FE-001-FR1）。"""
+    return await session_service.resolve_session_by_code(db, code)
+
+
+@router.get("/{session_id}", response_model=SessionHostResponse)
+async def read_session(
+    session_id: uuid.UUID,
+    db: Annotated[AsyncSession, Depends(get_session)],
+    host: Annotated[User, Depends(get_current_user)],
+) -> SessionHostResponse:
+    """取得單一活動（含 default_room_id）。"""
+    return await session_service.get_host_session(
+        db, session_id=session_id, host=host
+    )
 
 
 @router.post("", response_model=SessionHostResponse, status_code=201)
@@ -46,15 +78,6 @@ async def update_session(
     return await session_service.update_session(
         db, session_id=session_id, host=host, payload=payload
     )
-
-
-@router.get("/by-code/{code}", response_model=SessionPublicResponse)
-async def get_session_by_code(
-    code: str,
-    db: Annotated[AsyncSession, Depends(get_session)],
-) -> SessionPublicResponse:
-    """依活動代碼解析（FE-001-FR1）。"""
-    return await session_service.resolve_session_by_code(db, code)
 
 
 @router.get("/{session_id}/state", response_model=SessionStateResponse)

@@ -10,10 +10,12 @@ import { PollConsolePage } from "./pages/PollConsolePage";
 import { PollHubPage } from "./pages/PollHubPage";
 import { PollRenderersDemoPage } from "./pages/PollRenderersDemoPage";
 import { PresentPage } from "./pages/PresentPage";
+import { SessionsDashboardPage } from "./pages/SessionsDashboardPage";
 import { getAccessToken, clearAccessToken } from "./lib/auth";
 
 type Route =
   | { name: "login" }
+  | { name: "dashboard" }
   | { name: "moderation"; roomId: string }
   | { name: "poll-renderers-demo" }
   | { name: "polls"; roomId: string }
@@ -24,6 +26,10 @@ type Route =
 
 function parseHash(): Route {
   const parts = window.location.hash.replace(/^#/, "").split("/").filter(Boolean);
+
+  if (parts.length === 0 || parts[0] === "dashboard") {
+    return { name: "dashboard" };
+  }
 
   if (parts[0] === "poll-renderers-demo") {
     return { name: "poll-renderers-demo" };
@@ -74,7 +80,7 @@ export function App(): React.JSX.Element {
     return (
       <PollRenderersDemoPage
         onBack={() => {
-          window.location.hash = authed ? "#/rooms/_/moderation" : "";
+          window.location.hash = authed ? "#/dashboard" : "";
         }}
       />
     );
@@ -89,15 +95,15 @@ export function App(): React.JSX.Element {
       <LoginPage
         onLoggedIn={() => {
           setAuthed(true);
-          if (route.name === "login") {
-            window.location.hash = "#/rooms/_/moderation";
-          }
+          window.location.hash = "#/dashboard";
         }}
       />
     );
   }
 
   switch (route.name) {
+    case "dashboard":
+      return <SessionsDashboardPage onLogout={logout} />;
     case "polls":
       return <PollHubPage roomId={route.roomId} onLogout={logout} />;
     case "poll-builder":
@@ -125,7 +131,8 @@ export function App(): React.JSX.Element {
         />
       );
     case "moderation":
-    default:
       return <ModerationPage roomId={route.roomId} onLogout={logout} />;
+    default:
+      return <SessionsDashboardPage onLogout={logout} />;
   }
 }

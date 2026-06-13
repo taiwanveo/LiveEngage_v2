@@ -15,6 +15,7 @@ import {
   type WsEvent,
 } from "@liveengage/realtime";
 import { PollRenderer } from "@liveengage/renderers";
+import { RoomQaPanel } from "../components/RoomQaPanel";
 import { ApiException } from "../lib/api";
 import {
   clearParticipantSession,
@@ -26,6 +27,7 @@ import { getSessionState } from "../lib/sessionApi";
 export function RoomPage(): React.JSX.Element {
   const ctx = getParticipantContext();
   const queryClient = useQueryClient();
+  const [tab, setTab] = useState<"poll" | "qa">("poll");
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [submitOk, setSubmitOk] = useState(false);
 
@@ -177,7 +179,38 @@ export function RoomPage(): React.JSX.Element {
         </div>
       </header>
 
+      <div className="mx-auto max-w-2xl border-b border-slate-200 bg-white px-4">
+        <nav className="flex gap-4">
+          <button
+            type="button"
+            onClick={() => setTab("poll")}
+            className={`border-b-2 py-3 text-sm font-medium ${
+              tab === "poll"
+                ? "border-primary-600 text-primary-700"
+                : "border-transparent text-slate-500 hover:text-slate-800"
+            }`}
+          >
+            投票（Poll）
+          </button>
+          <button
+            type="button"
+            onClick={() => setTab("qa")}
+            className={`border-b-2 py-3 text-sm font-medium ${
+              tab === "qa"
+                ? "border-primary-600 text-primary-700"
+                : "border-transparent text-slate-500 hover:text-slate-800"
+            }`}
+          >
+            問答（Q&amp;A）
+          </button>
+        </nav>
+      </div>
+
       <div className="mx-auto max-w-2xl px-4 py-6">
+        {tab === "qa" ? (
+          <RoomQaPanel roomId={ctx.roomId} />
+        ) : (
+          <>
         {submitOk ? (
           <p className="mb-4 rounded-lg bg-emerald-50 px-4 py-2 text-sm text-emerald-800">
             已提交，感謝參與！
@@ -211,6 +244,8 @@ export function RoomPage(): React.JSX.Element {
           />
         ) : (
           <p className="text-center text-sm text-slate-500">載入題目…</p>
+        )}
+          </>
         )}
       </div>
     </main>

@@ -5,7 +5,9 @@ COPY frontend ./frontend
 WORKDIR /src/frontend/apps/host
 
 ARG VITE_API_BASE=https://le-api.zeabur.app
+ARG VITE_PARTICIPANT_BASE=https://le-participant.zeabur.app
 ENV VITE_API_BASE=$VITE_API_BASE
+ENV VITE_PARTICIPANT_BASE=$VITE_PARTICIPANT_BASE
 
 RUN npm install --prefix ../../packages/renderers \
     && npm install --prefix ../../packages/realtime \

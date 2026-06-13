@@ -88,7 +88,7 @@ export function LoginPage({ onLoggedIn }: Props): React.JSX.Element {
         </button>
 
         <p className="text-xs text-slate-500 text-center">
-          登入後請於網址列輸入 <code>#/rooms/&lt;roomId&gt;/moderation</code> 進入審核頁。
+          登入後可建立活動、複製參與連結，並進入 Q&amp;A 審核或 Poll 控場。
         </p>
       </form>
     </main>

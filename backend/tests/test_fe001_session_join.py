@@ -75,6 +75,32 @@ def test_fe001_ac1_join_flow(client: TestClient, host_token: tuple[str, str]) ->
     assert body["display_name"] == "Alice"
 
 
+def test_host_list_sessions_includes_default_room(
+    client: TestClient, host_token: tuple[str, str]
+) -> None:
+    """Host 活動列表含 default_room_id。"""
+    token, _ = host_token
+    headers = {"Authorization": f"Bearer {token}"}
+
+    create = client.post(
+        "/api/v1/sessions",
+        headers=headers,
+        json={"title": "列表測試活動"},
+    )
+    assert create.status_code == 201
+    created = create.json()
+    assert created.get("default_room_id")
+
+    listing = client.get("/api/v1/sessions", headers=headers)
+    assert listing.status_code == 200
+    ids = {item["id"] for item in listing.json()["items"]}
+    assert created["id"] in ids
+
+    detail = client.get(f"/api/v1/sessions/{created['id']}", headers=headers)
+    assert detail.status_code == 200
+    assert detail.json()["default_room_id"] == created["default_room_id"]
+
+
 def test_fe001_ac4_require_name(client: TestClient, host_token: tuple[str, str]) -> None:
     """FE-001-AC4：require_name 未填回 VALIDATION_ERROR。"""
     token, _ = host_token

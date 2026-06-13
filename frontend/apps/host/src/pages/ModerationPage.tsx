@@ -324,10 +324,14 @@ function RoomPicker(props: { onLogout: () => void }): React.JSX.Element {
       <div className="bg-white rounded-2xl shadow-xl p-8 max-w-lg text-center space-y-4">
         <h2 className="text-xl font-semibold text-slate-900">請指定活動室（room）</h2>
         <p className="text-sm text-slate-600 text-left leading-relaxed">
-          登入後預設網址的{" "}
-          <code className="bg-slate-100 px-1 rounded font-mono text-xs">_</code>{" "}
-          只是佔位符，不是真正的 room ID。請將網址改成：
+          請從活動儀表板選擇活動，或將網址中的佔位符換成實際 room ID：
         </p>
+        <a
+          href="#/dashboard"
+          className="inline-block rounded-lg bg-primary-600 px-4 py-2 text-sm font-medium text-white hover:bg-primary-700"
+        >
+          前往活動儀表板
+        </a>
         <code className="block bg-slate-100 px-3 py-2 rounded text-xs font-mono text-slate-800 break-all">
           #/rooms/&lt;roomId&gt;/moderation
         </code>
