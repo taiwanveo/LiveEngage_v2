@@ -5,13 +5,10 @@ import { useEffect, useState } from "react";
 import { getAccessToken, clearAccessToken } from "./lib/auth";
 import { LoginPage } from "./pages/LoginPage";
 import { DashboardPage } from "./pages/DashboardPage";
-import {
-  OrganizationPage,
-  SessionsPage,
-  AuditPage,
-  BrandingPage,
-  ExportsPage,
-} from "./pages/AdminPages";
+import { OrganizationPage } from "./pages/OrganizationPage";
+import { SessionsPage } from "./pages/SessionsPage";
+import { AuditPage } from "./pages/AuditPage";
+import { BrandingPage, ExportsPage } from "./pages/AdminPages";
 import type { AdminRoute } from "./lib/nav";
 
 type Route = { name: AdminRoute } | { name: "login" };
