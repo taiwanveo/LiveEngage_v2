@@ -9,7 +9,7 @@
 ### 專案基本資訊
 - **Repo**：https://github.com/ColdRighter/LiveEngage.git（`master`）
 - **本地路徑**：`c:\Vibe_Coidng_Local\LiveEngage`
-- **最新 commit（已 push）**：`94288a5` P-fix-1 ModerationPage 繁中還原
+- **最新 commit（已 push）**：待 push — Present app + S7-1 Admin 骨架
 - **GitHub**：`origin/master` 同步至 P-fix-1
 - **資料庫**：Neon Postgres（`taiwanveo@gmail.com` 帳號專案，`ap-southeast-1`）
 - **Redis**：Upstash 雲端（`LE_REDIS_URL=rediss://default:<token>@sweeping-gecko-35121.upstash.io:6379`）
@@ -40,6 +40,9 @@
 | S6-3 | Present 控制列 + Recharts | ✅ pushed `e043c82` |
 | P-1~P-3 | Participant app（join + Poll 作答 E2E） | ✅ pushed `8425411` |
 | P-4/P-WS-1 | WS 即時推送，取代 REST 輪詢 | ✅ pushed `51643a0` |
+| P-fix-1 | ModerationPage 繁中還原 | ✅ pushed `94288a5` |
+| Present app | 獨立投影端（mode=present WS） | ✅ 本回合 |
+| S7-1 | Admin 管理後台骨架 | ✅ 本回合 |
 
 ### API 端點（已實作）
 | Method | Path | 說明 |
@@ -74,8 +77,20 @@
 | Host | `frontend/apps/host` | ✅ Q&A 審核 + Poll Hub/Builder/Console/Present/Answer 路由；**WS mode=host** |
 | `@liveengage/renderers` | `frontend/packages/renderers` | ✅ 五題型三 mode + Recharts 投影圖表（S6-3） |
 | `@liveengage/realtime` | `frontend/packages/realtime` | ✅ `useRoomWebSocket` hook（P-4/P-WS-1）：自動重連、replay、ping/pong |
-| Participant | `frontend/apps/participant`（port **5174**） | ✅ P-1~P-3 E2E + **P-4 WS mode=participant** 即時 Poll 推播 |
-| Present / Admin | — | 尚未建立 |
+| Participant | `frontend/apps/participant`（port **5174**） | ✅ P-1~P-3 E2E + **P-4 WS mode=participant** |
+| Present | `frontend/apps/present`（port **5175**） | ✅ 唯讀投影 + **WS mode=present** |
+| Admin | `frontend/apps/admin`（port **5176**） | ✅ S7-1 骨架：側欄 + 6 模組佔位頁 |
+
+---
+
+## 前端 dev ports 速查
+
+| App | Port | 用途 |
+|-----|------|------|
+| Host | 5173 | 主持人控場 |
+| Participant | 5174 | 參與者作答 |
+| Present | 5175 | 大螢幕投影（唯讀） |
+| Admin | 5176 | 組織管理後台 |
 
 ---
 
@@ -98,13 +113,35 @@
 - ✅ upvote rate limit 30/min
 
 ### 仍待補（後續 Sprint）
-- Present 獨立 app
-- Sprint 7–8：管理後台
-- Sprint 9+：Quiz / Survey / Ideas / AI / Integrations / Admin
+- **S7-2**：BE-008/009 組織與活動管理 API + Admin UI
+- **S7-3**：BE-010 audit log 查詢 API + Admin UI
+- **S7-4**：Branding 基礎
+- **S7-5**：BE-012 匯出 Worker（XLSX/CSV、72h 簽名連結）
+- Sprint 9+：Quiz / Survey / Ideas / AI / Integrations
 
 ---
 
 ## HISTORY
+
+### 2026-06-13 — Present app + S7-1 Admin 骨架
+
+**`frontend/apps/present`**（dev port **5175**）
+- Vite + React 19 + TS strict + Tailwind；alias `@liveengage/renderers`、`@liveengage/realtime`
+- 路由 `#/rooms/{roomId}/polls/{pollId}/present`
+- **PollPresentPage**：唯讀 `PollRenderer present`；**WS mode=present**；30s REST 備援
+- 控場寫入留在 Host 控制台；投影端不做 REST 寫入（鐵律 1）
+
+**`frontend/apps/admin`**（dev port **5176**）
+- **S7-1 骨架**：`AdminShell` 側欄 + 登入頁
+- 佔位模組：總覽、組織（BE-008）、活動（BE-009）、稽核（BE-010）、品牌、匯出（BE-012）
+- `DashboardPage` 卡片導覽至各模組
+
+**Host 小改**
+- `PollConsolePage`：新增「投影模式（獨立 app）」連結 → `localhost:5175`；保留「內嵌投影」
+
+**品質**：present / admin / host `tsc -b --noEmit` ✅
+
+---
 
 ### 2026-06-13 — P-fix-1：ModerationPage 繁中編碼還原（commit `94288a5`）
 

@@ -104,10 +104,18 @@ export function PollConsolePage({
             title={connected ? "WS 已連線" : "WS 未連線"}
           />
           <a
-            href={`#/rooms/${roomId}/polls/${pollId}/present`}
+            href={`http://localhost:5175/#/rooms/${roomId}/polls/${pollId}/present`}
+            target="_blank"
+            rel="noopener noreferrer"
             className="rounded-md bg-slate-900 px-3 py-1.5 text-sm text-white hover:bg-slate-800"
           >
-            投影模式
+            投影模式（獨立 app）
+          </a>
+          <a
+            href={`#/rooms/${roomId}/polls/${pollId}/present`}
+            className="rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm text-slate-700 hover:bg-slate-50"
+          >
+            內嵌投影
           </a>
         </div>
       }
