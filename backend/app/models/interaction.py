@@ -11,12 +11,11 @@ import uuid
 from typing import Any
 
 from sqlalchemy import Boolean, ForeignKey, Index, Integer, String, Text
-from sqlalchemy import Enum as SAEnum
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.dialects.postgresql import UUID as PgUUID
 from sqlalchemy.orm import Mapped, mapped_column
 
-from app.models.base import Base, TimestampMixin, UUIDPrimaryKeyMixin
+from app.models.base import Base, TimestampMixin, UUIDPrimaryKeyMixin, pg_enum
 from app.models.enums import InteractionStatus, InteractionType
 
 
@@ -31,13 +30,13 @@ class Interaction(UUIDPrimaryKeyMixin, TimestampMixin, Base):
         nullable=False,
     )
     type: Mapped[InteractionType] = mapped_column(
-        SAEnum(InteractionType, name="interaction_type"),
+        pg_enum(InteractionType, "interaction_type"),
         nullable=False,
     )
     title: Mapped[str | None] = mapped_column(String(500), nullable=True)
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
     status: Mapped[InteractionStatus] = mapped_column(
-        SAEnum(InteractionStatus, name="interaction_status"),
+        pg_enum(InteractionStatus, "interaction_status"),
         nullable=False,
         default=InteractionStatus.IDLE,
     )

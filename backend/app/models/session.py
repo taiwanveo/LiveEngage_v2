@@ -11,13 +11,12 @@ import datetime as dt
 import uuid
 from typing import Any
 
-from sqlalchemy import Enum as SAEnum
 from sqlalchemy import ForeignKey, Index, String, Text
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.dialects.postgresql import UUID as PgUUID
 from sqlalchemy.orm import Mapped, mapped_column
 
-from app.models.base import Base, TimestampMixin, UUIDPrimaryKeyMixin
+from app.models.base import Base, TimestampMixin, UUIDPrimaryKeyMixin, pg_enum
 from app.models.enums import SessionStatus, SessionVisibility
 
 
@@ -44,12 +43,12 @@ class Session(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     timezone: Mapped[str | None] = mapped_column(String(64), nullable=True)
     language: Mapped[str | None] = mapped_column(String(16), nullable=True)
     status: Mapped[SessionStatus] = mapped_column(
-        SAEnum(SessionStatus, name="session_status"),
+        pg_enum(SessionStatus, "session_status"),
         nullable=False,
         default=SessionStatus.DRAFT,
     )
     visibility: Mapped[SessionVisibility] = mapped_column(
-        SAEnum(SessionVisibility, name="session_visibility"),
+        pg_enum(SessionVisibility, "session_visibility"),
         nullable=False,
         default=SessionVisibility.PUBLIC,
     )

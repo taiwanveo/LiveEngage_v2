@@ -4,12 +4,11 @@ from __future__ import annotations
 
 import uuid
 
-from sqlalchemy import Enum as SAEnum
 from sqlalchemy import ForeignKey, String
 from sqlalchemy.dialects.postgresql import UUID as PgUUID
 from sqlalchemy.orm import Mapped, mapped_column
 
-from app.models.base import Base, TimestampMixin, UUIDPrimaryKeyMixin
+from app.models.base import Base, TimestampMixin, UUIDPrimaryKeyMixin, pg_enum
 from app.models.enums import UserRole
 
 
@@ -29,7 +28,7 @@ class User(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     password_hash: Mapped[str | None] = mapped_column(String(255), nullable=True)
     sso_provider: Mapped[str | None] = mapped_column(String(50), nullable=True)
     role: Mapped[UserRole] = mapped_column(
-        SAEnum(UserRole, name="user_role"),
+        pg_enum(UserRole, "user_role"),
         nullable=False,
         default=UserRole.MEMBER,
     )

@@ -14,10 +14,20 @@ import datetime as dt
 import uuid
 
 from sqlalchemy import DateTime, func
+from sqlalchemy import Enum as SAEnum
 from sqlalchemy.dialects.postgresql import UUID as PgUUID
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 from app.core.ids import uuid7
+
+
+def pg_enum(enum_class: type, name: str) -> SAEnum:
+    """PostgreSQL ENUM 映射（使用 enum value 而非 name）。"""
+    return SAEnum(
+        enum_class,
+        name=name,
+        values_callable=lambda members: [member.value for member in members],
+    )
 
 
 class Base(DeclarativeBase):

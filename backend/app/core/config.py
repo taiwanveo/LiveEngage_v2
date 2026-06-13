@@ -28,7 +28,7 @@ class Settings(BaseSettings):
 
     # 資料庫
     database_url: str = (
-        "postgresql+asyncpg://liveengage:liveengage@localhost:5432/liveengage"
+        "postgresql+asyncpg://liveengage:liveengage@localhost:5432/liveengage?ssl=require"
     )
     database_url_sync: str = (
         "postgresql+psycopg://liveengage:liveengage@localhost:5432/liveengage"
