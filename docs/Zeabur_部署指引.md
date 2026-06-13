@@ -15,16 +15,21 @@ LiveEngage 是 **monorepo**（單一 repo 多目錄），不能直接把 repo �
 
 ## 目前已部署（2026-06-13）
 
+| 服務 | 網址 | Dockerfile / 目錄 |
+|------|------|-------------------|
+| **api** | https://le-api.zeabur.app | 根目錄 `Dockerfile` |
+| **host** | https://le-host.zeabur.app | `frontend/Dockerfile.host` |
+| **participant** | https://le-participant.zeabur.app | `frontend/Dockerfile.participant` |
+
 | 項目 | 值 |
 |------|-----|
 | Zeabur 專案 | [liveengage](https://zeabur.com/projects/6a2d1bc82871baed5fc633ef?envID=6a2d1bc9cf558888ca4bc9da) |
-| 服務名稱 | `api` |
-| 公開網址 | https://le-api.zeabur.app |
-| Health | https://le-api.zeabur.app/health → `{"status":"ok","env":"production"}` |
 | GitHub | `ColdRighter/LiveEngage`，分支 **`master`** |
 | Repo ID | `1267983204` |
 
-舊服務 `liveengage`（靜態站）、`liveengage-api`（SUSPENDED）可於 Dashboard 刪除。
+前端 Docker 建置會安裝 `packages/renderers`、`packages/realtime` 依賴，並以 `VITE_API_BASE=https://le-api.zeabur.app` 編譯。
+
+舊服務 `liveengage`、`liveengage-api`（SUSPENDED）可於 Dashboard 刪除。
 
 ## Dashboard 手動部署（推薦）
 
@@ -54,7 +59,7 @@ LiveEngage 是 **monorepo**（單一 repo 多目錄），不能直接把 repo �
 
 MCP 部署 Dockerfile 路徑若報 `path not found`，可改傳 `dockerfile.content`（內容需 `COPY backend/...`）。
 
-## 前端（尚未部署）
+## 前端（Host / Participant 已部署；Present / Admin 待部署）
 
 各 app 需獨立服務；生產環境須能代理 `/api`、`/ws` 到後端（或改前端 API base URL）。
 
