@@ -1,0 +1,10 @@
+{
+  "build": {
+    "env": {
+      "NPM_CONFIG_PRODUCTION": "false"
+    }
+  },
+  "start": {
+    "command": "npm run preview -- --host 0.0.0.0 --port $PORT"
+  }
+}

@@ -149,3 +149,51 @@ export const listAuditLogs = (
   const query = qs.toString() ? `?${qs.toString()}` : "";
   return api<PaginatedAuditLogs>(`/api/v1/admin/audit-logs${query}`);
 };
+
+// ── Branding（S7-4）──────────────────────────────────────────────────────────
+
+export interface BrandingData {
+  org_id: string;
+  branding: {
+    logo_url: string | null;
+    favicon_url: string | null;
+    primary_color: string;
+    custom_domain: string | null;
+    display_name: string | null;
+  };
+}
+
+export const getBranding = (): Promise<BrandingData> =>
+  api<BrandingData>("/api/v1/admin/branding");
+
+export const updateBranding = (payload: Partial<BrandingData["branding"]>): Promise<BrandingData> =>
+  api<BrandingData>("/api/v1/admin/branding", { method: "PATCH", body: payload });
+
+// ── Exports（S7-5）───────────────────────────────────────────────────────────
+
+export interface ExportJobData {
+  id: string;
+  session_id: string;
+  format: "csv" | "xlsx";
+  status: string;
+  download_url: string | null;
+  expires_at: string | null;
+  created_at: string;
+  completed_at: string | null;
+}
+
+export interface ExportJobList {
+  items: ExportJobData[];
+  total: number;
+}
+
+export const listExports = (sessionId?: string): Promise<ExportJobList> => {
+  const q = sessionId ? `?session_id=${sessionId}` : "";
+  return api<ExportJobList>(`/api/v1/admin/exports${q}`);
+};
+
+export const createExport = (payload: {
+  session_id: string;
+  format: "csv" | "xlsx";
+}): Promise<ExportJobData> =>
+  api<ExportJobData>("/api/v1/admin/exports", { method: "POST", body: payload });

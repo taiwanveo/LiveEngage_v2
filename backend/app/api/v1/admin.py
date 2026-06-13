@@ -10,7 +10,7 @@ import datetime as dt
 import uuid
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.db import get_session
@@ -22,13 +22,18 @@ from app.schemas.admin import (
     AdminSessionPatchRequest,
     AdminSessionResponse,
     AuditLogListResponse,
+    BrandingResponse,
+    BrandingUpdateRequest,
+    ExportCreateRequest,
+    ExportJobListResponse,
+    ExportJobResponse,
     MemberInviteRequest,
     MemberResponse,
     MemberUpdateRequest,
     OrgResponse,
     OrgUpdateRequest,
 )
-from app.services import admin_service
+from app.services import admin_service, export_service
 
 router = APIRouter(prefix="/admin", tags=["admin"])
 
@@ -172,4 +177,60 @@ async def list_audit_logs(
         date_to=date_to,
         page=page,
         page_size=page_size,
+    )
+
+
+# ── Branding（S7-4）──────────────────────────────────────────────────────────
+
+@router.get("/branding", response_model=BrandingResponse, dependencies=[_require_admin])
+async def get_branding(
+    db: Annotated[AsyncSession, Depends(get_session)],
+    actor: Annotated[User, Depends(get_current_user)],
+) -> BrandingResponse:
+    """取得組織品牌設定。"""
+    return await admin_service.get_branding(db, actor)
+
+
+@router.patch("/branding", response_model=BrandingResponse, dependencies=[_require_admin])
+async def update_branding(
+    payload: BrandingUpdateRequest,
+    db: Annotated[AsyncSession, Depends(get_session)],
+    actor: Annotated[User, Depends(get_current_user)],
+) -> BrandingResponse:
+    """更新組織品牌設定。"""
+    return await admin_service.update_branding(db, actor=actor, payload=payload)
+
+
+# ── Exports（S7-5 / BE-012）──────────────────────────────────────────────────
+
+@router.get("/exports", response_model=ExportJobListResponse, dependencies=[_require_admin])
+async def list_exports(
+    request: Request,
+    db: Annotated[AsyncSession, Depends(get_session)],
+    actor: Annotated[User, Depends(get_current_user)],
+    session_id: Annotated[uuid.UUID | None, Query()] = None,
+) -> ExportJobListResponse:
+    """列出匯出任務。"""
+    base_url = str(request.base_url).rstrip("/")
+    return await export_service.list_export_jobs(
+        db, actor=actor, session_id=session_id, base_url=base_url
+    )
+
+
+@router.post(
+    "/exports",
+    response_model=ExportJobResponse,
+    status_code=201,
+    dependencies=[_require_admin],
+)
+async def create_export(
+    payload: ExportCreateRequest,
+    request: Request,
+    db: Annotated[AsyncSession, Depends(get_session)],
+    actor: Annotated[User, Depends(get_current_user)],
+) -> ExportJobResponse:
+    """建立匯出任務（BE-012）。"""
+    base_url = str(request.base_url).rstrip("/")
+    return await export_service.create_export_job(
+        db, actor=actor, payload=payload, base_url=base_url
     )

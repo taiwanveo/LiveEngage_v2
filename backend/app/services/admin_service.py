@@ -31,11 +31,15 @@ from app.schemas.admin import (
     AdminSessionResponse,
     AuditLogListResponse,
     AuditLogResponse,
+    BrandingResponse,
+    BrandingSettings,
+    BrandingUpdateRequest,
     MemberInviteRequest,
     MemberResponse,
     MemberUpdateRequest,
     OrgResponse,
     OrgUpdateRequest,
+    PublicBrandingResponse,
 )
 from app.services import audit_service
 
@@ -380,3 +384,69 @@ async def list_audit_logs(
             )
         )
     return AuditLogListResponse(items=items, total=total, page=page, page_size=page_size)
+
+
+# ── S7-4: Branding ───────────────────────────────────────────────────────────
+
+_BRANDING_KEY = "branding"
+
+
+def _parse_branding(raw: dict[str, Any]) -> BrandingSettings:
+    branding_raw = raw.get(_BRANDING_KEY) if isinstance(raw, dict) else {}
+    if not isinstance(branding_raw, dict):
+        branding_raw = {}
+    return BrandingSettings.model_validate(branding_raw)
+
+
+async def get_branding(db: AsyncSession, actor: User) -> BrandingResponse:
+    org = await _get_org_or_403(db, actor)
+    return BrandingResponse(org_id=org.id, branding=_parse_branding(org.settings_jsonb or {}))
+
+
+async def update_branding(
+    db: AsyncSession,
+    *,
+    actor: User,
+    payload: BrandingUpdateRequest,
+) -> BrandingResponse:
+    org = await _get_org_or_403(db, actor)
+    current = _parse_branding(org.settings_jsonb or {})
+    updates = payload.model_dump(exclude_unset=True)
+    merged = current.model_copy(update=updates)
+    settings = dict(org.settings_jsonb or {})
+    settings[_BRANDING_KEY] = merged.model_dump()
+    org.settings_jsonb = settings
+    await audit_service.log(
+        db,
+        actor=actor,
+        action="update_branding",
+        target_type="organization",
+        target_id=org.id,
+        details={"fields": list(updates.keys())},
+    )
+    await db.commit()
+    await db.refresh(org)
+    return BrandingResponse(org_id=org.id, branding=merged)
+
+
+async def get_public_branding_by_code(
+    db: AsyncSession, code: str
+) -> PublicBrandingResponse:
+    """依活動代碼回傳公開品牌（參與者 / Host 端）。"""
+    normalized = code.strip().lower()
+    result = await db.execute(
+        select(Session, Organization)
+        .join(Organization, Session.org_id == Organization.id)
+        .where(func.lower(Session.code) == normalized)
+    )
+    row = result.first()
+    if row is None:
+        raise AppError(ErrorCode.SESSION_NOT_FOUND, "找不到活動")
+    session, org = row
+    branding = _parse_branding(org.settings_jsonb or {})
+    return PublicBrandingResponse(
+        display_name=branding.display_name or org.name,
+        logo_url=branding.logo_url,
+        favicon_url=branding.favicon_url,
+        primary_color=branding.primary_color,
+    )

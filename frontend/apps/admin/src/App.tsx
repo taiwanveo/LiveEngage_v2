@@ -8,7 +8,8 @@ import { DashboardPage } from "./pages/DashboardPage";
 import { OrganizationPage } from "./pages/OrganizationPage";
 import { SessionsPage } from "./pages/SessionsPage";
 import { AuditPage } from "./pages/AuditPage";
-import { BrandingPage, ExportsPage } from "./pages/AdminPages";
+import { BrandingPage } from "./pages/BrandingPage";
+import { ExportsPage } from "./pages/ExportsPage";
 import type { AdminRoute } from "./lib/nav";
 
 type Route = { name: AdminRoute } | { name: "login" };

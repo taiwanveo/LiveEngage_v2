@@ -84,3 +84,20 @@ class ReplyAuthorType(StrEnum):
 
     HOST = "host"
     PARTICIPANT = "participant"
+
+
+class ExportFormat(StrEnum):
+    """export_jobs.format"""
+
+    CSV = "csv"
+    XLSX = "xlsx"
+
+
+class ExportStatus(StrEnum):
+    """export_jobs.status"""
+
+    PENDING = "pending"
+    PROCESSING = "processing"
+    COMPLETED = "completed"
+    FAILED = "failed"
+    EXPIRED = "expired"

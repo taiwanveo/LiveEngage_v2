@@ -9,6 +9,7 @@ from __future__ import annotations
 
 from app.models.audit_log import AuditLog
 from app.models.base import Base
+from app.models.export_job import ExportJob
 from app.models.interaction import Interaction
 from app.models.organization import Organization
 from app.models.participant import Participant
@@ -26,6 +27,7 @@ from app.models.user import User
 __all__ = [
     "AuditLog",
     "Base",
+    "ExportJob",
     "Interaction",
     "Organization",
     "Participant",
