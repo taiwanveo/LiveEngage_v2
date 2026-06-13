@@ -1,10 +1,9 @@
-/** PM-002 ???? UI?pending ? approved ? answered??
+/** PM-002 ?? UI?pending ? approved ? answered ?????
  *
- * ???
- *  - ??? REST `/moderate`?`/replies`??? 1??
- *  - ?????????????????????? 2??
- *  - ??????? mask_identity ????? 3??
- *  - ????? Idempotency-Key??? 4?? qaApi ????
+ * ?????
+ *  - ??? REST `/moderate`?`/replies`??? 1?
+ *  - ?????? mask_identity serializer??? 3?
+ *  - ?????? Idempotency-Key??? 4?qaApi ????
  */
 
 import * as React from "react";
@@ -82,7 +81,7 @@ export function ModerationPage({ roomId, onLogout }: Props): React.JSX.Element {
       {error ? (
         <div className="mx-auto max-w-7xl px-6 py-4">
           <div className="rounded-lg bg-red-50 border border-red-200 text-red-700 px-4 py-3 text-sm">
-            ?????load failed??{(error as Error).message}
+            ?????{(error as Error).message}
           </div>
         </div>
       ) : null}
@@ -172,7 +171,7 @@ export function ModerationPage({ roomId, onLogout }: Props): React.JSX.Element {
                 }
                 disabled={moderateMutation.isPending}
               >
-                ???unanswer?
+                ?????unanswer?
               </ActionButton>
               <ActionButton
                 variant="ghost"
@@ -210,7 +209,7 @@ function Topbar(props: {
             href={`#/rooms/${props.roomId}/polls`}
             className="text-sm px-3 py-1.5 rounded-md bg-primary-50 hover:bg-primary-100 text-primary-700"
           >
-            Poll 管理
+            Poll ??
           </a>
           <button
             onClick={props.onRefresh}
@@ -257,10 +256,10 @@ function Column(props: {
       <div className="flex-1 overflow-y-auto p-3 space-y-3">
         {props.loading ? (
           <p className="text-sm text-slate-400 text-center py-8">
-            ?????loading?
+            ????
           </p>
         ) : props.questions.length === 0 ? (
-          <p className="text-sm text-slate-400 text-center py-8">????empty?</p>
+          <p className="text-sm text-slate-400 text-center py-8">???</p>
         ) : (
           props.questions.map((q) => (
             <QuestionCard key={q.id} question={q} actions={props.renderActions(q)} />
@@ -282,10 +281,10 @@ function QuestionCard(props: {
         {q.content}
       </p>
       <div className="mt-2 flex items-center gap-3 text-xs text-slate-500">
-        <span>?? {q.is_anonymous ? "Anonymous" : q.author_display ?? "?"}</span>
+        <span>?? {q.is_anonymous ? "??" : q.author_display ?? "?"}</span>
         <span>?? {q.upvote_count}</span>
         {q.downvote_count > 0 ? <span>?? {q.downvote_count}</span> : null}
-        <span>?? {q.score}</span>
+        <span>? {q.score}</span>
         {q.highlighted ? (
           <span className="text-amber-600 font-medium">? ??</span>
         ) : null}
@@ -322,7 +321,7 @@ function RoomPicker(props: { onLogout: () => void }): React.JSX.Element {
   return (
     <main className="min-h-full flex items-center justify-center bg-slate-100 px-4">
       <div className="bg-white rounded-2xl shadow-xl p-8 max-w-md text-center space-y-4">
-        <h2 className="text-xl font-semibold text-slate-900">????</h2>
+        <h2 className="text-xl font-semibold text-slate-900">?????</h2>
         <p className="text-sm text-slate-600">
           ???????{" "}
           <code className="bg-slate-100 px-1 rounded">
