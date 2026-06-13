@@ -1,5 +1,6 @@
 /** API client：JWT bearer + 統一錯誤信封解析。 */
 
+import { apiUrl } from "@liveengage/realtime";
 import { getAccessToken } from "./auth";
 
 export interface ApiError {
@@ -36,7 +37,7 @@ export async function api<T>(
   if (token) headers["Authorization"] = `Bearer ${token}`;
   if (options.idempotencyKey) headers["Idempotency-Key"] = options.idempotencyKey;
 
-  const res = await fetch(path, {
+  const res = await fetch(apiUrl(path), {
     method: options.method ?? "GET",
     headers,
     body: options.body !== undefined ? JSON.stringify(options.body) : null,

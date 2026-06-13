@@ -19,7 +19,11 @@
     "forceConsistentCasingInFileNames": true,
     "useDefineForClassFields": true,
     "noEmit": true,
-    "baseUrl": "."
+    "baseUrl": ".",
+    "paths": {
+      "@liveengage/realtime": ["../../packages/realtime/src/index.ts"],
+      "@liveengage/realtime/*": ["../../packages/realtime/src/*"]
+    }
   },
   "include": ["src"]
 }
