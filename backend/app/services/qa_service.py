@@ -42,7 +42,7 @@ from app.schemas.question import (
     VoteResult,
 )
 from app.serializers.mask_identity import mask_identity
-from app.services import interaction_service
+from app.services import audit_service, interaction_service, qa_redis
 
 _DEFAULT_PAGE_SIZE = 50
 _VOTABLE_STATUSES = {QuestionStatus.APPROVED, QuestionStatus.ANSWERED}
@@ -104,6 +104,8 @@ async def submit_question(
     """提交問題（FE-004）。"""
     if claims.room_id != room_id:
         raise AppError(ErrorCode.FORBIDDEN, "無權於此房間提問")
+
+    await qa_redis.check_question_rate_limit(claims.participant_id)
 
     qa = await interaction_service.get_qa_interaction(db, room_id)
     if qa is None or qa.status != InteractionStatus.ACTIVE:
@@ -211,10 +213,15 @@ async def list_public_questions(
     my_votes = await _my_votes(
         db, [q.id for q, _ in rows], participant_id
     )
-    items = [
-        _to_public(q, display_name=name, my_vote=my_votes.get(q.id))
-        for q, name in rows
-    ]
+    items: list[QuestionPublic] = []
+    for q, name in rows:
+        up, down, score = await qa_redis.get_effective_counts(db, q)
+        pub = _to_public(q, display_name=name, my_vote=my_votes.get(q.id))
+        items.append(
+            pub.model_copy(
+                update={"upvote_count": up, "downvote_count": down, "score": score}
+            )
+        )
     next_cursor = str(offset + _DEFAULT_PAGE_SIZE) if has_more else None
     return QuestionListResponse(items=items, next_cursor=next_cursor)
 
@@ -256,6 +263,7 @@ async def vote_question(
     direction: VoteDirection,
 ) -> VoteResult:
     """upvote／downvote（toggle 語意；FE-005-FR2/FR3）。"""
+    await qa_redis.check_upvote_rate_limit(claims.participant_id)
     question = await _get_question(db, question_id)
     if claims.room_id != question.room_id:
         raise AppError(ErrorCode.FORBIDDEN, "無權於此房間投票")
@@ -313,22 +321,19 @@ async def vote_question(
             delta_up, delta_down = -1, 1
         my_vote = direction
 
-    await db.execute(
-        update(Question)
-        .where(Question.id == question_id)
-        .values(
-            upvote_count=Question.upvote_count + delta_up,
-            downvote_count=Question.downvote_count + delta_down,
-        )
+    await apply_vote_counts_to_db(
+        db, question_id, delta_up=delta_up, delta_down=delta_down
     )
     await db.commit()
     await db.refresh(question)
 
+    up, down, score = await qa_redis.get_effective_counts(db, question)
+
     result = VoteResult(
         question_id=question.id,
-        upvote_count=question.upvote_count,
-        downvote_count=question.downvote_count,
-        score=question.score,
+        upvote_count=up,
+        downvote_count=down,
+        score=score,
         my_vote=my_vote,
     )
     event_type = (
@@ -336,18 +341,31 @@ async def vote_question(
         if direction == VoteDirection.UP
         else events.QUESTION_DOWNVOTED
     )
-    await events.publish(
+    await qa_redis.publish_vote_event_throttled(
         question.room_id,
+        question.id,
         event_type,
         {
             "question_id": str(question.id),
-            "upvote_count": question.upvote_count,
-            "downvote_count": question.downvote_count,
-            "score": question.score,
+            "upvote_count": up,
+            "downvote_count": down,
+            "score": score,
         },
-        target_modes=events.MODE_ALL,
     )
     return result
+
+
+async def apply_vote_counts_to_db(
+    db: AsyncSession,
+    question_id: uuid.UUID,
+    *,
+    delta_up: int,
+    delta_down: int,
+) -> None:
+    """委派 qa_redis：有 Redis 時延遲 flush，否則直接 UPDATE。"""
+    await qa_redis.apply_vote_counts_to_db(
+        db, question_id, delta_up=delta_up, delta_down=delta_down
+    )
 
 
 async def list_moderation(
@@ -410,6 +428,17 @@ async def moderate_question(
         await _apply_highlight(db, question, action)
     else:
         await _apply_transition(question, action)
+
+    await audit_service.log(
+        db,
+        actor=host,
+        action=f"question.{action.value}",
+        target_type="question",
+        target_id=question.id,
+        session_id=question.session_id,
+        room_id=question.room_id,
+        details={"new_status": question.status.value},
+    )
 
     await db.commit()
     await db.refresh(question)
@@ -514,6 +543,16 @@ async def reply_question(
         created_at=dt.datetime.now(dt.UTC),
     )
     db.add(reply)
+    await audit_service.log(
+        db,
+        actor=host,
+        action="question.reply",
+        target_type="question",
+        target_id=question.id,
+        session_id=question.session_id,
+        room_id=question.room_id,
+        details={"reply_id": str(reply.id), "is_private": reply.is_private},
+    )
     await db.commit()
     await db.refresh(reply)
     return ReplyResponse(

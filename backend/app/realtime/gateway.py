@@ -14,6 +14,7 @@ from app.core.tokens import (
     decode_participant_token,
 )
 from app.realtime.manager import manager
+from app.realtime.redis_pubsub import fetch_replay
 
 logger = logging.getLogger(__name__)
 
@@ -52,8 +53,12 @@ async def websocket_gateway(
     token: str = Query(...),
     room: str = Query(...),
     mode: WsMode = Query(WsMode.PARTICIPANT),
+    last_event_id: str | None = Query(None),
 ) -> None:
-    """WS 端點：wss://…/ws?token=&room=&mode=（SDS §6.1）。"""
+    """WS 端點：wss://…/ws?token=&room=&mode=&last_event_id=（SDS §6.1/§6.2）。
+
+    ``last_event_id``：斷線重連時帶入 stream entry id，補送中間事件。
+    """
     try:
         _authenticate(token, mode, room)
     except AppError as exc:
@@ -62,6 +67,21 @@ async def websocket_gateway(
 
     room_id = room
     await manager.connect(room_id, websocket, mode=mode.value)
+
+    if last_event_id:
+        try:
+            replay = await fetch_replay(room_id, last_event_id)
+        except Exception:
+            logger.exception("WS replay 失敗 room=%s", room_id)
+            replay = []
+        for event in replay:
+            modes_raw = event.get("_target_modes")
+            if isinstance(modes_raw, list) and mode.value not in modes_raw:
+                continue
+            try:
+                await websocket.send_json(event)
+            except Exception:
+                break
 
     async def _pinger() -> None:
         while True:

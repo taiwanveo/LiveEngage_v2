@@ -9,9 +9,10 @@
 ### 專案基本資訊
 - **Repo**：https://github.com/ColdRighter/LiveEngage.git（`master`）
 - **本地路徑**：`c:\Vibe_Coidng_Local\LiveEngage`
-- **最新 commit（已 push）**：Task 1/2a/2b + Sprint 3 Q&A
-- **GitHub**：`origin/master` 已同步
+- **最新 commit（已 push）**：Task 1/2a/2b + Sprint 3 Q&A（Sprint 4 Redis 後端本地完成，待 push）
+- **GitHub**：`origin/master` 已同步（Sprint 4 變更尚未 push）
 - **資料庫**：Neon Postgres（`taiwanveo@gmail.com` 帳號專案，`ap-southeast-1`）
+- **Redis**：Upstash 雲端（`LE_REDIS_URL=rediss://default:<token>@sweeping-gecko-35121.upstash.io:6379`）
 - **Neon MCP**：`project-0-LiveEngage-neon` 已授權（org: TAIWANVEO，project: LiveEngage `damp-tooth-60940518`）
 - **GitHub CLI**：`gh` 已安裝（使用者目錄免安裝版）並登入 `ColdRighter`，Agent 可直接 push / 開 PR
 
@@ -29,6 +30,7 @@
 | Task 2a | Auth + Session CRUD + join（FE-001/002） | ✅ pushed |
 | Task 2b | WS Gateway + state 快照 API | ✅ pushed |
 | Sprint 3 | Q&A：提問/列表/投票/審核（FE-004/005、BE-004） | ✅ migration 0002 + 8 AC 測試 |
+| Sprint 4（後端） | Redis：Pub/Sub、Idempotency、Q&A 計數 flush、節流、rate limit | ✅ 本地完成；**PM-002 審核 UI 待做** |
 
 ### API 端點（已實作）
 | Method | Path | 說明 |
@@ -54,26 +56,37 @@
 
 ## 已知地雷 / 注意事項
 
-1. **`.env` 含 Neon 密碼，勿 commit**（已在 `.gitignore`）。
+1. **`.env` 含 Neon / Upstash 密碼，勿 commit**（已在 `.gitignore`）。
 2. **Neon async URL** 必須用 `ssl=require`，不可用 `sslmode`（asyncpg 不支援）。
 3. **StrEnum ORM** 須用 `pg_enum()` + `values_callable`，否則寫入 `OWNER` 而非 `owner`。
-4. **Redis Pub/Sub** 尚未接上；WS 目前為程序內 in-memory fan-out（dev 單副本）。
-5. **`updated_at` DB trigger** 仍待後續 migration（選項 A：暫用 SQLAlchemy onupdate）。
-6. **`.env` 缺 `LE_DATABASE_URL`（async）**，只有 `LE_DATABASE_URL_SYNC`；跑 async 測試前需自行設定（可由 sync URL 把 `psycopg→asyncpg`、`sslmode→ssl` 推導）。
-7. **時區欄位地雷**：所有 `DateTime` 欄位 model 端務必加 `DateTime(timezone=True)`，否則 asyncpg 寫 tz-aware datetime 會報 `can't subtract offset-naive and offset-aware`（Sprint 3 修了 `interactions.started_at/stopped_at`）。
-8. **Q&A score** 為 DB `GENERATED ALWAYS AS (upvote_count - downvote_count) STORED`；計數寫 `upvote_count/downvote_count`，score 自動維護。
+4. **Upstash Redis**：REST API（`UPSTASH_REDIS_REST_*`）**不能**做 Pub/Sub / HINCRBY；須用 `LE_REDIS_URL=rediss://default:<token>@<host>.upstash.io:6379`。
+5. **`.env` 載入**：`config.py` 以專案根 `.env` 絕對路徑 + `load_dotenv(override=True)` 覆蓋 shell 殘留的 `LE_REDIS_URL=localhost`。
+6. **pytest 不連雲端 Redis**：`conftest` 用 `disable_redis_for_tests()` + `TestClient` context manager，避免背景 task 與 event loop 衝突。
+7. **`updated_at` DB trigger** 仍待後續 migration（選項 A：暫用 SQLAlchemy onupdate）。
+8. **時區欄位地雷**：所有 `DateTime` 欄位 model 端務必加 `DateTime(timezone=True)`。
+9. **Q&A score** 為 DB `GENERATED ALWAYS AS (upvote_count - downvote_count) STORED`；有 Redis 時計數先寫 Redis 待 flush，無 Redis 時直接寫 DB。
 
-### Sprint 3 刻意延後（待補）
-- Redis 計數節流（HINCRBY）+ 週期回寫、廣播節流（≥300ms 合併）
-- Idempotency-Key 去重（無 Redis；目前寫入端點尚未實作）
-- rate limit（提問 5/min、upvote 30/min…）
-- audit log 持久化（審核/高亮等動作；表尚未建立）
+### Sprint 4 仍待補
+- **PM-002 審核三欄 UI**（前端 host app）
+- audit log 持久化（審核/高亮等動作）
+- Redis stream replay（`stream:room:{id}`）
+- upvote rate limit 30/min（目前僅提問 5/min）
 - 相似問題偵測、Question AI、participant 互相回覆、label CRUD
 - Host/Present WS 連線的房間 org 歸屬查驗（participant 已綁定）
 
 ---
 
 ## HISTORY
+
+### 2026-06-13 — Sprint 4（後端）：Redis + Q&A 強化
+- **Upstash 連線**：`.env` 設 `LE_REDIS_URL=rediss://default:<token>@sweeping-gecko-35121.upstash.io:6379`（非 REST）
+- `core/redis.py`：async 連線池、ping、降級 fallback
+- `realtime/redis_pubsub.py`：`evt:room:{id}` Pub/Sub 跨副本廣播
+- `core/idempotency.py`：`Idempotency-Key` middleware（SETNX，TTL 24h）
+- `services/qa_redis.py`：投票 HINCRBY + 2s flush 回 DB、投票 WS 節流 ≥300ms、提問 rate limit 5/min
+- `config.py`：專案根 `.env` 絕對路徑 + override shell 殘留 env
+- 依賴：`redis>=5.0`
+- 測試：ruff ✅ mypy strict ✅ pytest **19 passed**（整合測試刻意不連雲端 Redis）
 
 ### 2026-06-13 — Sprint 3：Q&A 核心（FE-004/005、BE-004）
 - migration `0002_qa_tables`：questions / question_votes / question_replies / question_labels（+ enum question_status、reply_author_type）

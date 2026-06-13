@@ -15,11 +15,17 @@ from tests.helpers import seed_host_user
 
 @pytest.fixture
 def client() -> TestClient:
-    """提供 FastAPI 測試用 client。"""
+    """提供 FastAPI 測試用 client（整合測試不連雲端 Redis，避免背景 task 與 event loop 衝突）。"""
     get_settings.cache_clear()
     db_module._engine = None
     db_module._sessionmaker = None
-    return TestClient(create_app())
+
+    from app.core.redis import disable_redis_for_tests
+
+    disable_redis_for_tests()
+
+    with TestClient(create_app()) as test_client:
+        yield test_client
 
 
 @pytest.fixture

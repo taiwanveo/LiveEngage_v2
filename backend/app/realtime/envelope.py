@@ -19,3 +19,8 @@ class EventEnvelope(BaseModel):
     room_id: uuid.UUID
     ts: dt.datetime = Field(default_factory=lambda: dt.datetime.now(dt.UTC))
     payload: dict[str, Any]
+    target_modes: list[str] | None = Field(
+        default=None,
+        serialization_alias="_target_modes",
+        description="WS 廣播 mode 過濾（Pub/Sub 跨副本傳遞）",
+    )

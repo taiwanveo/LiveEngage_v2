@@ -2,13 +2,50 @@
 
 以 pydantic-settings 由環境變數載入；前綴 ``LE_``。
 機密欄位（JWT secret、DB 密碼）僅由環境提供，不寫入版控（鐵律 9）。
+
+若僅設定 ``LE_DATABASE_URL_SYNC``（未設 ``LE_DATABASE_URL``），會自動由 sync URL
+推導 async URL（``psycopg→asyncpg``、``sslmode→ssl``），避免重複寫密碼。
 """
 
 from __future__ import annotations
 
 from functools import lru_cache
+from pathlib import Path
+from typing import Self
 
+from dotenv import load_dotenv
+from pydantic import model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+# backend/app/core/config.py → 專案根目錄（LiveEngage/.env）
+_PROJECT_ROOT = Path(__file__).resolve().parents[3]
+_BACKEND_ROOT = Path(__file__).resolve().parents[2]
+
+# 本地 .env 優先於 shell 殘留 LE_*（部署環境無 .env，仍用平台 env）
+_env_file = _PROJECT_ROOT / ".env"
+if _env_file.is_file():
+    load_dotenv(_env_file, override=True)
+
+# pydantic 預設值；用於判斷使用者是否「只設了 sync、沒設 async」
+_DEFAULT_ASYNC_URL = (
+    "postgresql+asyncpg://liveengage:liveengage@localhost:5432/liveengage?ssl=require"
+)
+_DEFAULT_SYNC_URL = (
+    "postgresql+psycopg://liveengage:liveengage@localhost:5432/liveengage"
+)
+
+
+def sync_to_async_url(sync_url: str) -> str:
+    """將 sync DSN 轉為 asyncpg 可用的 async DSN。"""
+    url = sync_url
+    if url.startswith("postgresql+psycopg://"):
+        url = url.replace("postgresql+psycopg://", "postgresql+asyncpg://", 1)
+    elif url.startswith("postgresql://"):
+        url = url.replace("postgresql://", "postgresql+asyncpg://", 1)
+    url = url.replace("sslmode=require", "ssl=require")
+    url = url.replace("sslmode=prefer", "ssl=prefer")
+    url = url.replace("sslmode=disable", "ssl=disable")
+    return url
 
 
 class Settings(BaseSettings):
@@ -16,7 +53,10 @@ class Settings(BaseSettings):
 
     model_config = SettingsConfigDict(
         env_prefix="LE_",
-        env_file=(".env", "../.env"),
+        env_file=(
+            str(_PROJECT_ROOT / ".env"),
+            str(_BACKEND_ROOT / ".env"),
+        ),
         env_file_encoding="utf-8",
         extra="ignore",
     )
@@ -27,12 +67,8 @@ class Settings(BaseSettings):
     log_level: str = "INFO"
 
     # 資料庫
-    database_url: str = (
-        "postgresql+asyncpg://liveengage:liveengage@localhost:5432/liveengage?ssl=require"
-    )
-    database_url_sync: str = (
-        "postgresql+psycopg://liveengage:liveengage@localhost:5432/liveengage"
-    )
+    database_url: str = _DEFAULT_ASYNC_URL
+    database_url_sync: str = _DEFAULT_SYNC_URL
 
     # Redis（任務 2+ 使用）
     redis_url: str = "redis://localhost:6379/0"
@@ -42,6 +78,16 @@ class Settings(BaseSettings):
     jwt_algorithm: str = "HS256"
     jwt_access_ttl_minutes: int = 15
     jwt_refresh_ttl_days: int = 14
+
+    @model_validator(mode="after")
+    def derive_async_database_url(self) -> Self:
+        """僅設 sync 時，由 sync 推導 async（不必重複密碼）。"""
+        if (
+            self.database_url == _DEFAULT_ASYNC_URL
+            and self.database_url_sync != _DEFAULT_SYNC_URL
+        ):
+            self.database_url = sync_to_async_url(self.database_url_sync)
+        return self
 
 
 @lru_cache

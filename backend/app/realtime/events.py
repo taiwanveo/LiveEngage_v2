@@ -1,6 +1,6 @@
 """事件型別常數與發布輔助（SDS §6.3）。
 
-目前以程序內 ConnectionManager fan-out；跨副本 Redis Pub/Sub 留待後續。
+Redis 可用時走 Pub/Sub（``evt:room:{roomId}``）跨副本廣播；否則降級程序內 fan-out。
 廣播僅做通知（鐵律 1），payload 帶絕對值（鐵律 2）。
 """
 
@@ -11,6 +11,7 @@ from typing import Any
 
 from app.realtime.envelope import EventEnvelope
 from app.realtime.manager import manager
+from app.realtime.redis_pubsub import publish_raw
 
 # Q&A 事件型別（SDS §6.3）
 QUESTION_SUBMITTED = "question_submitted"
@@ -33,10 +34,20 @@ async def publish(
     *,
     target_modes: set[str] | None = None,
 ) -> None:
-    """組裝信封並廣播至房間（依 mode 過濾）。"""
-    envelope = EventEnvelope(type=event_type, room_id=room_id, payload=payload)
+    """組裝信封並廣播至房間（Redis Pub/Sub 或本機 fan-out）。"""
+    envelope = EventEnvelope(
+        type=event_type,
+        room_id=room_id,
+        payload=payload,
+        target_modes=sorted(target_modes) if target_modes else None,
+    )
+    data = envelope.model_dump(mode="json", by_alias=True)
+
+    if await publish_raw(str(room_id), data):
+        return
+
     await manager.broadcast(
         str(room_id),
-        envelope.model_dump(mode="json"),
+        data,
         target_modes=target_modes,
     )
