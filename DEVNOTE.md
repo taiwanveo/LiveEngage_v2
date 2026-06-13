@@ -1,88 +1,53 @@
-# LiveEngage ? ?????DEVNOTE?
+# LiveEngage — 開發筆記（DEVNOTE）
 
-> ?? push ?? Agent ???
+> 每次 push 後由 Agent 更新。
 
 ---
 
-## SNAPSHOT?2026-06-13?
+## SNAPSHOT（2026-06-13）
 
-- **Repo**?https://github.com/ColdRighter/LiveEngage.git?`master`?
-- **?? commit**?S7-4/S7-5?? push?
-- **pytest**?50 passed?? S7-4/S7-5 ? 4 ?????
-- **Zeabur ??**?`liveengage`?ID `6a2d1bc82871baed5fc633ef`?Tencent Seoul ??????
-- **Zeabur MCP**?Cursor ?? error?CLI ??
+- **Repo**：https://github.com/ColdRighter/LiveEngage.git（master）
+- **最新 commit**：43854ce S7-4/S7-5 + Zeabur 部署準備
+- **pytest**：50 passed（含 S7-4/S7-5 新測試 4 項）
+- **Zeabur 專案**：liveengage（ID 6a2d1bc82871baed5fc633ef）
+- **Zeabur MCP**：Cursor 顯示 error；CLI 可用
 
-### ?????Sprint 7?
+### Sprint 7 進度
 
-| ?? | ?? |
+| 任務 | 狀態 |
 |------|------|
-| S7-1 Admin ?? | done |
-| S7-2 ????? API + UI | done `4be10c8` |
-| S7-3 audit log ?? | done `4be10c8` |
-| S7-4 Branding ?? | done???? |
-| S7-5 BE-012 ?? Worker | done???? |
+| S7-1 Admin 骨架 | done |
+| S7-2 組織與活動 API + UI | done 4be10c8 |
+| S7-3 audit log 查詢 | done 4be10c8 |
+| S7-4 Branding 基礎 | done 43854ce |
+| S7-5 BE-012 匯出 Worker | done 43854ce |
 
-### ????
+### 仍待完成
 
-- Sprint 9+?Quiz / Survey / Ideas / AI / Integrations / ???
-- Zeabur ?????CLI upload 400???? GitHub ?????
-- Zeabur MCP ???? `docs/Zeabur_????.md`?
+- Sprint 9+：Quiz / Survey / Ideas / AI / Integrations
+- Zeabur 正式部署（CLI upload 400，建議 GitHub 連動）
+- Zeabur MCP 修復（見 docs/Zeabur_部署指引.md）
 
-### ?? API?S7-4 / S7-5?
+### 新增 API
 
-| Method | Path | ?? |
+| Method | Path | 說明 |
 |--------|------|------|
-| GET/PATCH | `/api/v1/admin/branding` | ?????? |
-| GET | `/api/v1/branding/by-code/{code}` | ?????????? |
-| GET/POST | `/api/v1/admin/exports` | ?????? / ?? |
-| GET | `/api/v1/exports/{id}/download` | 72h ???? |
-
-### ?? dev ports
-
-| App | Port |
-|-----|------|
-| Host | 5173 |
-| Participant | 5174 |
-| Present | 5175 |
-| Admin | 5176 |
+| GET/PATCH | /api/v1/admin/branding | 組織品牌設定 |
+| GET | /api/v1/branding/by-code/{code} | 公開品牌 |
+| GET/POST | /api/v1/admin/exports | 匯出任務 |
+| GET | /api/v1/exports/{id}/download | 72h 簽名下載 |
 
 ---
 
 ## HISTORY
 
-### 2026-06-13 ? S7-4/S7-5 Branding + Export + Zeabur ??
+### 2026-06-13 — S7-4/S7-5（43854ce）
 
-**S7-4 Branding**
-- `organizations.settings_jsonb.branding`?logo_url?favicon_url?primary_color?custom_domain?display_name
-- Admin `BrandingPage.tsx`??? API `GET /branding/by-code/{code}`
+S7-4：Branding API + BrandingPage；settings_jsonb.branding
+S7-5：export_jobs migration、CSV/XLSX、HMAC 簽名連結、ExportsPage
+Zeabur：專案 liveengage 已建立；backend/Dockerfile；CLI deploy upload 400
 
-**S7-5 BE-012 Export**
-- migration `0005_export_jobs`
-- `export_service`?CSV/XLSX?openpyxl??`mask_identity` ??
-- `export_signing`?HMAC 72h ????
-- Admin `ExportsPage.tsx`
+### 2026-06-13 — S7-2/S7-3（4be10c8）
 
-**Zeabur**
-- MCP Server error?? tools??`.cursor/mcp.json` ?? neon
-- CLI ???????? `liveengage`
-- `backend/Dockerfile` + `docs/Zeabur_????.md`
-- CLI `deploy` upload ? 400 ? ?? Dashboard ?? GitHub ????
+Admin API BE-008/009/010 + 三頁面 UI
 
-**??**?pytest S7-4/S7-5 4/4 � admin tsc 0 errors
-
-### 2026-06-13 ? S7-2/S7-3 Admin API?`4be10c8`?
-
-BE-008/009/010 + OrganizationPage / SessionsPage / AuditPage
-
-### 2026-06-13 ? Present + S7-1 Admin ???`5eea6bb`?
-
-????? commit?
-
----
-
-## ????
-
-1. `TIMESTAMP WITHOUT TIME ZONE` ?????? `datetime.utcnow()`?naive?
-2. `export_jobs.expires_at` ??? `_naive_utc()` ???????
-3. Neon async URL ? `ssl=require`
-4. Upstash ?? `rediss://` ? REST API
