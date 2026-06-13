@@ -79,6 +79,10 @@ class Settings(BaseSettings):
     jwt_access_ttl_minutes: int = 15
     jwt_refresh_ttl_days: int = 14
 
+    # CORS（生產環境跨域前端；逗號分隔，或 `*` 搭配 regex）
+    cors_origins: str = ""
+    cors_origin_regex: str = ""
+
     @model_validator(mode="after")
     def derive_async_database_url(self) -> Self:
         """僅設 sync 時，由 sync 推導 async（不必重複密碼）。"""

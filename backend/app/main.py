@@ -10,6 +10,7 @@ from contextlib import asynccontextmanager
 from typing import Any
 
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from sqlalchemy import text
 
@@ -50,6 +51,20 @@ def create_app() -> FastAPI:
 
     register_error_handlers(app)
     app.add_middleware(IdempotencyMiddleware)
+
+    cors_origins = [
+        o.strip() for o in settings.cors_origins.split(",") if o.strip()
+    ]
+    if cors_origins or settings.cors_origin_regex:
+        app.add_middleware(
+            CORSMiddleware,
+            allow_origins=cors_origins,
+            allow_origin_regex=settings.cors_origin_regex or None,
+            allow_credentials=True,
+            allow_methods=["*"],
+            allow_headers=["*"],
+        )
+
     app.include_router(api_router)
 
     from app.realtime.gateway import router as ws_router

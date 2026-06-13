@@ -1,5 +1,6 @@
 /** API client：participant bearer + 統一錯誤信封。 */
 
+import { apiUrl } from "@liveengage/realtime";
 import { getParticipantToken } from "./participantAuth";
 
 export interface ApiError {
@@ -44,7 +45,7 @@ export async function api<T>(
     headers["Idempotency-Key"] = options.idempotencyKey;
   }
 
-  const res = await fetch(path, {
+  const res = await fetch(apiUrl(path), {
     method: options.method ?? "GET",
     headers,
     body: options.body !== undefined ? JSON.stringify(options.body) : null,

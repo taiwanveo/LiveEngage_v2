@@ -10,6 +10,7 @@
  */
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { wsUrl } from "./apiBase";
 import type { WsEvent, WsMode } from "./types";
 
 const MAX_BACKOFF_MS = 30_000;
@@ -65,8 +66,7 @@ export function useRoomWebSocket({
       params.set("last_event_id", lastEventIdRef.current);
     }
 
-    const proto = window.location.protocol === "https:" ? "wss:" : "ws:";
-    const url = `${proto}//${window.location.host}/ws?${params.toString()}`;
+    const url = wsUrl(`/ws?${params.toString()}`);
 
     const ws = new WebSocket(url);
     wsRef.current = ws;

@@ -1,3 +1,4 @@
+export { apiUrl, getApiBase, wsUrl } from "./apiBase";
 export { useRoomWebSocket } from "./useRoomWebSocket";
 export type { UseRoomWebSocketOptions, UseRoomWebSocketResult } from "./useRoomWebSocket";
 export {
