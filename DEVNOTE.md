@@ -9,8 +9,8 @@
 ### 專案基本資訊
 - **Repo**：https://github.com/ColdRighter/LiveEngage.git（`master`）
 - **本地路徑**：`c:\Vibe_Coidng_Local\LiveEngage`
-- **最新 commit（已 push）**：`51643a0` P-4/P-WS-1 WS 即時推送
-- **GitHub**：`origin/master` 同步至 P-4/P-WS-1
+- **最新 commit（已 push）**：`94288a5` P-fix-1 ModerationPage 繁中還原
+- **GitHub**：`origin/master` 同步至 P-fix-1
 - **資料庫**：Neon Postgres（`taiwanveo@gmail.com` 帳號專案，`ap-southeast-1`）
 - **Redis**：Upstash 雲端（`LE_REDIS_URL=rediss://default:<token>@sweeping-gecko-35121.upstash.io:6379`）
 - **Neon MCP**：`project-0-LiveEngage-neon` 已授權（org: TAIWANVEO，project: LiveEngage `damp-tooth-60940518`）
@@ -98,7 +98,6 @@
 - ✅ upvote rate limit 30/min
 
 ### 仍待補（後續 Sprint）
-- **P-fix-1**：ModerationPage 繁中編碼還原（`???`）
 - Present 獨立 app
 - Sprint 7–8：管理後台
 - Sprint 9+：Quiz / Survey / Ideas / AI / Integrations / Admin
@@ -106,6 +105,14 @@
 ---
 
 ## HISTORY
+
+### 2026-06-13 — P-fix-1：ModerationPage 繁中編碼還原（commit `94288a5`）
+
+**問題**：`ModerationPage.tsx` 所有繁體中文字元在編輯歷程中損壞成 `?`（包含檔案頭部 JSDoc、按鈕標籤、標題、提示文字，以及 `Poll 管理` 連結變成 `Poll ç®¡ç`）。
+
+**修復**：完整重寫檔案，還原所有繁中文字，`tsc -b --noEmit` 通過（零錯誤）。
+
+---
 
 ### 2026-06-13 — P-4/P-WS-1：WS 即時推送，取代 REST 輪詢（commit `51643a0`）
 
