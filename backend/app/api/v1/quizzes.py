@@ -1,0 +1,112 @@
+"""Quiz API（BE-007、FE-011）。"""
+
+from __future__ import annotations
+
+import uuid
+from typing import Annotated
+
+from fastapi import APIRouter, Depends
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.core.db import get_session
+from app.core.deps import get_current_user, get_participant_claims
+from app.core.tokens import ParticipantTokenClaims
+from app.models.user import User
+from app.schemas.quiz import (
+    QuizActionRequest,
+    QuizActionResponse,
+    QuizAnswerResult,
+    QuizAnswerSubmitRequest,
+    QuizLeaderboardResponse,
+    QuizQuestionCreateRequest,
+    QuizQuestionPublic,
+)
+from app.services import quiz_service
+
+router = APIRouter(tags=["quizzes"])
+
+
+@router.post(
+    "/quizzes/{quiz_interaction_id}/questions",
+    response_model=QuizQuestionPublic,
+    status_code=201,
+)
+async def add_quiz_question(
+    quiz_interaction_id: uuid.UUID,
+    payload: QuizQuestionCreateRequest,
+    db: Annotated[AsyncSession, Depends(get_session)],
+    host: Annotated[User, Depends(get_current_user)],
+) -> QuizQuestionPublic:
+    """新增 Quiz 子題。"""
+    return await quiz_service.add_question(
+        db,
+        quiz_interaction_id=quiz_interaction_id,
+        host=host,
+        payload=payload,
+    )
+
+
+@router.get(
+    "/quizzes/{quiz_interaction_id}/questions",
+    response_model=list[QuizQuestionPublic],
+)
+async def list_quiz_questions(
+    quiz_interaction_id: uuid.UUID,
+    db: Annotated[AsyncSession, Depends(get_session)],
+    host: Annotated[User, Depends(get_current_user)],
+) -> list[QuizQuestionPublic]:
+    """列出 Quiz 子題（Host）。"""
+    return await quiz_service.list_questions(
+        db, quiz_interaction_id=quiz_interaction_id, host=host
+    )
+
+
+@router.get(
+    "/quizzes/{quiz_interaction_id}/leaderboard",
+    response_model=QuizLeaderboardResponse,
+)
+async def quiz_leaderboard(
+    quiz_interaction_id: uuid.UUID,
+    db: Annotated[AsyncSession, Depends(get_session)],
+    host: Annotated[User, Depends(get_current_user)],
+) -> QuizLeaderboardResponse:
+    """Quiz 排行榜。"""
+    return await quiz_service.get_leaderboard(
+        db, quiz_interaction_id=quiz_interaction_id, host=host
+    )
+
+
+@router.post(
+    "/quizzes/questions/{question_id}/actions",
+    response_model=QuizActionResponse,
+)
+async def quiz_action(
+    question_id: uuid.UUID,
+    payload: QuizActionRequest,
+    db: Annotated[AsyncSession, Depends(get_session)],
+    host: Annotated[User, Depends(get_current_user)],
+) -> QuizActionResponse:
+    """Quiz 控場動作。"""
+    return await quiz_service.quiz_action(
+        db, question_id=question_id, host=host, request=payload
+    )
+
+
+@router.post(
+    "/quizzes/questions/{question_id}/answers",
+    response_model=QuizAnswerResult,
+    status_code=201,
+)
+async def submit_quiz_answer(
+    question_id: uuid.UUID,
+    payload: QuizAnswerSubmitRequest,
+    db: Annotated[AsyncSession, Depends(get_session)],
+    claims: Annotated[ParticipantTokenClaims, Depends(get_participant_claims)],
+) -> QuizAnswerResult:
+    """提交 Quiz 作答。"""
+    return await quiz_service.submit_answer(
+        db,
+        question_id=question_id,
+        participant_id=claims.participant_id,
+        payload=payload,
+    )

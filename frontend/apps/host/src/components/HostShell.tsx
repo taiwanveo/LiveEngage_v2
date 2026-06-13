@@ -32,6 +32,7 @@ export function HostShell({
             {actions}
             <NavLink href={`#/rooms/${roomId}/moderation`}>Q&amp;A 審核</NavLink>
             <NavLink href={`#/rooms/${roomId}/polls`}>Poll 管理</NavLink>
+            <NavLink href={`#/rooms/${roomId}/sprint9`}>Quiz / Ideas</NavLink>
             <button
               type="button"
               onClick={onLogout}

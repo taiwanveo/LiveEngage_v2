@@ -23,6 +23,16 @@ from app.models.question import (
 from app.models.room import Room
 from app.models.session import Session
 from app.models.user import User
+from app.models.sprint9 import (
+    AiRequestLog,
+    Cohost,
+    Idea,
+    IdeaReaction,
+    QuizQuestion,
+    QuizResponse,
+    SurveyQuestion,
+    SurveySubmission,
+)
 
 __all__ = [
     "AuditLog",
@@ -40,4 +50,12 @@ __all__ = [
     "Room",
     "Session",
     "User",
+    "QuizQuestion",
+    "QuizResponse",
+    "Idea",
+    "IdeaReaction",
+    "Cohost",
+    "SurveyQuestion",
+    "SurveySubmission",
+    "AiRequestLog",
 ]

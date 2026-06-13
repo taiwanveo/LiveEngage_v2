@@ -77,6 +77,10 @@ class Settings(BaseSettings):
     celery_broker_url: str = ""
     celery_task_always_eager: bool = False
 
+    # AI 旁路（未設定時回 503 AI_UNAVAILABLE）
+    ai_api_key: str = ""
+    ai_enabled: bool = False
+
     # JWT（骨架；完整簽發於任務 2）
     jwt_secret: str = "change-me-in-production"
     jwt_algorithm: str = "HS256"

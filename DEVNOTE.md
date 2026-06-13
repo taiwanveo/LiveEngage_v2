@@ -7,9 +7,9 @@
 ## SNAPSHOT（2026-06-13）
 
 - **Repo**：https://github.com/ColdRighter/LiveEngage.git（master）
-- **最新 commit**：0fbde82 Phase C+ — rate limit、Celery export、Runbook、測試帳號清理
-- **pytest**：58+ passed（含 Phase C rate limit、Celery export eager、XLSX）
-- **Zeabur**：五服務 + 可選 **worker**（`Dockerfile.worker`）
+- **最新 commit**：（Phase D push 後更新）
+- **pytest**：63+ passed（含 `test_s9_phase_d`：Quiz / Ideas / Survey / AI-001 / Co-host）
+- **Zeabur**：**六服務** — api / host / participant / present / admin / **worker**
 
 ### 已上線服務
 
@@ -20,6 +20,7 @@
 | participant | https://le-participant.zeabur.app |
 | present | https://le-present.zeabur.app |
 | admin | https://le-admin.zeabur.app |
+| worker | Celery（無公開 URL，`Dockerfile.worker`） |
 
 ### Phase A+B（現場 Poll + Q&A）
 
@@ -27,21 +28,27 @@ Host 儀表板、Participant Q&A/Poll、Present 投影、主持人回覆、QR �
 
 ### Phase C+（平台與營運）
 
+IP rate limit、Celery export worker + Redis 快取、`docs/RUNBOOK.md`、測試帳號清理。
+
+### Phase D（Sprint 9+ — 本輪）
+
 | 項目 | 狀態 |
 |------|------|
-| IP rate limit（passcode / by-code） | done |
-| org `settings_jsonb.rate_limit` 覆寫 participant 限流 | done |
-| Celery export worker + Redis 檔案快取 | done（需部署 worker 或 `LE_CELERY_TASK_ALWAYS_EAGER`） |
-| `scripts/cleanup_test_accounts.py` | done |
-| `docs/RUNBOOK.md` | done |
+| Migration `0006_sprint9_phase_d`（quiz / ideas / cohost / survey / ai_request_logs） | done |
+| BE-006 Survey、BE-007 Quiz、BE-012 Co-host、AI-001~003 stub | done |
+| FE-011 Quiz 控制台、FE-012 Survey、FE-013 Ideas（Host + Participant 最小 UI） | done |
+| Celery worker SSL（Upstash `rediss://`）+ `--pool=solo` | done |
+| 整合測試 `tests/test_s9_phase_d.py` | done |
 
-### 仍待 Phase D（Sprint 9+）
-
-Quiz / Survey / Ideas、AI 旁路、SSO、Co-host、Integrations、E2E 自動化套件
+**仍 defer**：SSO、Integrations、多房間進階、E2E 自動化、真實 LLM（目前 AI stub + 503）
 
 ---
 
 ## HISTORY
+
+### 2026-06-13 — Phase D Sprint 9（待填 commit）
+
+Quiz / Ideas / Survey 後端 + 最小前端；Zeabur worker 服務；Celery rediss SSL 修復。
 
 ### 2026-06-13 — Phase C+ 平台營運（0fbde82）
 

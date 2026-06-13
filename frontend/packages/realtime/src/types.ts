@@ -46,3 +46,18 @@ export const QA_EVENT_TYPES = new Set([
   QUESTION_UPVOTED,
   QUESTION_DOWNVOTED,
 ]);
+
+/** Quiz 事件（Sprint 9；BE-007 / FE-011） */
+export const QUIZ_QUESTION_STARTED = "quiz_question_started";
+export const QUIZ_LEADERBOARD_UPDATED = "quiz_leaderboard_updated";
+
+export const QUIZ_EVENT_TYPES = new Set([
+  QUIZ_QUESTION_STARTED,
+  QUIZ_LEADERBOARD_UPDATED,
+]);
+
+/** Ideas 事件（Sprint 9；FE-013） */
+export const IDEA_SUBMITTED = "idea_submitted";
+export const IDEA_REACTED = "idea_reacted";
+
+export const IDEAS_EVENT_TYPES = new Set([IDEA_SUBMITTED, IDEA_REACTED]);

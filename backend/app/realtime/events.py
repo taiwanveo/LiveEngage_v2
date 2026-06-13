@@ -32,6 +32,14 @@ POLL_RESULT_REVEALED = "poll_result_revealed"
 POLL_RESULT_HIDDEN = "poll_result_hidden"
 POLL_RESPONSE_SUBMITTED = "poll_response_submitted"
 
+# Quiz 事件型別（Sprint 9；BE-007 / FE-011）
+QUIZ_QUESTION_STARTED = "quiz_question_started"
+QUIZ_LEADERBOARD_UPDATED = "quiz_leaderboard_updated"
+
+# Ideas 事件型別（Sprint 9；FE-013）
+IDEA_SUBMITTED = "idea_submitted"
+IDEA_REACTED = "idea_reacted"
+
 # 接收端 mode 集合
 MODE_HOST = {"host"}
 MODE_PRESENT_HOST = {"present", "host"}

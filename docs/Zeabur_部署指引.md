@@ -22,6 +22,9 @@ LiveEngage 是 **monorepo**（單一 repo 多目錄），不能直接把 repo �
 | **participant** | https://le-participant.zeabur.app | `frontend/Dockerfile.participant` |
 | **present** | https://le-present.zeabur.app | `frontend/Dockerfile.present` |
 | **admin** | https://le-admin.zeabur.app | `frontend/Dockerfile.admin` |
+| **worker** | （無公開網域） | 根目錄 `Dockerfile.worker` — Celery 匯出 Worker |
+
+Worker 需與 **api** 相同的核心 env：`LE_DATABASE_URL`、`LE_DATABASE_URL_SYNC`、`LE_REDIS_URL`、`LE_JWT_SECRET`、`LE_ENV=production`。建議另設 `LE_CELERY_TASK_ALWAYS_EAGER=false`。
 
 | 項目 | 值 |
 |------|-----|

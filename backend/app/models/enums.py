@@ -101,3 +101,30 @@ class ExportStatus(StrEnum):
     COMPLETED = "completed"
     FAILED = "failed"
     EXPIRED = "expired"
+
+
+class QuizQuestionState(StrEnum):
+    """quiz_questions.state"""
+
+    PENDING = "pending"
+    ACTIVE = "active"
+    REVEALED = "revealed"
+    CLOSED = "closed"
+
+
+class CohostStatus(StrEnum):
+    """cohosts.status"""
+
+    PENDING = "pending"
+    ACCEPTED = "accepted"
+    REVOKED = "revoked"
+
+
+class AiFeature(StrEnum):
+    """ai_request_logs.feature"""
+
+    GENERATE_POLLS = "generate_polls"
+    REWRITE = "rewrite"
+    QUESTION_ASSIST = "question_assist"
+    CATEGORIZE_IDEAS = "categorize_ideas"
+    GENERATE_QUIZ = "generate_quiz"

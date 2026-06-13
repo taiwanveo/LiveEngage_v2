@@ -3,6 +3,10 @@
 import { api } from "./api";
 import type { InteractionSummary, PollInteractionType } from "./pollTypes";
 
+export type Sprint9InteractionType = "quiz" | "ideas" | "survey";
+
+export type InteractionCreateType = PollInteractionType | Sprint9InteractionType;
+
 export async function listInteractions(
   roomId: string
 ): Promise<InteractionSummary[]> {
@@ -12,7 +16,7 @@ export async function listInteractions(
 export async function createInteraction(
   roomId: string,
   payload: {
-    type: PollInteractionType;
+    type: InteractionCreateType;
     title?: string;
     description?: string;
     settings?: Record<string, unknown>;
@@ -21,6 +25,16 @@ export async function createInteraction(
   return api<InteractionSummary>(`/api/v1/rooms/${roomId}/interactions`, {
     method: "POST",
     body: payload,
+  });
+}
+
+export async function updateInteractionStatus(
+  interactionId: string,
+  status: "idle" | "active" | "locked" | "stopped"
+): Promise<InteractionSummary> {
+  return api<InteractionSummary>(`/api/v1/interactions/${interactionId}`, {
+    method: "PATCH",
+    body: { status },
   });
 }
 

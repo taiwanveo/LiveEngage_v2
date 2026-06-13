@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import ssl
+
 from celery import Celery
 
 from app.core.config import get_settings
@@ -15,12 +17,20 @@ celery_app = Celery(
     include=["app.workers.export_tasks"],
 )
 
-celery_app.conf.update(
-    task_serializer="json",
-    accept_content=["json"],
-    result_serializer="json",
-    timezone="UTC",
-    enable_utc=True,
-    task_always_eager=settings.celery_task_always_eager,
-    task_eager_propagates=True,
-)
+_conf: dict[str, object] = {
+    "task_serializer": "json",
+    "accept_content": ["json"],
+    "result_serializer": "json",
+    "timezone": "UTC",
+    "enable_utc": True,
+    "task_always_eager": settings.celery_task_always_eager,
+    "task_eager_propagates": True,
+}
+
+# Upstash 等 TLS Redis（rediss://）需明確 SSL 設定
+if settings.celery_broker_url.startswith("rediss://"):
+    _ssl = {"ssl_cert_reqs": ssl.CERT_NONE}
+    _conf["broker_use_ssl"] = _ssl
+    _conf["redis_backend_use_ssl"] = _ssl
+
+celery_app.conf.update(**_conf)

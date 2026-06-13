@@ -12,10 +12,13 @@ import {
   POLL_LOCKED,
   POLL_UNLOCKED,
   QA_EVENT_TYPES,
+  QUIZ_QUESTION_STARTED,
+  IDEAS_EVENT_TYPES,
   useRoomWebSocket,
   type WsEvent,
 } from "@liveengage/realtime";
 import { PollRenderer } from "@liveengage/renderers";
+import { RoomIdeasPanel } from "../components/RoomIdeasPanel";
 import { RoomQaPanel } from "../components/RoomQaPanel";
 import { ApiException } from "../lib/api";
 import {
@@ -24,13 +27,16 @@ import {
 } from "../lib/participantAuth";
 import { getPoll, getPollResults, isPollType, submitPollResponse } from "../lib/pollApi";
 import { getSessionState } from "../lib/sessionApi";
+import { submitQuizAnswer, type ActiveQuizQuestion } from "../lib/sprint9Api";
 
 export function RoomPage(): React.JSX.Element {
   const ctx = getParticipantContext();
   const queryClient = useQueryClient();
-  const [tab, setTab] = useState<"poll" | "qa">("poll");
+  const [tab, setTab] = useState<"poll" | "qa" | "ideas" | "quiz">("poll");
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [submitOk, setSubmitOk] = useState(false);
+  const [quizQuestion, setQuizQuestion] = useState<ActiveQuizQuestion | null>(null);
+  const [quizSubmitting, setQuizSubmitting] = useState(false);
 
   // session-state：30s 安全備援；WS 事件觸發 invalidate
   const stateQuery = useQuery({
@@ -43,7 +49,18 @@ export function RoomPage(): React.JSX.Element {
   const activePollId = useMemo(() => {
     if (!ctx || !stateQuery.data) return null;
     const hit = stateQuery.data.active_interactions.find(
-      (i) => i.room_id === ctx.roomId && isPollType(i.type) && i.status === "active"
+      (i) =>
+        i.room_id === ctx.roomId &&
+        isPollType(i.type) &&
+        i.status === "active"
+    );
+    return hit?.id ?? null;
+  }, [ctx, stateQuery.data]);
+
+  const activeIdeasBoardId = useMemo(() => {
+    if (!ctx || !stateQuery.data) return null;
+    const hit = stateQuery.data.active_interactions.find(
+      (i) => i.room_id === ctx.roomId && i.type === "ideas" && i.status === "active"
     );
     return hit?.id ?? null;
   }, [ctx, stateQuery.data]);
@@ -108,11 +125,24 @@ export function RoomPage(): React.JSX.Element {
             });
           }
           break;
+        case QUIZ_QUESTION_STARTED: {
+          const q = event.payload.question as ActiveQuizQuestion | undefined;
+          if (q) {
+            setQuizQuestion(q);
+            setTab("quiz");
+          }
+          break;
+        }
         default:
+          if (IDEAS_EVENT_TYPES.has(event.type) && activeIdeasBoardId) {
+            void queryClient.invalidateQueries({
+              queryKey: ["ideas-board", activeIdeasBoardId],
+            });
+          }
           break;
       }
     },
-    [queryClient, ctx?.sessionId, activePollId],
+    [queryClient, ctx?.sessionId, activePollId, activeIdeasBoardId],
   );
 
   const { connected } = useRoomWebSocket({
@@ -217,12 +247,78 @@ export function RoomPage(): React.JSX.Element {
           >
             問答（Q&amp;A）
           </button>
+          {activeIdeasBoardId ? (
+            <button
+              type="button"
+              onClick={() => setTab("ideas")}
+              className={`border-b-2 py-3 text-sm font-medium ${
+                tab === "ideas"
+                  ? "border-primary-600 text-primary-700"
+                  : "border-transparent text-slate-500 hover:text-slate-800"
+              }`}
+            >
+              點子牆（Ideas）
+            </button>
+          ) : null}
+          {quizQuestion ? (
+            <button
+              type="button"
+              onClick={() => setTab("quiz")}
+              className={`border-b-2 py-3 text-sm font-medium ${
+                tab === "quiz"
+                  ? "border-primary-600 text-primary-700"
+                  : "border-transparent text-slate-500 hover:text-slate-800"
+              }`}
+            >
+              Quiz
+            </button>
+          ) : null}
         </nav>
       </div>
 
       <div className="mx-auto max-w-2xl px-4 py-6">
         {tab === "qa" ? (
           <RoomQaPanel roomId={ctx.roomId} />
+        ) : tab === "ideas" && activeIdeasBoardId ? (
+          <RoomIdeasPanel boardId={activeIdeasBoardId} />
+        ) : tab === "quiz" && quizQuestion ? (
+          <div className="rounded-xl border border-slate-200 bg-white p-6">
+            <h2 className="text-lg font-semibold">{quizQuestion.title}</h2>
+            <ul className="mt-4 space-y-2">
+              {quizQuestion.options.map((opt) => (
+                <li key={opt.id}>
+                  <button
+                    type="button"
+                    disabled={quizSubmitting}
+                    onClick={() => {
+                      setQuizSubmitting(true);
+                      setSubmitError(null);
+                      void submitQuizAnswer(quizQuestion.id, [opt.id])
+                        .then((res) => {
+                          setSubmitOk(true);
+                          if (res.is_correct) {
+                            setSubmitError(null);
+                          }
+                        })
+                        .catch((err: unknown) => {
+                          setSubmitOk(false);
+                          setSubmitError(
+                            err instanceof ApiException ? err.error.message : "提交失敗"
+                          );
+                        })
+                        .finally(() => setQuizSubmitting(false));
+                    }}
+                    className="w-full rounded-lg border border-slate-200 px-4 py-3 text-left text-sm hover:border-primary-400 hover:bg-primary-50 disabled:opacity-50"
+                  >
+                    {opt.text}
+                  </button>
+                </li>
+              ))}
+            </ul>
+            {submitError ? (
+              <p className="mt-3 text-sm text-red-600">{submitError}</p>
+            ) : null}
+          </div>
         ) : (
           <>
         {submitOk ? (

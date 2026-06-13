@@ -11,6 +11,8 @@ import { PollHubPage } from "./pages/PollHubPage";
 import { PollRenderersDemoPage } from "./pages/PollRenderersDemoPage";
 import { PresentPage } from "./pages/PresentPage";
 import { SessionsDashboardPage } from "./pages/SessionsDashboardPage";
+import { Sprint9ConsolePage } from "./pages/Sprint9ConsolePage";
+import { Sprint9HubPage } from "./pages/Sprint9HubPage";
 import { getAccessToken, clearAccessToken } from "./lib/auth";
 
 type Route =
@@ -22,7 +24,9 @@ type Route =
   | { name: "poll-builder"; roomId: string; pollId: string }
   | { name: "poll-console"; roomId: string; pollId: string }
   | { name: "poll-answer"; roomId: string; pollId: string }
-  | { name: "poll-present"; roomId: string; pollId: string };
+  | { name: "poll-present"; roomId: string; pollId: string }
+  | { name: "sprint9"; roomId: string }
+  | { name: "sprint9-console"; roomId: string; interactionId: string };
 
 function parseHash(): Route {
   const parts = window.location.hash.replace(/^#/, "").split("/").filter(Boolean);
@@ -54,6 +58,12 @@ function parseHash(): Route {
         return { name: "poll-present", roomId, pollId: parts[3] };
       }
       return { name: "polls", roomId };
+    }
+    if (parts[2] === "sprint9") {
+      if (parts[3] && parts[4] === "console") {
+        return { name: "sprint9-console", roomId, interactionId: parts[3] };
+      }
+      return { name: "sprint9", roomId };
     }
   }
 
@@ -132,6 +142,16 @@ export function App(): React.JSX.Element {
       );
     case "moderation":
       return <ModerationPage roomId={route.roomId} onLogout={logout} />;
+    case "sprint9":
+      return <Sprint9HubPage roomId={route.roomId} onLogout={logout} />;
+    case "sprint9-console":
+      return (
+        <Sprint9ConsolePage
+          roomId={route.roomId}
+          interactionId={route.interactionId}
+          onLogout={logout}
+        />
+      );
     default:
       return <SessionsDashboardPage onLogout={logout} />;
   }

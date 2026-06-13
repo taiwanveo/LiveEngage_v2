@@ -17,4 +17,4 @@ COPY backend/alembic.ini ./
 
 RUN pip install --no-cache-dir -e .
 
-CMD ["celery", "-A", "app.workers.celery_app:celery_app", "worker", "--loglevel=info", "-Q", "celery"]
+CMD ["celery", "-A", "app.workers.celery_app:celery_app", "worker", "--loglevel=info", "-Q", "celery", "--pool=solo", "--concurrency=1"]
