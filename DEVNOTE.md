@@ -9,7 +9,7 @@
 ### 專案基本資訊
 - **Repo**：https://github.com/ColdRighter/LiveEngage.git（`master`）
 - **本地路徑**：`c:\Vibe_Coidng_Local\LiveEngage`
-- **最新 commit（已 push）**：`7fbbc8b` S6-1 Poll renderers 核心（3 mode）
+- **最新 commit（已 push）**：`e043c82` S6-2/S6-3 Poll Host UI + Present + Recharts
 - **GitHub**：`origin/master` 同步至 S5-3
 - **資料庫**：Neon Postgres（`taiwanveo@gmail.com` 帳號專案，`ap-southeast-1`）
 - **Redis**：Upstash 雲端（`LE_REDIS_URL=rediss://default:<token>@sweeping-gecko-35121.upstash.io:6379`）
@@ -36,8 +36,9 @@
 | S5-3 | Poll REST API + multiple_choice 作答與結果 | ✅ pushed `31bc8f0` |
 | S5-4 | word_cloud / open_text / rating / ranking 作答與聚合 | ✅ pushed `1365be4` |
 | S6-1 | renderers 核心（3 mode） | ✅ pushed `7fbbc8b` |
-| S6-2 | Host Builder + 控制台 UI | ✅ 本地完成（待 push） |
-| S6-3 | Present 控制列 + Recharts | ✅ 本地完成（待 push） |
+| S6-2 | Host Builder + 控制台 UI | ✅ pushed `e043c82` |
+| S6-3 | Present 控制列 + Recharts | ✅ pushed `e043c82` |
+| P-1~P-3 | Participant app（join + Poll 作答 E2E） | ✅ 本地完成（待 push） |
 
 ### API 端點（已實作）
 | Method | Path | 說明 |
@@ -71,7 +72,8 @@
 |-----|------|------|
 | Host | `frontend/apps/host` | ✅ Q&A 審核 + Poll Hub/Builder/Console/Present/Answer 路由 |
 | `@liveengage/renderers` | `frontend/packages/renderers` | ✅ 五題型三 mode + Recharts 投影圖表（S6-3） |
-| Participant / Present / Admin | — | 尚未建立 |
+| Participant | `frontend/apps/participant`（port **5174**） | ✅ P-1~P-3：`#/join/{code}` → `#/room` Poll 作答 E2E |
+| Present / Admin | — | 尚未建立 |
 
 ---
 
@@ -94,17 +96,26 @@
 - ✅ upvote rate limit 30/min
 
 ### 仍待補（後續 Sprint）
-- Participant / Present 獨立 app、WS 即時訂閱取代輪詢
+- **P-4 / P-WS-1**：`packages/realtime` + Host Console/Present/Participant 改 WS（取代 3s 輪詢）
+- **P-fix-1**：ModerationPage 繁中編碼還原（`???`）
+- Present 獨立 app
 - Sprint 7–8：管理後台
 - Sprint 9+：Quiz / Survey / Ideas / AI / Integrations / Admin
-- 相似問題偵測、Question AI、participant 互相回覆、label CRUD
-- Host/Present WS 連線的房間 org 歸屬查驗（participant 已綁定）
-- audit log 對外查詢 / 匯出 API
-- Participant / Present / Admin 前端 app
 
 ---
 
 ## HISTORY
+
+### 2026-06-13 — P-1~P-3：Participant app（join + Poll 作答 E2E）
+
+**`frontend/apps/participant`**（dev port **5174**）
+- **P-1**：Vite + React 19 + TS strict + Tailwind；alias `@liveengage/renderers`
+- **P-2**：`#/join` / `#/join/{CODE}` → `by-code` + `join`；`participantAuth` 存 token
+- **P-3**：`#/room` 輪詢 `session/state` 找同房 active Poll → `PollRenderer answer` → `POST /polls/{id}/responses`
+
+**E2E**：Host live + Poll start → Participant join 代碼 → 提交成功
+
+---
 
 ### 2026-06-13 — S6-2~S6-3：Poll Host UI + Present 控制列
 
