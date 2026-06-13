@@ -7,7 +7,7 @@
 ## SNAPSHOT（2026-06-13）
 
 - **Repo**：https://github.com/ColdRighter/LiveEngage.git（master）
-- **最新 commit**：（Phase B push 後更新）
+- **最新 commit**：2661e3f Phase B — Q&A 回覆、QR 分享、Participant 互動深化（Phase A：c4e0eff）
 - **pytest**：53+ passed（含 Q&A 回覆、answered 公開列表）
 - **Zeabur 專案**：[liveengage](https://zeabur.com/projects/6a2d1bc82871baed5fc633ef?envID=6a2d1bc9cf558888ca4bc9da)
 - push `master` → 五服務自動 redeploy
@@ -44,7 +44,9 @@
 
 ## HISTORY
 
-### 2026-06-13 — Phase B 體驗補齊
+### 2026-06-13 — Phase B 體驗補齊（2661e3f）
+
+Q&A 主持人回覆、replies API、QR 分享、Participant WS 與分頁指示
 
 ### 2026-06-13 — Phase A 現場主流程（c4e0eff）
 
