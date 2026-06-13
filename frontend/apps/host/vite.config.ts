@@ -13,6 +13,10 @@ export default defineConfig({
         __dirname,
         "../../packages/renderers/src/index.ts"
       ),
+      "@liveengage/realtime": path.resolve(
+        __dirname,
+        "../../packages/realtime/src/index.ts"
+      ),
     },
   },
   server: {

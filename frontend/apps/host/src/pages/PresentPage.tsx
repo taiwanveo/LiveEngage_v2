@@ -1,9 +1,15 @@
-/** PM-004：投影全螢幕 + 控制列 + 鍵盤快捷鍵（S6-3）。 */
+/** PM-004：投影全螢幕 + 控制列 + 鍵盤快捷鍵（S6-3）+ WS 即時推送（P-4/P-WS-1）。 */
 
 import * as React from "react";
 import { useCallback, useEffect } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  POLL_EVENT_TYPES,
+  useRoomWebSocket,
+  type WsEvent,
+} from "@liveengage/realtime";
 import { PollRenderer } from "@liveengage/renderers";
+import { getAccessToken } from "../lib/auth";
 import { getPoll, getPollResults, pollAction } from "../lib/pollApi";
 import type { PollAction, InteractionStatus } from "../lib/pollTypes";
 
@@ -15,17 +21,18 @@ interface Props {
 export function PresentPage({ roomId, pollId }: Props): React.JSX.Element {
   const queryClient = useQueryClient();
 
+  // WS 事件觸發 invalidate；30s 輪詢作安全備援
   const pollQuery = useQuery({
     queryKey: ["poll", pollId],
     queryFn: () => getPoll(pollId),
-    refetchInterval: 2_000,
+    refetchInterval: 30_000,
   });
 
   const resultsQuery = useQuery({
     queryKey: ["poll-results", pollId],
     queryFn: () => getPollResults(pollId),
     enabled: Boolean(pollQuery.data),
-    refetchInterval: 2_000,
+    refetchInterval: 30_000,
   });
 
   const actionMutation = useMutation({
@@ -34,6 +41,22 @@ export function PresentPage({ roomId, pollId }: Props): React.JSX.Element {
       void queryClient.invalidateQueries({ queryKey: ["poll", pollId] });
       void queryClient.invalidateQueries({ queryKey: ["poll-results", pollId] });
     },
+  });
+
+  const handleWsEvent = useCallback(
+    (event: WsEvent) => {
+      if (!POLL_EVENT_TYPES.has(event.type)) return;
+      void queryClient.invalidateQueries({ queryKey: ["poll", pollId] });
+      void queryClient.invalidateQueries({ queryKey: ["poll-results", pollId] });
+    },
+    [queryClient, pollId],
+  );
+
+  const { connected } = useRoomWebSocket({
+    roomId,
+    token: getAccessToken(),
+    mode: "host",
+    onEvent: handleWsEvent,
   });
 
   const poll = pollQuery.data;
@@ -85,6 +108,17 @@ export function PresentPage({ roomId, pollId }: Props): React.JSX.Element {
 
   return (
     <div className="flex min-h-full flex-col bg-slate-950">
+      {/* WS 連線指示燈（僅開發時顯示） */}
+      <div className="absolute right-4 top-4 flex items-center gap-1.5">
+        <span
+          className={`h-2 w-2 rounded-full ${connected ? "bg-emerald-400" : "bg-slate-500"}`}
+          title={connected ? "WS 已連線" : "WS 未連線"}
+        />
+        {!connected && (
+          <span className="text-xs text-slate-500">輪詢備援中</span>
+        )}
+      </div>
+
       <div className="flex-1 p-8 md:p-12">
         {poll ? (
           <PollRenderer

@@ -1,8 +1,19 @@
-/** 參與者房間：顯示 active Poll 並作答（P-3 E2E）。 */
+/** 參與者房間：顯示 active Poll 並作答（P-3 E2E）+ WS 即時推送（P-4/P-WS-1）。 */
 
 import * as React from "react";
-import { useMemo, useState } from "react";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useCallback, useMemo, useState } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  POLL_RESULT_HIDDEN,
+  POLL_RESULT_REVEALED,
+  POLL_RESPONSE_SUBMITTED,
+  POLL_STARTED,
+  POLL_STOPPED,
+  POLL_LOCKED,
+  POLL_UNLOCKED,
+  useRoomWebSocket,
+  type WsEvent,
+} from "@liveengage/realtime";
 import { PollRenderer } from "@liveengage/renderers";
 import { ApiException } from "../lib/api";
 import {
@@ -14,14 +25,16 @@ import { getSessionState } from "../lib/sessionApi";
 
 export function RoomPage(): React.JSX.Element {
   const ctx = getParticipantContext();
+  const queryClient = useQueryClient();
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [submitOk, setSubmitOk] = useState(false);
 
+  // session-state：30s 安全備援；WS 事件觸發 invalidate
   const stateQuery = useQuery({
     queryKey: ["session-state", ctx?.sessionId],
     queryFn: () => getSessionState(ctx!.sessionId),
     enabled: Boolean(ctx?.sessionId),
-    refetchInterval: 3_000,
+    refetchInterval: 30_000,
   });
 
   const activePollId = useMemo(() => {
@@ -36,14 +49,65 @@ export function RoomPage(): React.JSX.Element {
     queryKey: ["poll", activePollId],
     queryFn: () => getPoll(activePollId!),
     enabled: Boolean(activePollId),
-    refetchInterval: 3_000,
+    refetchInterval: 30_000,
   });
 
   const resultsQuery = useQuery({
     queryKey: ["poll-results", activePollId],
     queryFn: () => getPollResults(activePollId!),
     enabled: Boolean(activePollId && pollQuery.data?.result_visible),
-    refetchInterval: 2_500,
+    refetchInterval: 30_000,
+  });
+
+  // WS 事件處理：依事件類型決定 invalidate 策略
+  const handleWsEvent = useCallback(
+    (event: WsEvent) => {
+      switch (event.type) {
+        case POLL_STARTED:
+        case POLL_STOPPED:
+          // active_interactions 清單改變，重新取 session-state
+          void queryClient.invalidateQueries({
+            queryKey: ["session-state", ctx?.sessionId],
+          });
+          if (activePollId) {
+            void queryClient.invalidateQueries({ queryKey: ["poll", activePollId] });
+          }
+          break;
+        case POLL_LOCKED:
+        case POLL_UNLOCKED:
+          if (activePollId) {
+            void queryClient.invalidateQueries({ queryKey: ["poll", activePollId] });
+          }
+          break;
+        case POLL_RESULT_REVEALED:
+        case POLL_RESULT_HIDDEN:
+          if (activePollId) {
+            void queryClient.invalidateQueries({ queryKey: ["poll", activePollId] });
+            void queryClient.invalidateQueries({
+              queryKey: ["poll-results", activePollId],
+            });
+          }
+          break;
+        case POLL_RESPONSE_SUBMITTED:
+          if (activePollId) {
+            void queryClient.invalidateQueries({
+              queryKey: ["poll-results", activePollId],
+            });
+          }
+          break;
+        default:
+          break;
+      }
+    },
+    [queryClient, ctx?.sessionId, activePollId],
+  );
+
+  const { connected } = useRoomWebSocket({
+    roomId: ctx?.roomId ?? null,
+    token: ctx?.participantToken ?? null,
+    mode: "participant",
+    enabled: Boolean(ctx),
+    onEvent: handleWsEvent,
   });
 
   const submitMutation = useMutation({
@@ -97,13 +161,19 @@ export function RoomPage(): React.JSX.Element {
               <p className="text-xs text-slate-500">你好，{ctx.displayName}</p>
             ) : null}
           </div>
-          <button
-            type="button"
-            onClick={leave}
-            className="text-sm text-slate-600 hover:text-slate-900"
-          >
-            離開
-          </button>
+          <div className="flex items-center gap-3">
+            <span
+              className={`h-2 w-2 rounded-full ${connected ? "bg-emerald-400" : "bg-slate-300"}`}
+              title={connected ? "即時連線中" : "連線中斷，備援輪詢"}
+            />
+            <button
+              type="button"
+              onClick={leave}
+              className="text-sm text-slate-600 hover:text-slate-900"
+            >
+              離開
+            </button>
+          </div>
         </div>
       </header>
 

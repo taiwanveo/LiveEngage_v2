@@ -1,8 +1,15 @@
-/** Poll 現場控制台（BE-005）：控場動作 + 即時結果。 */
+/** Poll 現場控制台（BE-005）：控場動作 + WS 即時結果（P-4/P-WS-1）。 */
 
 import * as React from "react";
+import { useCallback } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  POLL_EVENT_TYPES,
+  useRoomWebSocket,
+  type WsEvent,
+} from "@liveengage/realtime";
 import { PollRenderer } from "@liveengage/renderers";
+import { getAccessToken } from "../lib/auth";
 import { HostShell } from "../components/HostShell";
 import { getPoll, getPollResults, pollAction } from "../lib/pollApi";
 import type { PollAction } from "../lib/pollTypes";
@@ -30,17 +37,18 @@ export function PollConsolePage({
 }: Props): React.JSX.Element {
   const queryClient = useQueryClient();
 
+  // 取得 Poll 資料：WS 觸發 invalidate，refetchInterval 30s 作安全備援
   const pollQuery = useQuery({
     queryKey: ["poll", pollId],
     queryFn: () => getPoll(pollId),
-    refetchInterval: 3_000,
+    refetchInterval: 30_000,
   });
 
   const resultsQuery = useQuery({
     queryKey: ["poll-results", pollId],
     queryFn: () => getPollResults(pollId),
     enabled: Boolean(pollQuery.data),
-    refetchInterval: 2_500,
+    refetchInterval: 30_000,
   });
 
   const actionMutation = useMutation({
@@ -55,6 +63,23 @@ export function PollConsolePage({
       void queryClient.invalidateQueries({ queryKey: ["poll", pollId] });
       void queryClient.invalidateQueries({ queryKey: ["poll-results", pollId] });
     },
+  });
+
+  // WS 事件處理：Poll 相關事件立即觸發 re-fetch
+  const handleWsEvent = useCallback(
+    (event: WsEvent) => {
+      if (!POLL_EVENT_TYPES.has(event.type)) return;
+      void queryClient.invalidateQueries({ queryKey: ["poll", pollId] });
+      void queryClient.invalidateQueries({ queryKey: ["poll-results", pollId] });
+    },
+    [queryClient, pollId],
+  );
+
+  const { connected } = useRoomWebSocket({
+    roomId,
+    token: getAccessToken(),
+    mode: "host",
+    onEvent: handleWsEvent,
   });
 
   const poll = pollQuery.data;
@@ -73,12 +98,18 @@ export function PollConsolePage({
       roomId={roomId}
       onLogout={onLogout}
       actions={
-        <a
-          href={`#/rooms/${roomId}/polls/${pollId}/present`}
-          className="rounded-md bg-slate-900 px-3 py-1.5 text-sm text-white hover:bg-slate-800"
-        >
-          投影模式
-        </a>
+        <div className="flex items-center gap-3">
+          <span
+            className={`h-2 w-2 rounded-full ${connected ? "bg-emerald-400" : "bg-slate-300"}`}
+            title={connected ? "WS 已連線" : "WS 未連線"}
+          />
+          <a
+            href={`#/rooms/${roomId}/polls/${pollId}/present`}
+            className="rounded-md bg-slate-900 px-3 py-1.5 text-sm text-white hover:bg-slate-800"
+          >
+            投影模式
+          </a>
+        </div>
       }
     >
       {err ? (

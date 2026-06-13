@@ -24,7 +24,9 @@
     "baseUrl": ".",
     "paths": {
       "@liveengage/renderers": ["../../packages/renderers/src/index.ts"],
-      "@liveengage/renderers/*": ["../../packages/renderers/src/*"]
+      "@liveengage/renderers/*": ["../../packages/renderers/src/*"],
+      "@liveengage/realtime": ["../../packages/realtime/src/index.ts"],
+      "@liveengage/realtime/*": ["../../packages/realtime/src/*"]
     }
   },
   "include": ["src"]
