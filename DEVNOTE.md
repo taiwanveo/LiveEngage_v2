@@ -9,8 +9,8 @@
 ### 專案基本資訊
 - **Repo**：https://github.com/ColdRighter/LiveEngage.git（`master`）
 - **本地路徑**：`c:\Vibe_Coidng_Local\LiveEngage`
-- **最新 commit（已 push）**：`S5-1` Poll Migration + Models + Schemas
-- **GitHub**：`origin/master` 同步至 S5-1
+- **最新 commit（已 push）**：`11fcef5` S5-2 Poll Service + 狀態機 + Redis 鎖
+- **GitHub**：`origin/master` 同步至 S5-2
 - **資料庫**：Neon Postgres（`taiwanveo@gmail.com` 帳號專案，`ap-southeast-1`）
 - **Redis**：Upstash 雲端（`LE_REDIS_URL=rediss://default:<token>@sweeping-gecko-35121.upstash.io:6379`）
 - **Neon MCP**：`project-0-LiveEngage-neon` 已授權（org: TAIWANVEO，project: LiveEngage `damp-tooth-60940518`）
@@ -32,7 +32,8 @@
 | Sprint 3 | Q&A：提問/列表/投票/審核（FE-004/005、BE-004） | ✅ migration 0002 + 8 AC 測試 |
 | Sprint 4 | Redis（Pub/Sub + Stream replay）、Idempotency、Q&A flush/節流/rate limit、audit log、PM-002 審核 UI | ✅ pushed `085c7b3` |
 | S5-1 | Poll Migration（0004）+ Models + Schemas | ✅ pushed |
-| S5-2 | Poll Service + 狀態機 + Redis 分散式鎖 | 🚧 進行中 |
+| S5-2 | Poll Service + 狀態機 + Redis 分散式鎖 | ✅ pushed `11fcef5` |
+| S5-3 | 作答端點 + 聚合 + Results + Idempotency | 待開始 |
 
 ### API 端點（已實作）
 | Method | Path | 說明 |
@@ -82,8 +83,7 @@
 - ✅ upvote rate limit 30/min
 
 ### 仍待補（後續 Sprint）
-- S5-2：Poll Service + 狀態機 + Redis 分散式鎖（start/stop/lock/reveal/reset）
-- S5-3：Poll REST 端點（Builder + 控場 + 作答 + 結果聚合）
+- S5-3：Poll REST 端點（GET /polls/{id}, POST /responses, GET /results, POST /actions）
 - S6-1~S6-3：WebSocket events、前端 Poll UI（FE-006~010）、整合測試
 - Sprint 7–8：管理後台
 - Sprint 9+：Quiz / Survey / Ideas / AI / Integrations / Admin
@@ -95,6 +95,32 @@
 ---
 
 ## HISTORY
+
+### 2026-06-13 — S5-2：Poll Service + 狀態機 + Redis 鎖（commit `11fcef5`）
+
+**後端**
+- **`app/services/poll_redis.py`**
+  - 房間分散式鎖：`lock:room:{roomId}:active_poll`（SET NX PX 5000，最多 3 次退避重試；Lua CAS DEL 釋鎖）
+  - 聚合 hash：`agg:poll:{id}`（`increment_option_count`、`increment_rating_agg`、`get/clear/set_ttl`）
+  - 作答 rate limit：10/min/participant
+  - 結果廣播節流：250ms 防抖（`throttled_broadcast_result`，同 qa_redis 範式）
+- **`app/services/poll_service.py`**
+  - `TRANSITIONS` dict 宣告 7 個 action 合法來源→目標（`PollAction.NEXT/PREV` defer 至 Quiz）
+  - `execute_poll_action`：驗狀態機 → 取房間鎖（僅 start/stop/reset）→ 執行 → audit → 釋鎖
+  - DB 樂觀鎖：`UPDATE WHERE status=expected`，`rowcount=0 → 409 POLL_INVALID_STATE`
+  - `start`：auto-stop 同房已有 active poll（廣播 `poll_stopped`）→ active 本題 → 廣播 `poll_started`（不含正解）
+  - `stop`：active/locked → stopped，固化 agg TTL
+  - `reset`：刪 `poll_responses` + 清 Redis agg + idle；需 `confirm=true`
+  - `lock/unlock`：僅 DB 樂觀鎖，不搶房間鎖
+  - `reveal/hide`：改 `result_visible`；reveal 時廣播正解 option_ids（PM-003-FR5）
+  - `get_poll_detail`：揭示前隱藏 `is_correct`（PM-003-FR5）
+  - `upsert_poll_options`：Builder UI 整批取代選項
+- **`app/realtime/events.py`**：新增 `POLL_STARTED/STOPPED/LOCKED/UNLOCKED/RESULT_REVEALED/RESULT_HIDDEN/RESPONSE_SUBMITTED` + `MODE_PRESENT_HOST`
+
+**品質**
+- ruff ✅ · mypy --strict ✅（60 files）· pytest **19 passed**（無回歸）
+
+---
 
 ### 2026-06-13 — S5-1：Poll Migration + Models + Schemas
 
