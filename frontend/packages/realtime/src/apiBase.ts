@@ -6,10 +6,8 @@ function normalizeBase(raw: string | undefined): string {
 }
 
 function readViteApiBase(): string | undefined {
-  const meta = import.meta as ImportMeta & {
-    env?: { VITE_API_BASE?: string };
-  };
-  return meta.env?.VITE_API_BASE;
+  // 須直接讀取，Vite 才能在 build 時靜態替換 env
+  return import.meta.env.VITE_API_BASE;
 }
 
 /** 後端公開 URL，例如 `https://le-api.zeabur.app`；未設則走同源相對路徑。 */
