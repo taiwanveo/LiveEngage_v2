@@ -19,7 +19,8 @@ from app.schemas.session import (
     SessionPublicResponse,
     SessionUpdateRequest,
 )
-from app.services import session_service
+from app.schemas.state import SessionStateResponse
+from app.services import session_service, state_service
 
 router = APIRouter(prefix="/sessions", tags=["sessions"])
 
@@ -54,6 +55,15 @@ async def get_session_by_code(
 ) -> SessionPublicResponse:
     """依活動代碼解析（FE-001-FR1）。"""
     return await session_service.resolve_session_by_code(db, code)
+
+
+@router.get("/{session_id}/state", response_model=SessionStateResponse)
+async def get_session_state(
+    session_id: uuid.UUID,
+    db: Annotated[AsyncSession, Depends(get_session)],
+) -> SessionStateResponse:
+    """活動快照（FE-003、RT-002 reconnect fallback）。"""
+    return await state_service.get_session_state(db, session_id)
 
 
 @router.post("/{session_id}/join", response_model=JoinResponse)

@@ -3,33 +3,15 @@
 from __future__ import annotations
 
 import os
-import uuid
 
 import pytest
 from app.models.enums import SessionStatus
 from fastapi.testclient import TestClient
 
-from tests.helpers import seed_host_user
-
 pytestmark = pytest.mark.skipif(
     not os.getenv("LE_DATABASE_URL"),
     reason="未設定 LE_DATABASE_URL，跳過整合測試",
 )
-
-
-@pytest.fixture
-def host_token(client: TestClient) -> tuple[str, str]:
-    """建立 host 並登入，回傳 (access_token, email)。"""
-    email = f"host-{uuid.uuid4().hex[:8]}@example.com"
-    password = "TestPass123!"
-    seed_host_user(email=email, password=password)
-
-    resp = client.post(
-        "/api/v1/auth/login",
-        json={"email": email, "password": password},
-    )
-    assert resp.status_code == 200
-    return resp.json()["access_token"], email
 
 
 def test_fe001_ac1_invalid_code_returns_not_found(client: TestClient) -> None:

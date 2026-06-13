@@ -32,6 +32,10 @@ def create_app() -> FastAPI:
     register_error_handlers(app)
     app.include_router(api_router)
 
+    from app.realtime.gateway import router as ws_router
+
+    app.include_router(ws_router)
+
     @app.get("/health", tags=["health"])
     async def health() -> dict[str, str]:
         """Liveness：行程存活即回 ok。"""
