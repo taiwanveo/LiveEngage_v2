@@ -34,6 +34,7 @@ from app.schemas.admin import (
 )
 from app.serializers.mask_identity import mask_identity
 from app.services import audit_service
+from app.workers.export_tasks import enqueue_export_job
 
 EXPORT_TTL_HOURS = 72
 
@@ -82,13 +83,13 @@ async def create_export_job(
     payload: ExportCreateRequest,
     base_url: str = "",
 ) -> ExportJobResponse:
-    """建立匯出任務並立即產生檔案（同步 Worker 簡化版）。"""
+    """建立匯出任務並派送 Celery Worker（BE-012）。"""
     await _get_session_in_org(db, session_id=payload.session_id, org_id=actor.org_id)
 
     fmt = ExportFormat(payload.format)
     token = create_download_token()
-    expires_at = dt.datetime.utcnow() + dt.timedelta(hours=EXPORT_TTL_HOURS)
     now = dt.datetime.utcnow()
+    expires_at = now + dt.timedelta(hours=EXPORT_TTL_HOURS)
 
     job = ExportJob(
         id=uuid7(),
@@ -96,32 +97,25 @@ async def create_export_job(
         session_id=payload.session_id,
         requested_by=actor.id,
         format=fmt,
-        status=ExportStatus.PROCESSING,
+        status=ExportStatus.PENDING,
         download_token=token,
         expires_at=expires_at,
     )
     db.add(job)
-    await db.flush()
+    await audit_service.log(
+        db,
+        actor=actor,
+        action="create_export",
+        target_type="export_job",
+        target_id=job.id,
+        session_id=payload.session_id,
+        details={"format": fmt.value},
+    )
+    await db.commit()
+    await db.refresh(job)
 
-    try:
-        job.status = ExportStatus.COMPLETED
-        job.completed_at = now
-        await audit_service.log(
-            db,
-            actor=actor,
-            action="create_export",
-            target_type="export_job",
-            target_id=job.id,
-            session_id=payload.session_id,
-            details={"format": fmt.value},
-        )
-        await db.commit()
-        await db.refresh(job)
-    except Exception as exc:  # noqa: BLE001
-        job.status = ExportStatus.FAILED
-        job.error_message = str(exc)[:500]
-        await db.commit()
-        raise
+    enqueue_export_job(job.id)
+    await db.refresh(job)
 
     return _to_job_response(job, base_url=base_url)
 
@@ -152,6 +146,32 @@ async def get_export_job(
 ) -> ExportJob | None:
     result = await db.execute(select(ExportJob).where(ExportJob.id == job_id))
     return result.scalar_one_or_none()
+
+
+async def resolve_download(
+    db: AsyncSession, job: ExportJob
+) -> tuple[bytes, str, str]:
+    """自 Redis 快取或即時產生匯出檔。"""
+    from app.services.export_storage import load_export_file
+
+    cached = await load_export_file(job.id)
+    if cached is not None:
+        session_result = await db.execute(
+            select(Session).where(Session.id == job.session_id)
+        )
+        session = session_result.scalar_one()
+        media_type, filename = _download_headers(job, session.code)
+        return cached, media_type, filename
+    return await build_export_bytes(db, job)
+
+
+def _download_headers(job: ExportJob, session_code: str) -> tuple[str, str]:
+    if job.format == ExportFormat.XLSX:
+        return (
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            f"export-{session_code}.xlsx",
+        )
+    return "text/csv", f"export-{session_code}.csv"
 
 
 async def build_export_bytes(db: AsyncSession, job: ExportJob) -> tuple[bytes, str, str]:

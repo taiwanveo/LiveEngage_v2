@@ -7,14 +7,13 @@
 ## SNAPSHOT（2026-06-13）
 
 - **Repo**：https://github.com/ColdRighter/LiveEngage.git（master）
-- **最新 commit**：2661e3f Phase B — Q&A 回覆、QR 分享、Participant 互動深化（Phase A：c4e0eff）
-- **pytest**：53+ passed（含 Q&A 回覆、answered 公開列表）
-- **Zeabur 專案**：[liveengage](https://zeabur.com/projects/6a2d1bc82871baed5fc633ef?envID=6a2d1bc9cf558888ca4bc9da)
-- push `master` → 五服務自動 redeploy
+- **最新 commit**：（Phase C+ push 後更新）
+- **pytest**：58+ passed（含 Phase C rate limit、Celery export eager、XLSX）
+- **Zeabur**：五服務 + 可選 **worker**（`Dockerfile.worker`）
 
 ### 已上線服務
 
-| 服務 | 網址 |
+| 服務 | URL |
 |------|------|
 | api | https://le-api.zeabur.app |
 | host | https://le-host.zeabur.app |
@@ -22,38 +21,32 @@
 | present | https://le-present.zeabur.app |
 | admin | https://le-admin.zeabur.app |
 
-### 現場可用範圍（Phase A + B）
+### Phase A+B（現場 Poll + Q&A）
 
-| 角色 | 能力 |
+Host 儀表板、Participant Q&A/Poll、Present 投影、主持人回覆、QR 分享。
+
+### Phase C+（平台與營運）
+
+| 項目 | 狀態 |
 |------|------|
-| Host | 儀表板建活動、go live、QR/代碼/連結分享、Q&A 審核與**文字回覆**、Poll 五題型建立與控場 |
-| Participant | 加入活動、Poll/Q&A 分頁切換、WS 即時更新、看主持人回覆 |
-| Present | 選 live session 投影 Poll |
+| IP rate limit（passcode / by-code） | done |
+| org `settings_jsonb.rate_limit` 覆寫 participant 限流 | done |
+| Celery export worker + Redis 檔案快取 | done（需部署 worker 或 `LE_CELERY_TASK_ALWAYS_EAGER`） |
+| `scripts/cleanup_test_accounts.py` | done |
+| `docs/RUNBOOK.md` | done |
 
-**尚非完整企業版**：Quiz/Survey/AI、Celery export、SSO、多房間進階、自動化 E2E 套件。
+### 仍待 Phase D（Sprint 9+）
 
-### Phase B 完成項
-
-- Host `ModerationPage` 回覆 UI（公開/私密）
-- API `QuestionPublic.replies`；公開列表含 `answered` 狀態
-- WS `question_replied` 事件
-- `JoinShareCard`：QR + 代碼 + 複製連結
-- Participant：Q&A WS 刷新、Poll 進行中指示、已回答標籤
+Quiz / Survey / Ideas、AI 旁路、SSO、Co-host、Integrations、E2E 自動化套件
 
 ---
 
 ## HISTORY
 
-### 2026-06-13 — Phase B 體驗補齊（2661e3f）
+### 2026-06-13 — Phase C+ 平台營運
 
-Q&A 主持人回覆、replies API、QR 分享、Participant WS 與分頁指示
+Rate limit、Celery export、測試帳號清理、Runbook
 
-### 2026-06-13 — Phase A 現場主流程（c4e0eff）
+### 2026-06-13 — Phase B（2661e3f）
 
-Host 儀表板、Participant Q&A、Present 選活動、sessions API
-
-### 2026-06-13 — ModerationPage 繁中（44f9b1a）
-
-### 2026-06-13 — VITE_API_BASE（70732de）
-
-### 2026-06-13 — seed_admin / Zeabur 五服務 / S7
+### 2026-06-13 — Phase A（c4e0eff）

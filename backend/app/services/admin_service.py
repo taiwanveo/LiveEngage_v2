@@ -430,7 +430,7 @@ async def update_branding(
 
 
 async def get_public_branding_by_code(
-    db: AsyncSession, code: str
+    db: AsyncSession, code: str, *, client_ip: str | None = None
 ) -> PublicBrandingResponse:
     """依活動代碼回傳公開品牌（參與者 / Host 端）。"""
     normalized = code.strip().lower()
@@ -443,6 +443,11 @@ async def get_public_branding_by_code(
     if row is None:
         raise AppError(ErrorCode.SESSION_NOT_FOUND, "找不到活動")
     session, org = row
+    if client_ip:
+        from app.schemas.rate_limit import parse_rate_limits
+        from app.services.rate_limit_service import check_by_code_lookup
+
+        await check_by_code_lookup(client_ip, parse_rate_limits(org.settings_jsonb))
     branding = _parse_branding(org.settings_jsonb or {})
     return PublicBrandingResponse(
         display_name=branding.display_name or org.name,

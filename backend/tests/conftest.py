@@ -16,6 +16,9 @@ from tests.helpers import seed_host_user
 @pytest.fixture
 def client() -> TestClient:
     """提供 FastAPI 測試用 client（整合測試不連雲端 Redis，避免背景 task 與 event loop 衝突）。"""
+    import os
+
+    os.environ.setdefault("LE_CELERY_TASK_ALWAYS_EAGER", "true")
     get_settings.cache_clear()
     db_module._engine = None
     db_module._sessionmaker = None

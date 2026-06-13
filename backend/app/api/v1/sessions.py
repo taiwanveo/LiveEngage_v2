@@ -5,9 +5,10 @@ from __future__ import annotations
 import uuid
 from typing import Annotated
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.client_ip import get_client_ip
 from app.core.db import get_session
 from app.core.deps import get_current_user
 from app.models.user import User
@@ -39,10 +40,13 @@ async def list_sessions(
 @router.get("/by-code/{code}", response_model=SessionPublicResponse)
 async def get_session_by_code(
     code: str,
+    request: Request,
     db: Annotated[AsyncSession, Depends(get_session)],
 ) -> SessionPublicResponse:
     """依活動代碼解析（FE-001-FR1）。"""
-    return await session_service.resolve_session_by_code(db, code)
+    return await session_service.resolve_session_by_code(
+        db, code, client_ip=get_client_ip(request)
+    )
 
 
 @router.get("/{session_id}", response_model=SessionHostResponse)
@@ -93,7 +97,13 @@ async def get_session_state(
 async def join_session(
     session_id: uuid.UUID,
     payload: JoinRequest,
+    request: Request,
     db: Annotated[AsyncSession, Depends(get_session)],
 ) -> JoinResponse:
     """參與者加入活動（FE-001/002）。"""
-    return await session_service.join_session(db, session_id=session_id, payload=payload)
+    return await session_service.join_session(
+        db,
+        session_id=session_id,
+        payload=payload,
+        client_ip=get_client_ip(request),
+    )

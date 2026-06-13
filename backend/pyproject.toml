@@ -17,6 +17,7 @@ dependencies = [
     "PyJWT>=2.8",
     "email-validator>=2.1",
     "redis>=5.0",
+    "celery>=5.4",
     "openpyxl>=3.1",
 ]
 

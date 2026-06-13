@@ -11,12 +11,14 @@ from typing import Any
 from sqlalchemy import update
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
-from app.core.errors import AppError, ErrorCode
 from app.core.redis import get_redis
 from app.models.question import Question
 from app.realtime import events
+from app.services.rate_limit_service import check_rate
 
 logger = logging.getLogger(__name__)
+
+_WINDOW_S = 60
 
 # Redis key 命名
 _FLUSH_SET = "qa:flush_queue"
@@ -39,38 +41,36 @@ def _pending_key(question_id: uuid.UUID) -> str:
     return f"{_PENDING_PREFIX}{question_id}"
 
 
-async def check_question_rate_limit(participant_id: uuid.UUID) -> None:
+async def check_question_rate_limit(
+    participant_id: uuid.UUID,
+    *,
+    limit: int | None = None,
+) -> None:
     """提問 5/min/participant（FE-004-FR8）。"""
-    redis = await get_redis()
-    if redis is None:
-        return
+    from app.schemas.rate_limit import DEFAULT_RATE_LIMITS
 
-    key = f"{_QUESTION_RATE_PREFIX}{participant_id}"
-    count = await redis.incr(key)
-    if count == 1:
-        await redis.expire(key, QUESTION_RATE_WINDOW_S)
-    if count > QUESTION_RATE_LIMIT:
-        raise AppError(
-            ErrorCode.RATE_LIMITED,
-            f"提問過於頻繁，每 {QUESTION_RATE_WINDOW_S} 秒最多 {QUESTION_RATE_LIMIT} 題",
-        )
+    max_count = limit if limit is not None else DEFAULT_RATE_LIMITS.question_per_min
+    await check_rate(
+        f"qa:rate:question:{participant_id}",
+        limit=max_count,
+        message=f"提問過於頻繁，每 {_WINDOW_S} 秒最多 {max_count} 題",
+    )
 
 
-async def check_upvote_rate_limit(participant_id: uuid.UUID) -> None:
+async def check_upvote_rate_limit(
+    participant_id: uuid.UUID,
+    *,
+    limit: int | None = None,
+) -> None:
     """投票 30/min/participant（SDS §4.6）。"""
-    redis = await get_redis()
-    if redis is None:
-        return
+    from app.schemas.rate_limit import DEFAULT_RATE_LIMITS
 
-    key = f"{_UPVOTE_RATE_PREFIX}{participant_id}"
-    count = await redis.incr(key)
-    if count == 1:
-        await redis.expire(key, UPVOTE_RATE_WINDOW_S)
-    if count > UPVOTE_RATE_LIMIT:
-        raise AppError(
-            ErrorCode.RATE_LIMITED,
-            f"投票過於頻繁，每 {UPVOTE_RATE_WINDOW_S} 秒最多 {UPVOTE_RATE_LIMIT} 次",
-        )
+    max_count = limit if limit is not None else DEFAULT_RATE_LIMITS.upvote_per_min
+    await check_rate(
+        f"qa:rate:upvote:{participant_id}",
+        limit=max_count,
+        message=f"投票過於頻繁，每 {_WINDOW_S} 秒最多 {max_count} 次",
+    )
 
 
 async def record_vote_deltas(

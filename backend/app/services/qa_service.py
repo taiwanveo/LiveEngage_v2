@@ -42,7 +42,7 @@ from app.schemas.question import (
     VoteResult,
 )
 from app.serializers.mask_identity import mask_identity
-from app.services import audit_service, interaction_service, qa_redis
+from app.services import audit_service, rate_limit_service, interaction_service, qa_redis
 
 _DEFAULT_PAGE_SIZE = 50
 _VOTABLE_STATUSES = {QuestionStatus.APPROVED, QuestionStatus.ANSWERED}
@@ -151,7 +151,10 @@ async def submit_question(
     if claims.room_id != room_id:
         raise AppError(ErrorCode.FORBIDDEN, "無權於此房間提問")
 
-    await qa_redis.check_question_rate_limit(claims.participant_id)
+    limits = await rate_limit_service.limits_for_room(db, room_id)
+    await qa_redis.check_question_rate_limit(
+        claims.participant_id, limit=limits.question_per_min
+    )
 
     qa = await interaction_service.get_qa_interaction(db, room_id)
     if qa is None or qa.status != InteractionStatus.ACTIVE:
@@ -322,8 +325,11 @@ async def vote_question(
     direction: VoteDirection,
 ) -> VoteResult:
     """upvote／downvote（toggle 語意；FE-005-FR2/FR3）。"""
-    await qa_redis.check_upvote_rate_limit(claims.participant_id)
     question = await _get_question(db, question_id)
+    limits = await rate_limit_service.limits_for_room(db, question.room_id)
+    await qa_redis.check_upvote_rate_limit(
+        claims.participant_id, limit=limits.upvote_per_min
+    )
     if claims.room_id != question.room_id:
         raise AppError(ErrorCode.FORBIDDEN, "無權於此房間投票")
     # FE-005-AC5：僅能對 approved（含 answered）問題互動

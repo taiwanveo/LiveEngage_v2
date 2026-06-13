@@ -30,7 +30,9 @@ from app.schemas.session import (
     SessionSettings,
     SessionUpdateRequest,
 )
+from app.schemas.rate_limit import parse_rate_limits
 from app.serializers.mask_identity import mask_identity
+from app.services.rate_limit_service import check_by_code_lookup, check_passcode_attempt
 from app.utils.session_code import generate_session_code
 
 _EMAIL_DOMAIN_RE = re.compile(r"^[^@]+@([^@]+)$")
@@ -182,11 +184,24 @@ async def get_host_session(
     return await _to_host_response(db, session)
 
 
-async def resolve_session_by_code(db: AsyncSession, code: str) -> SessionPublicResponse:
+async def _org_rate_limits(db: AsyncSession, org_id: uuid.UUID):
+    result = await db.execute(
+        select(Organization.settings_jsonb).where(Organization.id == org_id)
+    )
+    raw = result.scalar_one_or_none()
+    return parse_rate_limits(raw if isinstance(raw, dict) else None)
+
+
+async def resolve_session_by_code(
+    db: AsyncSession, code: str, *, client_ip: str | None = None
+) -> SessionPublicResponse:
     """解析活動代碼（FE-001-FR1）。"""
     session = await _get_session_by_code(db, code)
     if session is None:
         raise AppError(ErrorCode.SESSION_NOT_FOUND, "找不到活動")
+    if client_ip:
+        limits = await _org_rate_limits(db, session.org_id)
+        await check_by_code_lookup(client_ip, limits)
     settings = _parse_settings(session.settings_jsonb)
     return SessionPublicResponse(
         id=session.id,
@@ -205,6 +220,7 @@ async def join_session(
     *,
     session_id: uuid.UUID,
     payload: JoinRequest,
+    client_ip: str | None = None,
 ) -> JoinResponse:
     """參與者加入活動（FE-001/002）。"""
     session = await _get_session_or_404(db, session_id)
@@ -223,6 +239,9 @@ async def join_session(
         raise AppError(ErrorCode.FORBIDDEN, "此活動限制加入")
 
     if session.visibility == SessionVisibility.PASSCODE:
+        if client_ip:
+            limits = await _org_rate_limits(db, session.org_id)
+            await check_passcode_attempt(client_ip, limits)
         if not payload.passcode:
             raise AppError(ErrorCode.PASSCODE_INVALID, "請輸入 Passcode")
         if not session.passcode_hash or not verify_secret(

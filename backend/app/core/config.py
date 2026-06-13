@@ -73,6 +73,10 @@ class Settings(BaseSettings):
     # Redis（任務 2+ 使用）
     redis_url: str = "redis://localhost:6379/0"
 
+    # Celery（匯出 Worker；broker 預設與 redis_url 相同）
+    celery_broker_url: str = ""
+    celery_task_always_eager: bool = False
+
     # JWT（骨架；完整簽發於任務 2）
     jwt_secret: str = "change-me-in-production"
     jwt_algorithm: str = "HS256"
@@ -91,6 +95,8 @@ class Settings(BaseSettings):
             and self.database_url_sync != _DEFAULT_SYNC_URL
         ):
             self.database_url = sync_to_async_url(self.database_url_sync)
+        if not self.celery_broker_url:
+            self.celery_broker_url = self.redis_url
         return self
 
 

@@ -56,7 +56,7 @@ from app.schemas.poll import (
     parse_settings,
 )
 from app.serializers.mask_identity import mask_identity
-from app.services import audit_service
+from app.services import audit_service, rate_limit_service
 from app.services.poll_redis import (
     acquire_room_lock,
     check_poll_submit_rate_limit,
@@ -593,7 +593,10 @@ async def submit_poll_response(
             f"Poll 目前為 {interaction.status}，僅 active 狀態可作答",
         )
 
-    await check_poll_submit_rate_limit(participant_id)
+    limits = await rate_limit_service.limits_for_room(db, interaction.room_id)
+    await check_poll_submit_rate_limit(
+        participant_id, limit=limits.poll_submit_per_min
+    )
 
     if interaction.type == InteractionType.MULTIPLE_CHOICE:
         return await _submit_multiple_choice(

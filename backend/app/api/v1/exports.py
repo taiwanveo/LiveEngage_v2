@@ -39,7 +39,14 @@ async def download_export(
     ):
         raise AppError(ErrorCode.EXPORT_LINK_EXPIRED, "匯出連結已過期")
 
-    content, media_type, filename = await export_service.build_export_bytes(db, job)
+    import datetime as dt
+
+    now = dt.datetime.now(dt.UTC)
+    exp = job.expires_at if job.expires_at.tzinfo else job.expires_at.replace(tzinfo=dt.UTC)
+    if now > exp:
+        raise AppError(ErrorCode.EXPORT_LINK_EXPIRED, "匯出連結已過期")
+
+    content, media_type, filename = await export_service.resolve_download(db, job)
     return Response(
         content=content,
         media_type=media_type,

@@ -150,20 +150,22 @@ SUBMIT_RATE_LIMIT = 10
 SUBMIT_RATE_WINDOW_S = 60
 
 
-async def check_poll_submit_rate_limit(participant_id: uuid.UUID) -> None:
+async def check_poll_submit_rate_limit(
+    participant_id: uuid.UUID,
+    *,
+    limit: int | None = None,
+) -> None:
     """作答 10/min/participant（SDS §8）。"""
-    redis = await get_redis()
-    if redis is None:
-        return
-    key = f"{_SUBMIT_RATE_PREFIX}{participant_id}"
-    count = await redis.incr(key)
-    if count == 1:
-        await redis.expire(key, SUBMIT_RATE_WINDOW_S)
-    if count > SUBMIT_RATE_LIMIT:
-        raise AppError(
-            ErrorCode.RATE_LIMITED,
-            f"提交過於頻繁，每 {SUBMIT_RATE_WINDOW_S} 秒最多 {SUBMIT_RATE_LIMIT} 次",
-        )
+    from app.schemas.rate_limit import DEFAULT_RATE_LIMITS
+
+    max_count = limit if limit is not None else DEFAULT_RATE_LIMITS.poll_submit_per_min
+    from app.services.rate_limit_service import check_rate
+
+    await check_rate(
+        f"poll:rate:submit:{participant_id}",
+        limit=max_count,
+        message=f"提交過於頻繁，每 60 秒最多 {max_count} 次",
+    )
 
 
 # ── 結果廣播節流（≥250ms 合併，仿 qa_redis；S5-3 呼叫）───────────────
