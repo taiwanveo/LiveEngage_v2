@@ -184,6 +184,20 @@ class PollSubmitResult(BaseModel):
     accepted: bool = True
 
 
+class PollActionResponse(BaseModel):
+    """控場動作回應。"""
+
+    poll_id: uuid.UUID
+    status: InteractionStatus
+    result_visible: bool
+
+
+class PollOptionsUpdateRequest(BaseModel):
+    """取代 Poll 全部選項（BE-003 Builder）。"""
+
+    options: list[PollOptionInput]
+
+
 # ── 題目內容（GET /polls/{id}）─────────────────────────────────────
 
 

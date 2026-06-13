@@ -14,14 +14,14 @@ import datetime as dt
 import uuid
 from typing import Any, cast
 
-from sqlalchemy import delete, select
+from sqlalchemy import delete, func, select
 from sqlalchemy import update as sa_update
 from sqlalchemy.engine import CursorResult
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.errors import AppError, ErrorCode
 from app.core.ids import uuid7
-from app.models.enums import InteractionStatus
+from app.models.enums import InteractionStatus, InteractionType
 from app.models.interaction import Interaction
 from app.models.poll import PollOption, PollResponse
 from app.models.room import Room
@@ -30,17 +30,30 @@ from app.models.user import User
 from app.realtime import events
 from app.schemas.poll import (
     POLL_TYPES,
+    MultipleChoiceAnswer,
+    MultipleChoiceSettings,
+    OptionCount,
     PollAction,
     PollActionRequest,
+    PollActionResponse,
     PollDetail,
     PollOptionPublic,
+    PollResults,
+    PollSubmitRequest,
+    PollSubmitResult,
+    parse_answer,
+    parse_settings,
 )
 from app.services import audit_service
 from app.services.poll_redis import (
     acquire_room_lock,
+    check_poll_submit_rate_limit,
     clear_poll_agg,
+    get_poll_agg,
+    increment_option_count,
     release_room_lock,
     set_poll_agg_ttl,
+    throttled_broadcast_result,
 )
 
 # ── 狀態機（BE-005-FR2；SDS §5.4）──────────────────────────────────
@@ -350,7 +363,7 @@ async def execute_poll_action(
     interaction_id: uuid.UUID,
     host: User,
     request: PollActionRequest,
-) -> None:
+) -> PollActionResponse:
     """控場入口（BE-005-FR1）：驗狀態機、取鎖、執行、寫 audit、釋鎖。"""
     action = request.action
 
@@ -397,17 +410,28 @@ async def execute_poll_action(
             with contextlib.suppress(Exception):
                 await release_room_lock(room_id, lock_token)
 
-    # audit（鐵律 10）—— 已在各 action 的 commit 之後，開新 tx 寫
-    async with db.begin():
-        await audit_service.log(
-            db,
-            actor=host,
-            action=f"poll.{action}",
-            target_type="interaction",
-            target_id=interaction_id,
-            room_id=room_id,
-            details={"confirm": request.confirm} if action == PollAction.RESET else {},
-        )
+    await audit_service.log(
+        db,
+        actor=host,
+        action=f"poll.{action}",
+        target_type="interaction",
+        target_id=interaction_id,
+        room_id=room_id,
+        details={"confirm": request.confirm} if action == PollAction.RESET else {},
+    )
+    await db.commit()
+
+    refreshed = await db.execute(
+        select(Interaction).where(Interaction.id == interaction_id)
+    )
+    current = refreshed.scalars().first()
+    if current is None:
+        raise AppError(ErrorCode.NOT_FOUND, "找不到互動項目")
+    return PollActionResponse(
+        poll_id=current.id,
+        status=current.status,
+        result_visible=current.result_visible,
+    )
 
 
 # ── Poll 詳情（GET /polls/{id}）──────────────────────────────────────
@@ -534,3 +558,254 @@ async def upsert_poll_options(
         PollOptionPublic(id=o.id, text=o.text, order_no=o.order_no)
         for o in new_opts
     ]
+
+
+# ── 作答（FE-006~010；S5-3 multiple_choice 先）──────────────────────
+
+
+async def submit_poll_response(
+    db: AsyncSession,
+    *,
+    interaction_id: uuid.UUID,
+    participant_id: uuid.UUID,
+    payload: PollSubmitRequest,
+    idempotency_key: uuid.UUID | None = None,
+) -> PollSubmitResult:
+    """提交作答；僅 ``status=active`` 接受（FE-006-AC2/AC4）。"""
+    interaction = await load_poll_for_participant(db, interaction_id, participant_id)
+
+    if interaction.status != InteractionStatus.ACTIVE:
+        raise AppError(
+            ErrorCode.POLL_INVALID_STATE,
+            f"Poll 目前為 {interaction.status}，僅 active 狀態可作答",
+        )
+
+    await check_poll_submit_rate_limit(participant_id)
+
+    if interaction.type == InteractionType.MULTIPLE_CHOICE:
+        return await _submit_multiple_choice(
+            db,
+            interaction=interaction,
+            participant_id=participant_id,
+            payload=payload,
+            idempotency_key=idempotency_key,
+        )
+
+    raise AppError(
+        ErrorCode.VALIDATION_ERROR,
+        f"題型 {interaction.type} 作答尚未實作（S5-4）",
+    )
+
+
+async def _submit_multiple_choice(
+    db: AsyncSession,
+    *,
+    interaction: Interaction,
+    participant_id: uuid.UUID,
+    payload: PollSubmitRequest,
+    idempotency_key: uuid.UUID | None,
+) -> PollSubmitResult:
+    """multiple_choice 作答：驗證、寫 DB、更新 Redis agg（絕對值廣播）。"""
+    settings = cast(
+        MultipleChoiceSettings,
+        parse_settings(InteractionType.MULTIPLE_CHOICE, interaction.settings_jsonb),
+    )
+    try:
+        parsed = parse_answer(InteractionType.MULTIPLE_CHOICE, payload.answer)
+    except ValueError as exc:
+        raise AppError(ErrorCode.VALIDATION_ERROR, str(exc)) from exc
+    if not isinstance(parsed, MultipleChoiceAnswer):
+        raise AppError(ErrorCode.VALIDATION_ERROR, "答案格式錯誤")
+
+    answer = parsed
+    option_ids = answer.option_ids
+
+    valid_ids = await _get_valid_option_ids(db, interaction.id)
+    if not valid_ids:
+        raise AppError(ErrorCode.VALIDATION_ERROR, "此 Poll 尚無選項")
+    invalid = [oid for oid in option_ids if oid not in valid_ids]
+    if invalid:
+        raise AppError(ErrorCode.VALIDATION_ERROR, "含有無效的選項")
+
+    count = len(option_ids)
+    if not settings.multi_select and count != 1:
+        raise AppError(ErrorCode.VALIDATION_ERROR, "此題為單選，只能選一個選項")
+    if count < settings.min_select or count > settings.max_select:
+        raise AppError(
+            ErrorCode.VALIDATION_ERROR,
+            f"選項數量須介於 {settings.min_select} 與 {settings.max_select}",
+        )
+
+    existing_result = await db.execute(
+        select(PollResponse).where(
+            PollResponse.interaction_id == interaction.id,
+            PollResponse.participant_id == participant_id,
+            PollResponse.submission_no == 0,
+        )
+    )
+    existing = existing_result.scalar_one_or_none()
+    if existing is not None and not settings.allow_change:
+        raise AppError(ErrorCode.ALREADY_RESPONDED, "您已提交過答案，且不允許更改")
+
+    now = dt.datetime.now(dt.UTC)
+    answer_data = {"option_ids": [str(oid) for oid in option_ids]}
+
+    old_option_ids: list[str] = []
+    if existing is not None:
+        old_raw = existing.answer_jsonb.get("option_ids", [])
+        old_option_ids = [str(x) for x in old_raw]
+        existing.answer_jsonb = answer_data
+        existing.submitted_at = now
+        if idempotency_key is not None:
+            existing.idempotency_key = idempotency_key
+    else:
+        db.add(
+            PollResponse(
+                id=uuid7(),
+                interaction_id=interaction.id,
+                participant_id=participant_id,
+                answer_jsonb=answer_data,
+                submission_no=0,
+                idempotency_key=idempotency_key,
+                submitted_at=now,
+            )
+        )
+
+    await db.commit()
+
+    for old_oid in old_option_ids:
+        await increment_option_count(interaction.id, old_oid, delta=-1)
+    for new_oid in option_ids:
+        await increment_option_count(interaction.id, str(new_oid), delta=1)
+
+    response_count = await _count_responses(db, interaction.id)
+    broadcast_payload = await _build_mc_broadcast_payload(
+        db, interaction.id, response_count
+    )
+    await throttled_broadcast_result(
+        interaction.room_id, interaction.id, broadcast_payload
+    )
+
+    return PollSubmitResult(
+        interaction_id=interaction.id,
+        submission_no=0,
+        accepted=True,
+    )
+
+
+# ── 結果（GET /polls/{id}/results；鐵律 2 後端聚合）──────────────────
+
+
+async def get_poll_results(
+    db: AsyncSession,
+    interaction_id: uuid.UUID,
+    *,
+    is_host: bool,
+) -> PollResults:
+    """讀取結果；participant 受 ``result_visible`` 控制。"""
+    result = await db.execute(
+        select(Interaction).where(Interaction.id == interaction_id)
+    )
+    interaction = result.scalars().first()
+    if interaction is None:
+        raise AppError(ErrorCode.NOT_FOUND, "找不到互動項目")
+    if interaction.type not in POLL_TYPES:
+        raise AppError(ErrorCode.VALIDATION_ERROR, "此互動項目不是 Poll 題型")
+
+    if not is_host and not interaction.result_visible:
+        raise AppError(ErrorCode.FORBIDDEN, "結果尚未揭示")
+
+    response_count = await _count_responses(db, interaction_id)
+
+    if interaction.type == InteractionType.MULTIPLE_CHOICE:
+        option_counts = await _get_mc_option_counts(db, interaction_id)
+        return PollResults(
+            interaction_id=interaction_id,
+            type=interaction.type,
+            status=interaction.status,
+            response_count=response_count,
+            option_counts=option_counts,
+        )
+
+    raise AppError(
+        ErrorCode.VALIDATION_ERROR,
+        f"題型 {interaction.type} 結果尚未實作（S5-4）",
+    )
+
+
+async def _count_responses(db: AsyncSession, interaction_id: uuid.UUID) -> int:
+    result = await db.execute(
+        select(func.count())
+        .select_from(PollResponse)
+        .where(PollResponse.interaction_id == interaction_id)
+    )
+    return int(result.scalar_one())
+
+
+async def _get_valid_option_ids(
+    db: AsyncSession, interaction_id: uuid.UUID
+) -> set[uuid.UUID]:
+    result = await db.execute(
+        select(PollOption.id).where(PollOption.interaction_id == interaction_id)
+    )
+    return set(result.scalars().all())
+
+
+async def _get_mc_option_counts(
+    db: AsyncSession, interaction_id: uuid.UUID
+) -> list[OptionCount]:
+    """先讀 Redis agg，無資料則從 DB 聚合。"""
+    agg = await get_poll_agg(interaction_id)
+    option_keys = {
+        k: int(v)
+        for k, v in agg.items()
+        if k not in ("sum", "count") and v.isdigit()
+    }
+    if option_keys:
+        return [
+            OptionCount(option_id=uuid.UUID(oid), count=cnt)
+            for oid, cnt in option_keys.items()
+            if cnt > 0
+        ]
+
+    counts = await _aggregate_mc_from_db(db, interaction_id)
+    return [
+        OptionCount(option_id=uuid.UUID(oid), count=cnt)
+        for oid, cnt in counts.items()
+        if cnt > 0
+    ]
+
+
+async def _aggregate_mc_from_db(
+    db: AsyncSession, interaction_id: uuid.UUID
+) -> dict[str, int]:
+    result = await db.execute(
+        select(PollResponse.answer_jsonb).where(
+            PollResponse.interaction_id == interaction_id
+        )
+    )
+    counts: dict[str, int] = {}
+    for row in result.all():
+        answer = row[0]
+        for oid in answer.get("option_ids", []):
+            key = str(oid)
+            counts[key] = counts.get(key, 0) + 1
+    return counts
+
+
+async def _build_mc_broadcast_payload(
+    db: AsyncSession,
+    interaction_id: uuid.UUID,
+    response_count: int,
+) -> dict[str, Any]:
+    option_counts = await _get_mc_option_counts(db, interaction_id)
+    return {
+        "poll_id": str(interaction_id),
+        "response_count": response_count,
+        "aggregates": {
+            "option_counts": [
+                {"option_id": str(oc.option_id), "count": oc.count}
+                for oc in option_counts
+            ]
+        },
+    }

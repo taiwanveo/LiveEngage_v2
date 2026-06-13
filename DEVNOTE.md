@@ -9,8 +9,8 @@
 ### 專案基本資訊
 - **Repo**：https://github.com/ColdRighter/LiveEngage.git（`master`）
 - **本地路徑**：`c:\Vibe_Coidng_Local\LiveEngage`
-- **最新 commit（已 push）**：`11fcef5` S5-2 Poll Service + 狀態機 + Redis 鎖
-- **GitHub**：`origin/master` 同步至 S5-2
+- **最新 commit（已 push）**：`S5-3` Poll REST API + multiple_choice 作答與結果
+- **GitHub**：`origin/master` 同步至 S5-3
 - **資料庫**：Neon Postgres（`taiwanveo@gmail.com` 帳號專案，`ap-southeast-1`）
 - **Redis**：Upstash 雲端（`LE_REDIS_URL=rediss://default:<token>@sweeping-gecko-35121.upstash.io:6379`）
 - **Neon MCP**：`project-0-LiveEngage-neon` 已授權（org: TAIWANVEO，project: LiveEngage `damp-tooth-60940518`）
@@ -20,7 +20,7 @@
 - Python **3.14**、FastAPI、SQLAlchemy 2.0 async、Alembic、PyJWT、argon2-cffi
 - **venv 在 `backend/.venv`**；驗證指令：`.\.venv\Scripts\python.exe -m ruff/mypy/pytest`
 - **Neon 連線**：async `?ssl=require`；sync `?sslmode=require`；dev 用 `NullPool`
-- ruff / mypy strict / pytest（**19 passed** on Neon，2026-06-13）
+- ruff / mypy strict / pytest（**25 passed** on Neon，2026-06-13）
 
 ### 目前完成進度
 
@@ -33,7 +33,8 @@
 | Sprint 4 | Redis（Pub/Sub + Stream replay）、Idempotency、Q&A flush/節流/rate limit、audit log、PM-002 審核 UI | ✅ pushed `085c7b3` |
 | S5-1 | Poll Migration（0004）+ Models + Schemas | ✅ pushed |
 | S5-2 | Poll Service + 狀態機 + Redis 分散式鎖 | ✅ pushed `11fcef5` |
-| S5-3 | 作答端點 + 聚合 + Results + Idempotency | 待開始 |
+| S5-3 | Poll REST API + multiple_choice 作答與結果 | ✅ pushed |
+| S5-4 | 其餘題型作答與聚合 | 待開始 |
 
 ### API 端點（已實作）
 | Method | Path | 說明 |
@@ -55,6 +56,11 @@
 | POST | `/api/v1/questions/{id}/moderate` | 審核/答覆/高亮（BE-004） |
 | POST | `/api/v1/questions/{id}/replies` | Host 回覆（BE-004） |
 | WS | `/ws?...&last_event_id=` | 重放 `stream:room:{id}` 中遺漏事件（Sprint 4） |
+| GET | `/api/v1/polls/{id}` | Poll 題目內容 + 個人作答狀態（S5-3） |
+| PUT | `/api/v1/polls/{id}/options` | 取代 Poll 選項（BE-003 Builder） |
+| POST | `/api/v1/polls/{id}/responses` | 提交作答（Idempotency-Key、10/min） |
+| GET | `/api/v1/polls/{id}/results` | 結果聚合（後端絕對值；participant 受 result_visible） |
+| POST | `/api/v1/polls/{id}/actions` | 控場 start/stop/lock/unlock/reveal/hide/reset |
 
 ### 前端
 | App | 路徑 | 狀態 |
@@ -83,7 +89,7 @@
 - ✅ upvote rate limit 30/min
 
 ### 仍待補（後續 Sprint）
-- S5-3：Poll REST 端點（GET /polls/{id}, POST /responses, GET /results, POST /actions）
+- S5-4：word_cloud / open_text / rating / ranking 作答與聚合
 - S6-1~S6-3：WebSocket events、前端 Poll UI（FE-006~010）、整合測試
 - Sprint 7–8：管理後台
 - Sprint 9+：Quiz / Survey / Ideas / AI / Integrations / Admin
@@ -95,6 +101,28 @@
 ---
 
 ## HISTORY
+
+### 2026-06-13 — S5-3：Poll REST API + multiple_choice 作答與結果
+
+**後端**
+- **`app/api/v1/polls.py`**（新建）
+  - `GET /polls/{id}` — Host 或 Participant 讀題（揭示前不含正解）
+  - `PUT /polls/{id}/options` — Builder 整批取代選項
+  - `POST /polls/{id}/responses` — 作答（Idempotency-Key header、rate limit 10/min）
+  - `GET /polls/{id}/results` — 後端聚合絕對值；participant 受 `result_visible` 控制
+  - `POST /polls/{id}/actions` — 控場（回傳 `PollActionResponse`）
+- **`poll_service.py` 擴充**
+  - `submit_poll_response` / `_submit_multiple_choice`：驗證選項、單選/多選、allow_change、寫 DB + Redis agg
+  - `get_poll_results`：Redis agg 優先，fallback DB 聚合
+  - `execute_poll_action` 回傳最新狀態；修 audit `db.commit()`（避免 transaction already begun）
+- **`poll_redis.py`**：`throttled_broadcast_result` 改為直接傳 payload dict
+- **`schemas/poll.py`**：`PollActionResponse`、`PollOptionsUpdateRequest`
+- **`tests/test_poll_sprint5.py`**：6 個整合測試（FE-006 AC2/AC4、作答、ALREADY_RESPONDED、BE-005 403、生命週期）
+
+**品質**
+- ruff ✅ · mypy --strict ✅（61 files）· pytest **25 passed**（+6 Poll）
+
+---
 
 ### 2026-06-13 — S5-2：Poll Service + 狀態機 + Redis 鎖（commit `11fcef5`）
 

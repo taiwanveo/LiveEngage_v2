@@ -177,7 +177,7 @@ _pending_result_tasks: dict[str, asyncio.Task[None]] = {}
 async def _do_broadcast_result(
     room_id: uuid.UUID,
     interaction_id: uuid.UUID,
-    get_aggregates: Any,  # callable: () -> dict[str, Any]
+    payload: dict[str, Any],
 ) -> None:
     from app.realtime import events
 
@@ -185,11 +185,10 @@ async def _do_broadcast_result(
     key = str(interaction_id)
     _pending_result_tasks.pop(key, None)
     try:
-        aggregates = await get_aggregates()
         await events.publish(
             room_id,
             events.POLL_RESPONSE_SUBMITTED,
-            aggregates,
+            payload,
             target_modes=events.MODE_PRESENT_HOST,
         )
     except Exception:
@@ -199,7 +198,7 @@ async def _do_broadcast_result(
 async def throttled_broadcast_result(
     room_id: uuid.UUID,
     interaction_id: uuid.UUID,
-    get_aggregates: Any,
+    payload: dict[str, Any],
 ) -> None:
     """節流廣播 poll_response_submitted；相同 interaction 250ms 內只送一次。"""
     key = str(interaction_id)
@@ -210,6 +209,6 @@ async def throttled_broadcast_result(
             await existing
 
     task = asyncio.create_task(
-        _do_broadcast_result(room_id, interaction_id, get_aggregates)
+        _do_broadcast_result(room_id, interaction_id, payload)
     )
     _pending_result_tasks[key] = task
