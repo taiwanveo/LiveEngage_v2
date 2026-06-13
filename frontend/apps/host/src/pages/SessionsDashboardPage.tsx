@@ -13,6 +13,7 @@ import {
 } from "../lib/sessionApi";
 import { JoinShareCard } from "../components/JoinShareCard";
 import { ApiException } from "../lib/api";
+import { AppHeader } from "@liveengage/ui";
 
 interface Props {
   onLogout: () => void;
@@ -62,26 +63,17 @@ export function SessionsDashboardPage({ onLogout }: Props): React.JSX.Element {
   });
 
   return (
-    <main className="min-h-full bg-slate-100">
-      <header className="border-b border-slate-200 bg-white">
-        <div className="mx-auto flex max-w-4xl items-center justify-between px-6 py-4">
-          <div>
-            <h1 className="text-xl font-bold text-slate-900">LiveEngage Host</h1>
-            <p className="text-sm text-slate-500">活動儀表板（sessions）</p>
-          </div>
-          <button
-            type="button"
-            onClick={onLogout}
-            className="text-sm text-slate-600 hover:text-slate-900"
-          >
-            登出（sign out）
-          </button>
-        </div>
-      </header>
+    <main className="le-page-bg min-h-full">
+      <AppHeader
+        brand="LiveEngage Host"
+        tagline="活動儀表板（sessions）"
+        maxWidth="4xl"
+        onLogout={onLogout}
+      />
 
-      <div className="mx-auto max-w-4xl space-y-8 px-6 py-8">
-        <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-          <h2 className="text-lg font-semibold text-slate-900">建立新活動</h2>
+      <div className="relative z-10 mx-auto max-w-4xl space-y-8 px-4 py-8 sm:px-6">
+        <section className="le-card p-6 animate-slide-up">
+          <h2 className="font-display text-lg font-semibold text-foreground">建立新活動</h2>
           <form
             className="mt-4 flex flex-col gap-3 sm:flex-row"
             onSubmit={(e) => {
@@ -97,33 +89,33 @@ export function SessionsDashboardPage({ onLogout }: Props): React.JSX.Element {
               placeholder="活動名稱"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              className="flex-1 rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
+              className="le-input flex-1"
             />
             <button
               type="submit"
               disabled={createMutation.isPending}
-              className="rounded-lg bg-primary-600 px-5 py-2 text-sm font-medium text-white hover:bg-primary-700 disabled:bg-slate-400"
+              className="le-btn-primary shrink-0"
             >
               {createMutation.isPending ? "建立中…" : "建立並進入審核"}
             </button>
           </form>
           {error ? (
-            <p className="mt-2 text-sm text-red-600" role="alert">
+            <p className="mt-2 text-sm text-danger" role="alert">
               {error}
             </p>
           ) : null}
         </section>
 
         <section>
-          <h2 className="mb-4 text-lg font-semibold text-slate-900">我的活動</h2>
+          <h2 className="mb-4 font-display text-lg font-semibold text-foreground">我的活動</h2>
           {sessionsQuery.isLoading ? (
-            <p className="text-sm text-slate-500">載入中…</p>
+            <p className="text-sm text-muted">載入中…</p>
           ) : sessionsQuery.error ? (
-            <p className="text-sm text-red-600">
+            <p className="text-sm text-danger">
               {(sessionsQuery.error as Error).message}
             </p>
           ) : sessionsQuery.data?.length === 0 ? (
-            <p className="rounded-xl border border-dashed border-slate-300 bg-white p-8 text-center text-sm text-slate-500">
+            <p className="le-card border-dashed p-8 text-center text-sm text-muted">
               尚無活動，請先建立一場活動。
             </p>
           ) : (
@@ -159,18 +151,18 @@ function SessionCard(props: {
   const roomId = session.default_room_id;
 
   return (
-    <li className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+    <li className="le-card p-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h3 className="font-semibold text-slate-900">{session.title}</h3>
-          <p className="mt-1 font-mono text-sm text-primary-700">{session.code}</p>
-          <p className="mt-1 text-xs text-slate-500">
+          <h3 className="font-semibold text-foreground">{session.title}</h3>
+          <p className="mt-1 font-mono text-sm text-accent">{session.code}</p>
+          <p className="mt-1 text-xs text-muted">
             {STATUS_LABEL[session.status]}
             {roomId ? (
               <>
                 {" "}
                 · room{" "}
-                <span className="font-mono text-slate-400">
+                <span className="font-mono text-muted/80">
                   {roomId.slice(0, 8)}…
                 </span>
               </>
@@ -183,7 +175,7 @@ function SessionCard(props: {
               type="button"
               disabled={props.statusPending}
               onClick={props.onGoLive}
-              className="rounded-md bg-emerald-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-emerald-700 disabled:opacity-50"
+              className="le-btn-primary !min-h-[36px] !px-3 !py-1.5 !text-xs"
             >
               設為進行中（go live）
             </button>
@@ -193,7 +185,7 @@ function SessionCard(props: {
               type="button"
               disabled={props.statusPending}
               onClick={props.onEnd}
-              className="rounded-md bg-slate-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-slate-700 disabled:opacity-50"
+              className="le-btn-secondary !min-h-[36px] !px-3 !py-1.5 !text-xs"
             >
               結束活動
             </button>
@@ -202,22 +194,16 @@ function SessionCard(props: {
       </div>
 
       {roomId ? (
-        <div className="mt-4 flex flex-wrap gap-2 border-t border-slate-100 pt-4">
-          <a
-            href={`#/rooms/${roomId}/moderation`}
-            className="rounded-md bg-primary-50 px-3 py-1.5 text-xs font-medium text-primary-800 hover:bg-primary-100"
-          >
+        <div className="mt-4 flex flex-wrap gap-2 border-t border-border pt-4">
+          <a href={`#/rooms/${roomId}/moderation`} className="le-nav-link le-nav-link-active !text-xs">
             Q&amp;A 審核
           </a>
-          <a
-            href={`#/rooms/${roomId}/polls`}
-            className="rounded-md bg-primary-50 px-3 py-1.5 text-xs font-medium text-primary-800 hover:bg-primary-100"
-          >
+          <a href={`#/rooms/${roomId}/polls`} className="le-nav-link !text-xs">
             Poll 管理
           </a>
         </div>
       ) : (
-        <p className="mt-3 text-xs text-amber-700">此活動尚無房間，請聯絡管理員。</p>
+        <p className="mt-3 text-xs text-warning">此活動尚無房間，請聯絡管理員。</p>
       )}
 
       <JoinShareCard

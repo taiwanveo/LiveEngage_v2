@@ -28,6 +28,7 @@ import {
 import { getPoll, getPollResults, isPollType, submitPollResponse } from "../lib/pollApi";
 import { getSessionState } from "../lib/sessionApi";
 import { submitQuizAnswer, type ActiveQuizQuestion } from "../lib/sprint9Api";
+import { ThemeSwitcher } from "@liveengage/ui";
 
 export function RoomPage(): React.JSX.Element {
   const ctx = getParticipantContext();
@@ -195,95 +196,57 @@ export function RoomPage(): React.JSX.Element {
   };
 
   return (
-    <main className="min-h-full bg-slate-100">
-      <header className="border-b border-slate-200 bg-white">
+    <main className="le-page-bg min-h-full">
+      <header className="sticky top-0 z-30 border-b border-border/80 bg-surface/90 backdrop-blur-xl">
         <div className="mx-auto flex max-w-2xl items-center justify-between px-4 py-3">
           <div>
-            <h1 className="text-lg font-semibold text-slate-900">{sessionTitle}</h1>
+            <h1 className="font-display text-lg font-semibold text-foreground">{sessionTitle}</h1>
             {ctx.displayName ? (
-              <p className="text-xs text-slate-500">你好，{ctx.displayName}</p>
+              <p className="text-xs text-muted">你好，{ctx.displayName}</p>
             ) : null}
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
             <span
-              className={`h-2 w-2 rounded-full ${connected ? "bg-emerald-400" : "bg-slate-300"}`}
+              className={connected ? "le-status-dot-live" : "le-status-dot bg-muted"}
               title={connected ? "即時連線中" : "連線中斷，備援輪詢"}
             />
-            <button
-              type="button"
-              onClick={leave}
-              className="text-sm text-slate-600 hover:text-slate-900"
-            >
+            <ThemeSwitcher compact />
+            <button type="button" onClick={leave} className="le-btn-ghost !min-h-[40px]">
               離開
             </button>
           </div>
         </div>
       </header>
 
-      <div className="mx-auto max-w-2xl border-b border-slate-200 bg-white px-4">
-        <nav className="flex gap-4">
-          <button
-            type="button"
-            onClick={() => setTab("poll")}
-            className={`border-b-2 py-3 text-sm font-medium ${
-              tab === "poll"
-                ? "border-primary-600 text-primary-700"
-                : "border-transparent text-slate-500 hover:text-slate-800"
-            }`}
-          >
+      <div className="mx-auto max-w-2xl border-b border-border bg-surface/60 px-4 backdrop-blur-sm">
+        <nav className="flex gap-1 overflow-x-auto" aria-label="互動分頁">
+          <TabButton active={tab === "poll"} onClick={() => setTab("poll")} live={Boolean(activePollId)}>
             投票（Poll）
-            {activePollId ? (
-              <span className="ml-1 inline-flex h-2 w-2 rounded-full bg-emerald-500" title="進行中" />
-            ) : null}
-          </button>
-          <button
-            type="button"
-            onClick={() => setTab("qa")}
-            className={`border-b-2 py-3 text-sm font-medium ${
-              tab === "qa"
-                ? "border-primary-600 text-primary-700"
-                : "border-transparent text-slate-500 hover:text-slate-800"
-            }`}
-          >
+          </TabButton>
+          <TabButton active={tab === "qa"} onClick={() => setTab("qa")}>
             問答（Q&amp;A）
-          </button>
+          </TabButton>
           {activeIdeasBoardId ? (
-            <button
-              type="button"
-              onClick={() => setTab("ideas")}
-              className={`border-b-2 py-3 text-sm font-medium ${
-                tab === "ideas"
-                  ? "border-primary-600 text-primary-700"
-                  : "border-transparent text-slate-500 hover:text-slate-800"
-              }`}
-            >
+            <TabButton active={tab === "ideas"} onClick={() => setTab("ideas")}>
               點子牆（Ideas）
-            </button>
+            </TabButton>
           ) : null}
           {quizQuestion ? (
-            <button
-              type="button"
-              onClick={() => setTab("quiz")}
-              className={`border-b-2 py-3 text-sm font-medium ${
-                tab === "quiz"
-                  ? "border-primary-600 text-primary-700"
-                  : "border-transparent text-slate-500 hover:text-slate-800"
-              }`}
-            >
+            <TabButton active={tab === "quiz"} onClick={() => setTab("quiz")} live>
               Quiz
-            </button>
+            </TabButton>
           ) : null}
         </nav>
       </div>
 
-      <div className="mx-auto max-w-2xl px-4 py-6">
+      <div className="relative z-10 mx-auto max-w-2xl px-4 py-6">
         {tab === "qa" ? (
           <RoomQaPanel roomId={ctx.roomId} />
         ) : tab === "ideas" && activeIdeasBoardId ? (
           <RoomIdeasPanel boardId={activeIdeasBoardId} />
         ) : tab === "quiz" && quizQuestion ? (
-          <div className="rounded-xl border border-slate-200 bg-white p-6">
-            <h2 className="text-lg font-semibold">{quizQuestion.title}</h2>
+          <div className="le-card p-6">
+            <h2 className="font-display text-lg font-semibold text-foreground">{quizQuestion.title}</h2>
             <ul className="mt-4 space-y-2">
               {quizQuestion.options.map((opt) => (
                 <li key={opt.id}>
@@ -308,7 +271,7 @@ export function RoomPage(): React.JSX.Element {
                         })
                         .finally(() => setQuizSubmitting(false));
                     }}
-                    className="w-full rounded-lg border border-slate-200 px-4 py-3 text-left text-sm hover:border-primary-400 hover:bg-primary-50 disabled:opacity-50"
+                    className="le-btn-secondary w-full !justify-start disabled:opacity-50"
                   >
                     {opt.text}
                   </button>
@@ -316,28 +279,28 @@ export function RoomPage(): React.JSX.Element {
               ))}
             </ul>
             {submitError ? (
-              <p className="mt-3 text-sm text-red-600">{submitError}</p>
+              <p className="mt-3 text-sm text-danger">{submitError}</p>
             ) : null}
           </div>
         ) : (
           <>
         {submitOk ? (
-          <p className="mb-4 rounded-lg bg-emerald-50 px-4 py-2 text-sm text-emerald-800">
+          <p className="mb-4 rounded-xl border border-success/30 bg-success/10 px-4 py-2 text-sm text-success">
             已提交，感謝參與！
           </p>
         ) : null}
 
         {stateQuery.isLoading ? (
-          <p className="text-center text-sm text-slate-500">載入活動狀態…</p>
+          <p className="text-center text-sm text-muted">載入活動狀態…</p>
         ) : !activePollId ? (
-          <div className="rounded-xl border border-dashed border-slate-300 bg-white p-10 text-center">
-            <p className="text-lg font-medium text-slate-700">等待投票開始</p>
-            <p className="mt-2 text-sm text-slate-500">
+          <div className="le-card border-dashed p-10 text-center">
+            <p className="text-lg font-medium text-foreground">等待投票開始</p>
+            <p className="mt-2 text-sm text-muted">
               主持人啟動 Poll 後，題目會自動出現在此頁
             </p>
           </div>
         ) : pollQuery.error ? (
-          <p className="text-sm text-red-600">
+          <p className="text-sm text-danger">
             {(pollQuery.error as Error).message}
           </p>
         ) : poll ? (
@@ -353,11 +316,35 @@ export function RoomPage(): React.JSX.Element {
             submitError={submitError}
           />
         ) : (
-          <p className="text-center text-sm text-slate-500">載入題目…</p>
+          <p className="text-center text-sm text-muted">載入題目…</p>
         )}
           </>
         )}
       </div>
     </main>
+  );
+}
+
+function TabButton(props: {
+  active: boolean;
+  onClick: () => void;
+  children: React.ReactNode;
+  live?: boolean;
+}): React.JSX.Element {
+  return (
+    <button
+      type="button"
+      onClick={props.onClick}
+      className={`relative shrink-0 border-b-2 px-3 py-3 text-sm font-medium transition-colors ${
+        props.active
+          ? "border-accent text-accent"
+          : "border-transparent text-muted hover:text-foreground"
+      }`}
+    >
+      {props.children}
+      {props.live ? (
+        <span className="le-status-dot-live absolute right-0 top-3" title="進行中" />
+      ) : null}
+    </button>
   );
 }

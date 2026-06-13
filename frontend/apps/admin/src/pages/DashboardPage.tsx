@@ -9,11 +9,11 @@ interface Props {
 export function DashboardPage({ onLogout }: Props): React.JSX.Element {
   return (
     <AdminShell active="dashboard" onLogout={onLogout}>
-      <div className="mx-auto max-w-4xl">
+      <div className="mx-auto max-w-5xl animate-slide-up">
         <header className="mb-8">
-          <h2 className="text-2xl font-bold text-slate-900">總覽</h2>
-          <p className="mt-1 text-sm text-slate-600">
-            Sprint 7-1 管理後台骨架；以下模組將陸續接 API。
+          <h2 className="font-display text-3xl font-bold text-foreground">總覽</h2>
+          <p className="mt-2 text-sm text-muted">
+            組織營運中樞 — 成員、活動稽核、匯出與品牌設定一站管理。
           </p>
         </header>
 
@@ -22,11 +22,15 @@ export function DashboardPage({ onLogout }: Props): React.JSX.Element {
             <a
               key={item.id}
               href={item.hash}
-              className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm transition-shadow hover:shadow-md"
+              className="le-card group p-5 transition-shadow hover:shadow-elevated"
             >
-              <p className="text-xs font-medium text-primary-600">{item.sprint}</p>
-              <h3 className="mt-1 font-semibold text-slate-900">{item.label}</h3>
-              <p className="mt-2 text-sm text-slate-500">{item.description}</p>
+              <p className="font-mono text-[10px] uppercase tracking-wider text-accent">
+                {item.sprint}
+              </p>
+              <h3 className="mt-2 font-display text-lg font-semibold text-foreground group-hover:text-accent">
+                {item.label}
+              </h3>
+              <p className="mt-2 text-sm leading-relaxed text-muted">{item.description}</p>
             </a>
           ))}
         </div>

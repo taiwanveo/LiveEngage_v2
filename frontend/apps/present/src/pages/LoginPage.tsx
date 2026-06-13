@@ -1,5 +1,6 @@
 import * as React from "react";
 import { useState } from "react";
+import { AuthCard } from "@liveengage/ui";
 import { login } from "../lib/authApi";
 import { setAccessToken } from "../lib/auth";
 import { ApiException } from "../lib/api";
@@ -34,38 +35,32 @@ export function LoginPage({ onLoggedIn }: Props): React.JSX.Element {
   }
 
   return (
-    <main className="flex min-h-full items-center justify-center bg-slate-950 px-4">
-      <form
-        onSubmit={onSubmit}
-        className="w-full max-w-sm space-y-5 rounded-2xl border border-white/10 bg-slate-900 p-8 shadow-xl"
-      >
-        <header>
-          <h1 className="text-2xl font-bold text-white">LiveEngage 投影</h1>
-          <p className="mt-1 text-sm text-slate-400">
-            大螢幕展示端（present portal）
-          </p>
-        </header>
-
-        <label className="block">
-          <span className="text-sm font-medium text-slate-300">Email</span>
+    <AuthCard
+      title="投影展示"
+      subtitle="大螢幕展示端 — 全場即時呈現 Poll 結果"
+      footer="登入後選擇活動與 Poll 即可投影到大螢幕。"
+    >
+      <form onSubmit={onSubmit} className="space-y-5">
+        <label className="block space-y-1.5">
+          <span className="text-sm font-medium text-foreground">Email</span>
           <input
             type="email"
             required
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="mt-1 w-full rounded-lg border border-slate-600 bg-slate-800 px-3 py-2 text-sm text-white focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
+            className="le-input"
             autoComplete="email"
           />
         </label>
 
-        <label className="block">
-          <span className="text-sm font-medium text-slate-300">密碼（password）</span>
+        <label className="block space-y-1.5">
+          <span className="text-sm font-medium text-foreground">密碼（password）</span>
           <input
             type="password"
             required
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className="mt-1 w-full rounded-lg border border-slate-600 bg-slate-800 px-3 py-2 text-sm text-white focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
+            className="le-input"
             autoComplete="current-password"
           />
         </label>
@@ -73,24 +68,16 @@ export function LoginPage({ onLoggedIn }: Props): React.JSX.Element {
         {error ? (
           <div
             role="alert"
-            className="rounded-lg border border-red-800 bg-red-950 px-3 py-2 text-sm text-red-300"
+            className="rounded-xl border border-danger/30 bg-danger/10 px-3 py-2 text-sm text-danger"
           >
             {error}
           </div>
         ) : null}
 
-        <button
-          type="submit"
-          disabled={loading}
-          className="w-full rounded-lg bg-primary-600 py-2 font-medium text-white transition-colors hover:bg-primary-700 disabled:bg-slate-600"
-        >
+        <button type="submit" disabled={loading} className="le-btn-primary w-full">
           {loading ? "登入中…" : "登入（sign in）"}
         </button>
-
-        <p className="text-center text-xs text-slate-500">
-          登入後選擇活動與 Poll 即可投影到大螢幕。
-        </p>
       </form>
-    </main>
+    </AuthCard>
   );
 }

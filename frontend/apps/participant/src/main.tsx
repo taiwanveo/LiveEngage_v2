@@ -1,8 +1,11 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { ThemeProvider, initTheme } from "@liveengage/ui";
 import { App } from "./App";
 import "./index.css";
+
+initTheme();
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -17,8 +20,10 @@ if (!root) {
 
 ReactDOM.createRoot(root).render(
   <React.StrictMode>
-    <QueryClientProvider client={queryClient}>
-      <App />
-    </QueryClientProvider>
+    <ThemeProvider>
+      <QueryClientProvider client={queryClient}>
+        <App />
+      </QueryClientProvider>
+    </ThemeProvider>
   </React.StrictMode>
 );

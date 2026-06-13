@@ -1,0 +1,361 @@
+/**
+ * LiveEngage Design System — 四種主題
+ * light / dark / cursor（Cursor IDE 哲學）/ claude（Claude 暖色哲學）
+ */
+
+@import url("https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=Instrument+Sans:wght@500;600;700&family=JetBrains+Mono:wght@400;500&family=Source+Serif+4:opsz,wght@8..60,500;8..60,600&display=swap");
+
+/* ── 共用結構 token（各主題覆寫色彩） ── */
+:root {
+  --le-radius-xl: 0.875rem;
+  --le-radius-2xl: 1.25rem;
+  --le-font-sans: "DM Sans", system-ui, sans-serif;
+  --le-font-display: "Instrument Sans", "DM Sans", system-ui, sans-serif;
+  --le-font-mono: "JetBrains Mono", ui-monospace, monospace;
+}
+
+/* ── Light：專業淺色（預設） ── */
+[data-theme="light"],
+:root:not([data-theme]) {
+  --le-bg: 248 250 252;
+  --le-fg: 15 23 42;
+  --le-surface: 255 255 255;
+  --le-surface-elevated: 255 255 255;
+  --le-muted: 100 116 139;
+  --le-border: 226 232 240;
+  --le-accent: 37 99 235;
+  --le-accent-fg: 255 255 255;
+  --le-accent-muted: 239 246 255;
+  --le-primary-50: 239 246 255;
+  --le-primary-100: 219 234 254;
+  --le-primary-500: 59 130 246;
+  --le-primary-600: 37 99 235;
+  --le-primary-700: 29 78 216;
+  --le-success: 16 185 129;
+  --le-warning: 245 158 11;
+  --le-danger: 239 68 68;
+  --le-shadow-card: 0 1px 3px rgb(15 23 42 / 0.06), 0 8px 24px rgb(15 23 42 / 0.04);
+  --le-shadow-elevated: 0 4px 24px rgb(15 23 42 / 0.08), 0 12px 48px rgb(15 23 42 / 0.06);
+  --le-shadow-glow: 0 0 0 1px rgb(37 99 235 / 0.12), 0 8px 32px rgb(37 99 235 / 0.15);
+  --le-bg-mesh: radial-gradient(ellipse 80% 60% at 10% -10%, rgb(59 130 246 / 0.12), transparent 55%),
+    radial-gradient(ellipse 60% 50% at 90% 0%, rgb(99 102 241 / 0.08), transparent 50%);
+  --le-bg-grid: linear-gradient(rgb(15 23 42 / 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgb(15 23 42 / 0.03) 1px, transparent 1px);
+}
+
+/* ── Dark：專業深色 ── */
+[data-theme="dark"] {
+  --le-bg: 15 23 42;
+  --le-fg: 248 250 252;
+  --le-surface: 30 41 59;
+  --le-surface-elevated: 51 65 85;
+  --le-muted: 148 163 184;
+  --le-border: 51 65 85;
+  --le-accent: 96 165 250;
+  --le-accent-fg: 15 23 42;
+  --le-accent-muted: 30 58 138;
+  --le-primary-50: 30 58 138;
+  --le-primary-100: 30 64 175;
+  --le-primary-500: 96 165 250;
+  --le-primary-600: 59 130 246;
+  --le-primary-700: 37 99 235;
+  --le-success: 52 211 153;
+  --le-warning: 251 191 36;
+  --le-danger: 248 113 113;
+  --le-shadow-card: 0 1px 0 rgb(255 255 255 / 0.04), 0 8px 32px rgb(0 0 0 / 0.35);
+  --le-shadow-elevated: 0 8px 40px rgb(0 0 0 / 0.45);
+  --le-shadow-glow: 0 0 0 1px rgb(96 165 250 / 0.2), 0 0 48px rgb(59 130 246 / 0.15);
+  --le-bg-mesh: radial-gradient(ellipse 70% 50% at 0% 0%, rgb(59 130 246 / 0.18), transparent 55%),
+    radial-gradient(ellipse 50% 40% at 100% 10%, rgb(99 102 241 / 0.12), transparent 45%);
+  --le-bg-grid: linear-gradient(rgb(255 255 255 / 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgb(255 255 255 / 0.04) 1px, transparent 1px);
+}
+
+/* ── Cursor：深色 + 琥珀橘強調（仿 Cursor IDE 配色哲學） ── */
+[data-theme="cursor"] {
+  --le-font-sans: "JetBrains Mono", ui-monospace, monospace;
+  --le-font-display: "Instrument Sans", system-ui, sans-serif;
+  --le-bg: 20 18 11;
+  --le-fg: 236 233 225;
+  --le-surface: 28 26 20;
+  --le-surface-elevated: 38 36 28;
+  --le-muted: 160 155 140;
+  --le-border: 48 46 38;
+  --le-accent: 245 78 0;
+  --le-accent-fg: 255 255 255;
+  --le-accent-muted: 68 32 8;
+  --le-primary-50: 68 32 8;
+  --le-primary-100: 120 45 10;
+  --le-primary-500: 245 78 0;
+  --le-primary-600: 230 72 0;
+  --le-primary-700: 200 62 0;
+  --le-success: 74 222 128;
+  --le-warning: 251 191 36;
+  --le-danger: 248 113 113;
+  --le-shadow-card: 0 1px 0 rgb(255 255 255 / 0.05), 0 12px 40px rgb(0 0 0 / 0.5);
+  --le-shadow-elevated: 0 16px 48px rgb(0 0 0 / 0.55);
+  --le-shadow-glow: 0 0 0 1px rgb(245 78 0 / 0.35), 0 0 40px rgb(245 78 0 / 0.12);
+  --le-bg-mesh: radial-gradient(ellipse 60% 45% at 100% 0%, rgb(245 78 0 / 0.14), transparent 50%),
+    radial-gradient(ellipse 50% 40% at 0% 100%, rgb(245 78 0 / 0.06), transparent 45%);
+  --le-bg-grid: linear-gradient(rgb(255 255 255 / 0.035) 1px, transparent 1px),
+    linear-gradient(90deg, rgb(255 255 255 / 0.035) 1px, transparent 1px);
+}
+
+/* ── Claude：暖色奶油底 + 赤陶強調（仿 Claude 配色哲學） ── */
+[data-theme="claude"] {
+  --le-font-sans: "DM Sans", system-ui, sans-serif;
+  --le-font-display: "Source Serif 4", Georgia, serif;
+  --le-bg: 250 249 245;
+  --le-fg: 38 37 34;
+  --le-surface: 255 255 253;
+  --le-surface-elevated: 255 253 248;
+  --le-muted: 120 113 108;
+  --le-border: 228 224 218;
+  --le-accent: 217 119 87;
+  --le-accent-fg: 255 255 255;
+  --le-accent-muted: 254 236 228;
+  --le-primary-50: 254 236 228;
+  --le-primary-100: 252 218 205;
+  --le-primary-500: 217 119 87;
+  --le-primary-600: 194 98 68;
+  --le-primary-700: 168 78 52;
+  --le-success: 22 163 74;
+  --le-warning: 180 83 9;
+  --le-danger: 220 38 38;
+  --le-shadow-card: 0 1px 2px rgb(38 37 34 / 0.04), 0 8px 28px rgb(38 37 34 / 0.06);
+  --le-shadow-elevated: 0 12px 40px rgb(38 37 34 / 0.08);
+  --le-shadow-glow: 0 0 0 1px rgb(217 119 87 / 0.18), 0 12px 36px rgb(217 119 87 / 0.12);
+  --le-bg-mesh: radial-gradient(ellipse 70% 55% at 85% -5%, rgb(217 119 87 / 0.1), transparent 50%),
+    radial-gradient(ellipse 55% 45% at 5% 95%, rgb(194 98 68 / 0.06), transparent 45%);
+  --le-bg-grid: linear-gradient(rgb(38 37 34 / 0.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgb(38 37 34 / 0.025) 1px, transparent 1px);
+}
+
+@layer base {
+  html {
+    height: 100%;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  body {
+    min-height: 100%;
+    font-family: var(--le-font-sans);
+    color: rgb(var(--le-fg));
+    background-color: rgb(var(--le-bg));
+    background-image: var(--le-bg-mesh);
+    background-attachment: fixed;
+  }
+
+  #root {
+    min-height: 100%;
+  }
+
+  ::selection {
+    background: rgb(var(--le-accent) / 0.25);
+    color: rgb(var(--le-fg));
+  }
+}
+
+@layer components {
+  .le-page-bg {
+    position: relative;
+    min-height: 100%;
+    background-color: rgb(var(--le-bg));
+  }
+
+  .le-page-bg::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    background-image: var(--le-bg-grid);
+    background-size: 24px 24px;
+    opacity: 0.5;
+    z-index: 0;
+  }
+
+  .le-card {
+    border-radius: var(--le-radius-2xl);
+    border: 1px solid rgb(var(--le-border));
+    background-color: rgb(var(--le-surface));
+    box-shadow: var(--le-shadow-card);
+    backdrop-filter: blur(8px);
+  }
+
+  .le-card-elevated {
+    border-radius: var(--le-radius-2xl);
+    border: 1px solid rgb(var(--le-border));
+    background-color: rgb(var(--le-surface-elevated));
+    box-shadow: var(--le-shadow-elevated);
+  }
+
+  .le-input {
+    width: 100%;
+    border-radius: var(--le-radius-xl);
+    border: 1px solid rgb(var(--le-border));
+    background-color: rgb(var(--le-surface));
+    padding: 0.625rem 0.875rem;
+    font-size: 0.875rem;
+    color: rgb(var(--le-fg));
+    transition: border-color 0.2s, box-shadow 0.2s;
+  }
+
+  .le-input::placeholder {
+    color: rgb(var(--le-muted));
+  }
+
+  .le-input:focus {
+    outline: none;
+    border-color: rgb(var(--le-accent));
+    box-shadow: 0 0 0 3px rgb(var(--le-accent) / 0.25);
+  }
+
+  .le-btn-primary {
+    display: inline-flex;
+    min-height: 44px;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    border-radius: var(--le-radius-xl);
+    background-color: rgb(var(--le-accent));
+    padding: 0.625rem 1.25rem;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: rgb(var(--le-accent-fg));
+    box-shadow: var(--le-shadow-glow);
+    transition: filter 0.2s, transform 0.15s;
+  }
+
+  .le-btn-primary:hover:not(:disabled) {
+    filter: brightness(1.08);
+  }
+
+  .le-btn-primary:active:not(:disabled) {
+    transform: scale(0.98);
+  }
+
+  .le-btn-primary:disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
+  }
+
+  .le-btn-secondary {
+    display: inline-flex;
+    min-height: 44px;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    border-radius: var(--le-radius-xl);
+    border: 1px solid rgb(var(--le-border));
+    background-color: rgb(var(--le-surface));
+    padding: 0.625rem 1.25rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: rgb(var(--le-fg));
+    transition: background-color 0.2s, transform 0.15s;
+  }
+
+  .le-btn-secondary:hover:not(:disabled) {
+    background-color: rgb(var(--le-surface-elevated));
+  }
+
+  .le-btn-secondary:active:not(:disabled) {
+    transform: scale(0.98);
+  }
+
+  .le-btn-secondary:disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
+  }
+
+  .le-btn-ghost {
+    display: inline-flex;
+    min-height: 44px;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    border-radius: var(--le-radius-xl);
+    padding: 0.5rem 1rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: rgb(var(--le-muted));
+    transition: background-color 0.2s, color 0.2s;
+  }
+
+  .le-btn-ghost:hover {
+    background-color: rgb(var(--le-surface-elevated));
+    color: rgb(var(--le-fg));
+  }
+
+  .le-nav-link {
+    display: inline-flex;
+    min-height: 40px;
+    align-items: center;
+    border-radius: 0.5rem;
+    padding: 0.5rem 0.75rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: rgb(var(--le-muted));
+    transition: background-color 0.2s, color 0.2s;
+  }
+
+  .le-nav-link:hover {
+    background-color: rgb(var(--le-surface-elevated));
+    color: rgb(var(--le-fg));
+  }
+
+  .le-nav-link-active {
+    background-color: rgb(var(--le-accent-muted));
+    font-weight: 600;
+    color: rgb(var(--le-accent));
+  }
+
+  .le-badge {
+    display: inline-flex;
+    align-items: center;
+    border-radius: 9999px;
+    padding: 0.125rem 0.625rem;
+    font-size: 0.75rem;
+    font-weight: 500;
+  }
+
+  .le-badge-live {
+    background-color: rgb(var(--le-success) / 0.15);
+    color: rgb(var(--le-success));
+  }
+
+  .le-status-dot {
+    height: 0.5rem;
+    width: 0.5rem;
+    flex-shrink: 0;
+    border-radius: 9999px;
+  }
+
+  .le-status-dot-live {
+    background-color: rgb(var(--le-success));
+    box-shadow: 0 0 8px rgb(var(--le-success) / 0.6);
+    animation: le-pulse-dot 2s ease-in-out infinite;
+  }
+
+  .animate-slide-up {
+    animation: le-slide-up 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+
+  @keyframes le-slide-up {
+    from { opacity: 0; transform: translateY(12px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  @keyframes le-pulse-dot {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.55; }
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}

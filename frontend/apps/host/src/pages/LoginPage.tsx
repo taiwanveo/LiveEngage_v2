@@ -1,5 +1,6 @@
 import * as React from "react";
 import { useState } from "react";
+import { AuthCard } from "@liveengage/ui";
 import { login } from "../lib/authApi";
 import { setAccessToken } from "../lib/auth";
 import { ApiException } from "../lib/api";
@@ -34,63 +35,49 @@ export function LoginPage({ onLoggedIn }: Props): React.JSX.Element {
   }
 
   return (
-    <main className="min-h-full flex items-center justify-center bg-slate-100 px-4">
-      <form
-        onSubmit={onSubmit}
-        className="w-full max-w-sm bg-white rounded-2xl shadow-xl p-8 space-y-5"
-      >
-        <header>
-          <h1 className="text-2xl font-bold text-slate-900">LiveEngage Host</h1>
-          <p className="text-sm text-slate-500 mt-1">
-            主持人入口（host portal）
-          </p>
-        </header>
-
-        <label className="block">
-          <span className="text-sm font-medium text-slate-700">Email</span>
+    <AuthCard
+      title="Host 控制台"
+      subtitle="主持人入口 — 建立活動、控場 Poll、審核 Q&A"
+      footer="登入後可建立活動、複製參與連結，並進入 Q&A 審核或 Poll 控場。"
+    >
+      <form onSubmit={onSubmit} className="space-y-5">
+        <label className="block space-y-1.5">
+          <span className="text-sm font-medium text-foreground">Email</span>
           <input
             type="email"
             required
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
+            className="le-input"
             autoComplete="email"
           />
         </label>
 
-        <label className="block">
-          <span className="text-sm font-medium text-slate-700">密碼（password）</span>
+        <label className="block space-y-1.5">
+          <span className="text-sm font-medium text-foreground">密碼（password）</span>
           <input
             type="password"
             required
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
+            className="le-input"
             autoComplete="current-password"
           />
         </label>
 
-        {error && (
+        {error ? (
           <div
             role="alert"
-            className="rounded-lg bg-red-50 text-red-700 px-3 py-2 text-sm border border-red-200"
+            className="rounded-xl border border-danger/30 bg-danger/10 px-3 py-2 text-sm text-danger"
           >
             {error}
           </div>
-        )}
+        ) : null}
 
-        <button
-          type="submit"
-          disabled={loading}
-          className="w-full bg-primary-600 hover:bg-primary-700 disabled:bg-slate-400 text-white font-medium rounded-lg py-2 transition-colors"
-        >
+        <button type="submit" disabled={loading} className="le-btn-primary w-full">
           {loading ? "登入中…（signing in）" : "登入（sign in）"}
         </button>
-
-        <p className="text-xs text-slate-500 text-center">
-          登入後可建立活動、複製參與連結，並進入 Q&amp;A 審核或 Poll 控場。
-        </p>
       </form>
-    </main>
+    </AuthCard>
   );
 }

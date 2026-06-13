@@ -9,6 +9,7 @@ import {
   setParticipantSession,
 } from "../lib/participantAuth";
 import { joinSession, resolveSessionByCode } from "../lib/sessionApi";
+import { AuthCard } from "@liveengage/ui";
 
 interface Props {
   code: string;
@@ -83,8 +84,8 @@ export function JoinPage({ code }: Props): React.JSX.Element {
         : (sessionQuery.error as Error).message;
     return (
       <CenteredMessage>
-        <p className="text-red-600">{msg}</p>
-        <a href="#/join" className="mt-4 inline-block text-sm text-primary-600 hover:underline">
+        <p className="text-danger">{msg}</p>
+        <a href="#/join" className="mt-4 inline-block text-sm text-accent hover:underline">
           重新輸入代碼
         </a>
       </CenteredMessage>
@@ -99,110 +100,105 @@ export function JoinPage({ code }: Props): React.JSX.Element {
   const notLive = session.status !== "live";
 
   return (
-    <main className="flex min-h-full items-center justify-center bg-slate-100 px-4 py-8">
-      <div className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-8 shadow-lg">
-        <p className="font-mono text-xs text-slate-400">{session.code}</p>
-        <h1 className="mt-1 text-2xl font-bold text-slate-900">{session.title}</h1>
-        <p className="mt-2 text-sm text-slate-600">
-          狀態：{statusLabel(session.status)}
-        </p>
-
-        {notLive ? (
-          <div className="mt-6 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-            活動尚未開始，請等待主持人開放後再試。
-          </div>
-        ) : (
-          <form
-            className="mt-6 space-y-4"
-            onSubmit={(e) => {
-              e.preventDefault();
-              setFormError(null);
-              joinMutation.mutate();
-            }}
-          >
-            {needsPasscode ? (
-              <label className="block text-sm">
-                <span className="font-medium text-slate-700">Passcode</span>
-                <input
-                  type="password"
-                  value={passcode}
-                  onChange={(e) => setPasscode(e.target.value)}
-                  className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2"
-                  required
-                />
-              </label>
-            ) : null}
-
-            {session.require_name ? (
-              <label className="block text-sm">
-                <span className="font-medium text-slate-700">姓名</span>
-                <input
-                  type="text"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2"
-                  required
-                />
-              </label>
-            ) : (
-              <label className="block text-sm">
-                <span className="font-medium text-slate-700">暱稱（選填）</span>
-                <input
-                  type="text"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2"
-                />
-              </label>
-            )}
-
-            {session.require_email ? (
-              <label className="block text-sm">
-                <span className="font-medium text-slate-700">Email</span>
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2"
-                  required
-                />
-              </label>
-            ) : null}
-
-            <label className="flex items-center gap-2 text-sm text-slate-700">
-              <input
-                type="checkbox"
-                checked={isAnonymous}
-                onChange={(e) => setIsAnonymous(e.target.checked)}
-                className="h-4 w-4 rounded border-slate-300"
-              />
-              匿名參與
-            </label>
-
-            {formError ? (
-              <p className="text-sm text-red-600" role="alert">
-                {formError}
-              </p>
-            ) : null}
-
-            <button
-              type="submit"
-              disabled={joinMutation.isPending}
-              className="w-full rounded-lg bg-primary-600 py-2.5 text-sm font-medium text-white hover:bg-primary-700 disabled:opacity-50"
-            >
-              {joinMutation.isPending ? "加入中…" : "加入活動"}
-            </button>
-          </form>
-        )}
-
-        <a
-          href="#/join"
-          className="mt-6 block text-center text-sm text-slate-500 hover:text-slate-800"
-        >
+    <AuthCard
+      title={session.title}
+      subtitle={`狀態：${statusLabel(session.status)}`}
+      footer={
+        <a href="#/join" className="text-accent hover:underline">
           使用其他代碼
         </a>
-      </div>
-    </main>
+      }
+    >
+      <p className="-mt-4 mb-2 font-mono text-xs text-muted">{session.code}</p>
+
+      {notLive ? (
+        <div className="rounded-xl border border-warning/30 bg-warning/10 px-4 py-3 text-sm text-warning">
+          活動尚未開始，請等待主持人開放後再試。
+        </div>
+      ) : (
+        <form
+          className="space-y-4"
+          onSubmit={(e) => {
+            e.preventDefault();
+            setFormError(null);
+            joinMutation.mutate();
+          }}
+        >
+          {needsPasscode ? (
+            <label className="block space-y-1.5 text-sm">
+              <span className="font-medium text-foreground">Passcode</span>
+              <input
+                type="password"
+                value={passcode}
+                onChange={(e) => setPasscode(e.target.value)}
+                className="le-input"
+                required
+              />
+            </label>
+          ) : null}
+
+          {session.require_name ? (
+            <label className="block space-y-1.5 text-sm">
+              <span className="font-medium text-foreground">姓名</span>
+              <input
+                type="text"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                className="le-input"
+                required
+              />
+            </label>
+          ) : (
+            <label className="block space-y-1.5 text-sm">
+              <span className="font-medium text-foreground">暱稱（選填）</span>
+              <input
+                type="text"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                className="le-input"
+              />
+            </label>
+          )}
+
+          {session.require_email ? (
+            <label className="block space-y-1.5 text-sm">
+              <span className="font-medium text-foreground">Email</span>
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="le-input"
+                required
+              />
+            </label>
+          ) : null}
+
+          <label className="flex items-center gap-2 text-sm text-foreground">
+            <input
+              type="checkbox"
+              checked={isAnonymous}
+              onChange={(e) => setIsAnonymous(e.target.checked)}
+              className="h-4 w-4 rounded border-border accent-accent"
+            />
+            匿名參與
+          </label>
+
+          {formError ? (
+            <p className="text-sm text-danger" role="alert">
+              {formError}
+            </p>
+          ) : null}
+
+          <button
+            type="submit"
+            disabled={joinMutation.isPending}
+            className="le-btn-primary w-full"
+          >
+            {joinMutation.isPending ? "加入中…" : "加入活動"}
+          </button>
+        </form>
+      )}
+    </AuthCard>
   );
 }
 
@@ -225,8 +221,8 @@ function CenteredMessage(props: {
   children: React.ReactNode;
 }): React.JSX.Element {
   return (
-    <main className="flex min-h-full items-center justify-center bg-slate-100 px-4">
-      <div className="text-center text-slate-600">{props.children}</div>
+    <main className="le-page-bg flex min-h-full items-center justify-center px-4">
+      <div className="le-card p-8 text-center text-muted">{props.children}</div>
     </main>
   );
 }

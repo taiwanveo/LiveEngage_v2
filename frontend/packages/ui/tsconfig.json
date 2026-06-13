@@ -15,19 +15,8 @@
     "skipLibCheck": true,
     "isolatedModules": true,
     "esModuleInterop": true,
-    "resolveJsonModule": true,
     "forceConsistentCasingInFileNames": true,
-    "useDefineForClassFields": true,
-    "noEmit": true,
-    "baseUrl": ".",
-    "paths": {
-      "@liveengage/renderers": ["../../packages/renderers/src/index.ts"],
-      "@liveengage/renderers/*": ["../../packages/renderers/src/*"],
-      "@liveengage/realtime": ["../../packages/realtime/src/index.ts"],
-      "@liveengage/realtime/*": ["../../packages/realtime/src/*"],
-      "@liveengage/ui": ["../../packages/ui/src/index.ts"],
-      "@liveengage/ui/*": ["../../packages/ui/src/*"]
-    }
+    "noEmit": true
   },
   "include": ["src"]
 }

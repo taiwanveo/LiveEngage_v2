@@ -7,8 +7,8 @@
 ## SNAPSHOT（2026-06-13）
 
 - **Repo**：https://github.com/ColdRighter/LiveEngage.git（master）
-- **最新 commit**：5c98f3e Phase D — Sprint 9 Quiz/Ideas/Survey、worker SSL
-- **pytest**：63+ passed（含 `test_s9_phase_d`：Quiz / Ideas / Survey / AI-001 / Co-host）
+- **最新 commit**：（待 push）UI 設計系統 + 四主題切換
+- **pytest**：63+ passed（含 `test_s9_phase_d`）
 - **Zeabur**：**六服務** — api / host / participant / present / admin / **worker**
 
 ### 已上線服務
@@ -20,40 +20,33 @@
 | participant | https://le-participant.zeabur.app |
 | present | https://le-present.zeabur.app |
 | admin | https://le-admin.zeabur.app |
-| worker | Celery（無公開 URL，`Dockerfile.worker`） |
+| worker | Celery（無公開 URL） |
 
-### Phase A+B（現場 Poll + Q&A）
-
-Host 儀表板、Participant Q&A/Poll、Present 投影、主持人回覆、QR 分享。
-
-### Phase C+（平台與營運）
-
-IP rate limit、Celery export worker + Redis 快取、`docs/RUNBOOK.md`、測試帳號清理。
-
-### Phase D（Sprint 9+ — 本輪）
+### UI 設計系統（本輪）
 
 | 項目 | 狀態 |
 |------|------|
-| Migration `0006_sprint9_phase_d`（quiz / ideas / cohost / survey / ai_request_logs） | done |
-| BE-006 Survey、BE-007 Quiz、BE-012 Co-host、AI-001~003 stub | done |
-| FE-011 Quiz 控制台、FE-012 Survey、FE-013 Ideas（Host + Participant 最小 UI） | done |
-| Celery worker SSL（Upstash `rediss://`）+ `--pool=solo` | done |
-| 整合測試 `tests/test_s9_phase_d.py` | done |
+| `@liveengage/ui` 共用套件（theme.css、Tailwind preset、ThemeProvider） | done |
+| 四主題：`light` / `dark` / `cursor` / `claude` | done |
+| 四前端 app 接線 + 核心頁重構（Login、Shell、Dashboard、Room） | done |
+| `design-system/MASTER.md` | done |
 
-**仍 defer**：SSO、Integrations、多房間進階、E2E 自動化、真實 LLM（目前 AI stub + 503）
+**仍 defer（Phase D 範圍外）**：SSO、Integrations、多房間進階、E2E 自動化、真實 LLM
 
 ---
 
 ## HISTORY
 
-### 2026-06-13 — Phase D Sprint 9（待填 commit）
+### 2026-06-13 — UI 設計系統與主題切換
 
-Quiz / Ideas / Survey 後端 + 最小前端；Zeabur worker 服務；Celery rediss SSL 修復。
+專業級視覺升級；Cursor / Claude 配色主題；語意 token 取代散落的 slate 類別。
 
-### 2026-06-13 — Phase C+ 平台營運（0fbde82）
+### 2026-06-13 — Phase D Sprint 9（5c98f3e）
 
-Rate limit、Celery export、測試帳號清理、Runbook
+Quiz / Ideas / Survey 後端 + 最小前端；Zeabur worker；Celery rediss SSL。
 
-### 2026-06-13 — Phase B（2661e3f）
+### 2026-06-13 — Phase C+（0fbde82）
 
-### 2026-06-13 — Phase A（c4e0eff）
+Rate limit、Celery export、Runbook
+
+### 2026-06-13 — Phase B（2661e3f）/ Phase A（c4e0eff）

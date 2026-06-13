@@ -26,7 +26,9 @@
       "@liveengage/renderers": ["../../packages/renderers/src/index.ts"],
       "@liveengage/renderers/*": ["../../packages/renderers/src/*"],
       "@liveengage/realtime": ["../../packages/realtime/src/index.ts"],
-      "@liveengage/realtime/*": ["../../packages/realtime/src/*"]
+      "@liveengage/realtime/*": ["../../packages/realtime/src/*"],
+      "@liveengage/ui": ["../../packages/ui/src/index.ts"],
+      "@liveengage/ui/*": ["../../packages/ui/src/*"]
     }
   },
   "include": ["src"]
