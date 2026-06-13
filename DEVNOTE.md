@@ -9,8 +9,8 @@
 ### 專案基本資訊
 - **Repo**：https://github.com/ColdRighter/LiveEngage.git（`master`）
 - **本地路徑**：`c:\Vibe_Coidng_Local\LiveEngage`
-- **最新 commit（已 push）**：`085c7b3` Sprint 4（Redis + audit log + stream replay + PM-002 host UI）
-- **GitHub**：`origin/master` 同步至 Sprint 4
+- **最新 commit（已 push）**：`S5-1` Poll Migration + Models + Schemas
+- **GitHub**：`origin/master` 同步至 S5-1
 - **資料庫**：Neon Postgres（`taiwanveo@gmail.com` 帳號專案，`ap-southeast-1`）
 - **Redis**：Upstash 雲端（`LE_REDIS_URL=rediss://default:<token>@sweeping-gecko-35121.upstash.io:6379`）
 - **Neon MCP**：`project-0-LiveEngage-neon` 已授權（org: TAIWANVEO，project: LiveEngage `damp-tooth-60940518`）
@@ -31,6 +31,8 @@
 | Task 2b | WS Gateway + state 快照 API | ✅ pushed |
 | Sprint 3 | Q&A：提問/列表/投票/審核（FE-004/005、BE-004） | ✅ migration 0002 + 8 AC 測試 |
 | Sprint 4 | Redis（Pub/Sub + Stream replay）、Idempotency、Q&A flush/節流/rate limit、audit log、PM-002 審核 UI | ✅ pushed `085c7b3` |
+| S5-1 | Poll Migration（0004）+ Models + Schemas | ✅ pushed |
+| S5-2 | Poll Service + 狀態機 + Redis 分散式鎖 | 🚧 進行中 |
 
 ### API 端點（已實作）
 | Method | Path | 說明 |
@@ -80,6 +82,11 @@
 - ✅ upvote rate limit 30/min
 
 ### 仍待補（後續 Sprint）
+- S5-2：Poll Service + 狀態機 + Redis 分散式鎖（start/stop/lock/reveal/reset）
+- S5-3：Poll REST 端點（Builder + 控場 + 作答 + 結果聚合）
+- S6-1~S6-3：WebSocket events、前端 Poll UI（FE-006~010）、整合測試
+- Sprint 7–8：管理後台
+- Sprint 9+：Quiz / Survey / Ideas / AI / Integrations / Admin
 - 相似問題偵測、Question AI、participant 互相回覆、label CRUD
 - Host/Present WS 連線的房間 org 歸屬查驗（participant 已綁定）
 - audit log 對外查詢 / 匯出 API
@@ -88,6 +95,29 @@
 ---
 
 ## HISTORY
+
+### 2026-06-13 — S5-1：Poll Migration + Models + Schemas
+
+**後端**
+- **migration `0004_poll_tables`**（已套用至 Neon，`0004 head`；idempotent）
+  - 建 `poll_options`：interaction_id / text / is_correct / order_no / created_at；`idx_poll_options_interaction`
+  - 建 `poll_responses`：interaction_id / participant_id / answer_jsonb / submission_no / is_correct / score / idempotency_key / submitted_at
+    - `uq_poll_responses_submission` UNIQUE(interaction_id, participant_id, submission_no)
+    - `uq_poll_responses_idem` partial UNIQUE(idempotency_key) WHERE NOT NULL（鐵律 4）
+  - `idx_interactions_active`（非唯一）→ **`uq_interactions_active_room` partial UNIQUE**（鐵律 5 DB 硬保證）
+- **`app/models/poll.py`**：`PollOption`、`PollResponse`；`submission_no` 調和 SDS §7.2 UNIQUE 語意：單次提交題型固定 0，多次題型遞增 append
+- **`app/schemas/poll.py`**
+  - 5 題型 settings：MultipleChoiceSettings / WordCloudSettings / OpenTextSettings / RatingSettings / RankingSettings
+  - answer 載荷（§7.4 外部 tag）+ `parse_answer()` / `parse_settings()` resolver
+  - 控場 `PollAction`（start/stop/lock/unlock/reveal/hide/reset/next/prev）
+  - 對外 `PollDetail`（揭示前不含正解）、`PollResults`（後端聚合絕對值，鐵律 2）
+- `app/models/__init__.py`：新增 `PollOption`, `PollResponse` 匯出
+- `docs/Sprint5-6_Poll_設計.md`：Sprint 5–6 設計文件（migration、狀態機、鎖策略、events、API 端點）
+
+**品質**
+- ruff ✅ · mypy --strict ✅（58 files）· pytest **19 passed**（無回歸）
+
+---
 
 ### 2026-06-13 — Sprint 4 完整收斂（commit `085c7b3` pushed）
 

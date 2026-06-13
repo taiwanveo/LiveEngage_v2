@@ -12,6 +12,7 @@ from app.models.base import Base
 from app.models.interaction import Interaction
 from app.models.organization import Organization
 from app.models.participant import Participant
+from app.models.poll import PollOption, PollResponse
 from app.models.question import (
     Question,
     QuestionLabel,
@@ -28,6 +29,8 @@ __all__ = [
     "Interaction",
     "Organization",
     "Participant",
+    "PollOption",
+    "PollResponse",
     "Question",
     "QuestionLabel",
     "QuestionReply",
