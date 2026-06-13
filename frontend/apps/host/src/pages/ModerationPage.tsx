@@ -1,9 +1,10 @@
-/** PM-002 ?? UI?pending ? approved ? answered ?????
+/** PM-002 審核 UI：pending / approved / answered 三欄。
  *
- * ?????
- *  - ??? REST `/moderate`?`/replies`??? 1?
- *  - ?????? mask_identity serializer??? 3?
- *  - ?????? Idempotency-Key??? 4?qaApi ????
+ * 鐵律：
+ *  - 寫入走 REST `/moderate`、`/replies`（鐵律 1）
+ *  - 計數讀後端聚合值（鐵律 2）
+ *  - 匿名顯示來自 mask_identity serializer（鐵律 3）
+ *  - 寫入帶 Idempotency-Key（鐵律 4；qaApi 已處理）
  */
 
 import * as React from "react";
@@ -81,14 +82,14 @@ export function ModerationPage({ roomId, onLogout }: Props): React.JSX.Element {
       {error ? (
         <div className="mx-auto max-w-7xl px-6 py-4">
           <div className="rounded-lg bg-red-50 border border-red-200 text-red-700 px-4 py-3 text-sm">
-            ?????{(error as Error).message}
+            載入失敗（load failed）：{(error as Error).message}
           </div>
         </div>
       ) : null}
 
       <div className="mx-auto max-w-7xl px-6 py-6 grid grid-cols-1 md:grid-cols-3 gap-4">
         <Column
-          title="????pending?"
+          title="待審（pending）"
           accent="amber"
           questions={grouped.pending}
           loading={isLoading}
@@ -101,7 +102,7 @@ export function ModerationPage({ roomId, onLogout }: Props): React.JSX.Element {
                 }
                 disabled={moderateMutation.isPending}
               >
-                ???approve?
+                核准（approve）
               </ActionButton>
               <ActionButton
                 variant="ghost"
@@ -110,14 +111,14 @@ export function ModerationPage({ roomId, onLogout }: Props): React.JSX.Element {
                 }
                 disabled={moderateMutation.isPending}
               >
-                ???dismiss?
+                駁回（dismiss）
               </ActionButton>
             </>
           )}
         />
 
         <Column
-          title="????approved?"
+          title="已核准（approved）"
           accent="blue"
           questions={grouped.approved}
           loading={isLoading}
@@ -130,7 +131,7 @@ export function ModerationPage({ roomId, onLogout }: Props): React.JSX.Element {
                 }
                 disabled={moderateMutation.isPending}
               >
-                ??????answer?
+                標為已答（answer）
               </ActionButton>
               <ActionButton
                 variant="ghost"
@@ -142,7 +143,7 @@ export function ModerationPage({ roomId, onLogout }: Props): React.JSX.Element {
                 }
                 disabled={moderateMutation.isPending}
               >
-                {q.highlighted ? "?????unhighlight?" : "???highlight?"}
+                {q.highlighted ? "取消標記（unhighlight）" : "標記（highlight）"}
               </ActionButton>
               <ActionButton
                 variant="ghost"
@@ -151,14 +152,14 @@ export function ModerationPage({ roomId, onLogout }: Props): React.JSX.Element {
                 }
                 disabled={moderateMutation.isPending}
               >
-                ???archive?
+                封存（archive）
               </ActionButton>
             </>
           )}
         />
 
         <Column
-          title="????answered?"
+          title="已回答（answered）"
           accent="emerald"
           questions={grouped.answered}
           loading={isLoading}
@@ -171,7 +172,7 @@ export function ModerationPage({ roomId, onLogout }: Props): React.JSX.Element {
                 }
                 disabled={moderateMutation.isPending}
               >
-                ?????unanswer?
+                取消已答（unanswer）
               </ActionButton>
               <ActionButton
                 variant="ghost"
@@ -180,7 +181,7 @@ export function ModerationPage({ roomId, onLogout }: Props): React.JSX.Element {
                 }
                 disabled={moderateMutation.isPending}
               >
-                ???archive?
+                封存（archive）
               </ActionButton>
             </>
           )}
@@ -200,7 +201,7 @@ function Topbar(props: {
       <div className="mx-auto max-w-7xl px-6 py-3 flex items-center justify-between">
         <div>
           <h1 className="text-lg font-semibold text-slate-900">
-            Q&amp;A ???moderation?
+            Q&amp;A 審核（moderation）
           </h1>
           <p className="text-xs text-slate-500 font-mono">room: {props.roomId}</p>
         </div>
@@ -209,19 +210,19 @@ function Topbar(props: {
             href={`#/rooms/${props.roomId}/polls`}
             className="text-sm px-3 py-1.5 rounded-md bg-primary-50 hover:bg-primary-100 text-primary-700"
           >
-            Poll ??
+            Poll 管理
           </a>
           <button
             onClick={props.onRefresh}
             className="text-sm px-3 py-1.5 rounded-md bg-slate-100 hover:bg-slate-200 text-slate-700"
           >
-            ?????refresh?
+            重新整理（refresh）
           </button>
           <button
             onClick={props.onLogout}
             className="text-sm px-3 py-1.5 rounded-md text-slate-600 hover:text-slate-900"
           >
-            ???sign out?
+            登出（sign out）
           </button>
         </div>
       </div>
@@ -256,10 +257,10 @@ function Column(props: {
       <div className="flex-1 overflow-y-auto p-3 space-y-3">
         {props.loading ? (
           <p className="text-sm text-slate-400 text-center py-8">
-            ????
+            載入中…（loading）
           </p>
         ) : props.questions.length === 0 ? (
-          <p className="text-sm text-slate-400 text-center py-8">???</p>
+          <p className="text-sm text-slate-400 text-center py-8">尚無問題</p>
         ) : (
           props.questions.map((q) => (
             <QuestionCard key={q.id} question={q} actions={props.renderActions(q)} />
@@ -281,12 +282,12 @@ function QuestionCard(props: {
         {q.content}
       </p>
       <div className="mt-2 flex items-center gap-3 text-xs text-slate-500">
-        <span>?? {q.is_anonymous ? "??" : q.author_display ?? "?"}</span>
-        <span>?? {q.upvote_count}</span>
-        {q.downvote_count > 0 ? <span>?? {q.downvote_count}</span> : null}
-        <span>? {q.score}</span>
+        <span>作者 {q.is_anonymous ? "匿名" : q.author_display ?? "—"}</span>
+        <span>讚 {q.upvote_count}</span>
+        {q.downvote_count > 0 ? <span>倒讚 {q.downvote_count}</span> : null}
+        <span>分 {q.score}</span>
         {q.highlighted ? (
-          <span className="text-amber-600 font-medium">? ??</span>
+          <span className="text-amber-600 font-medium">★ 已標記</span>
         ) : null}
       </div>
       <div className="mt-3 flex flex-wrap gap-2">{props.actions}</div>
@@ -320,20 +321,28 @@ function ActionButton(props: {
 function RoomPicker(props: { onLogout: () => void }): React.JSX.Element {
   return (
     <main className="min-h-full flex items-center justify-center bg-slate-100 px-4">
-      <div className="bg-white rounded-2xl shadow-xl p-8 max-w-md text-center space-y-4">
-        <h2 className="text-xl font-semibold text-slate-900">?????</h2>
-        <p className="text-sm text-slate-600">
-          ???????{" "}
-          <code className="bg-slate-100 px-1 rounded">
-            #/rooms/&lt;roomId&gt;/moderation
-          </code>{" "}
-          ??????
+      <div className="bg-white rounded-2xl shadow-xl p-8 max-w-lg text-center space-y-4">
+        <h2 className="text-xl font-semibold text-slate-900">請指定活動室（room）</h2>
+        <p className="text-sm text-slate-600 text-left leading-relaxed">
+          登入後預設網址的{" "}
+          <code className="bg-slate-100 px-1 rounded font-mono text-xs">_</code>{" "}
+          只是佔位符，不是真正的 room ID。請將網址改成：
+        </p>
+        <code className="block bg-slate-100 px-3 py-2 rounded text-xs font-mono text-slate-800 break-all">
+          #/rooms/&lt;roomId&gt;/moderation
+        </code>
+        <p className="text-sm text-slate-600 text-left leading-relaxed">
+          <strong>roomId</strong> 可從建立活動 API{" "}
+          <code className="bg-slate-100 px-1 rounded text-xs">POST /api/v1/sessions</code>{" "}
+          回應的 <code className="bg-slate-100 px-1 rounded text-xs">room_id</code>{" "}
+          取得，或至 Neon 的 <code className="bg-slate-100 px-1 rounded text-xs">rooms</code>{" "}
+          表查詢。Host 活動儀表板（建 session UI）尚待實作。
         </p>
         <button
           onClick={props.onLogout}
           className="text-sm text-slate-500 hover:text-slate-900"
         >
-          ???sign out?
+          登出（sign out）
         </button>
       </div>
     </main>
