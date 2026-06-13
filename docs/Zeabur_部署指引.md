@@ -20,16 +20,18 @@ LiveEngage 是 **monorepo**（單一 repo 多目錄），不能直接把 repo �
 | **api** | https://le-api.zeabur.app | 根目錄 `Dockerfile` |
 | **host** | https://le-host.zeabur.app | `frontend/Dockerfile.host` |
 | **participant** | https://le-participant.zeabur.app | `frontend/Dockerfile.participant` |
+| **present** | https://le-present.zeabur.app | `frontend/Dockerfile.present` |
+| **admin** | https://le-admin.zeabur.app | `frontend/Dockerfile.admin` |
 
 | 項目 | 值 |
 |------|-----|
 | Zeabur 專案 | [liveengage](https://zeabur.com/projects/6a2d1bc82871baed5fc633ef?envID=6a2d1bc9cf558888ca4bc9da) |
-| GitHub | `ColdRighter/LiveEngage`，分支 **`master`** |
+| GitHub | `ColdRighter/LiveEngage`，分支 **`master`**（五服務皆連動，push 自動 redeploy） |
 | Repo ID | `1267983204` |
 
-前端 Docker 建置會安裝 `packages/renderers`、`packages/realtime` 依賴，並以 `VITE_API_BASE=https://le-api.zeabur.app` 編譯。
+前端 Docker 建置會安裝 `packages/renderers`、`packages/realtime`（admin 僅 realtime）依賴，並以 `VITE_API_BASE=https://le-api.zeabur.app` 編譯。
 
-舊服務 `liveengage`、`liveengage-api`（SUSPENDED）可於 Dashboard 刪除。
+舊服務 `liveengage`、`liveengage-api`（SUSPENDED）已透過 CLI 排程刪除；若 Dashboard 仍顯示，請手動刪除以免混淆。
 
 ## Dashboard 手動部署（推薦）
 
@@ -59,16 +61,18 @@ LiveEngage 是 **monorepo**（單一 repo 多目錄），不能直接把 repo �
 
 MCP 部署 Dockerfile 路徑若報 `path not found`，可改傳 `dockerfile.content`（內容需 `COPY backend/...`）。
 
-## 前端（Host / Participant 已部署；Present / Admin 待部署）
+## 前端（五個 app 皆已部署）
 
-各 app 需獨立服務；生產環境須能代理 `/api`、`/ws` 到後端（或改前端 API base URL）。
+各 app 為獨立 Zeabur 服務；生產環境以 `VITE_API_BASE` 指向 API，無需反向代理。
 
-| App | Root Directory | Build | 輸出 |
-|-----|----------------|-------|------|
-| Host | `frontend/apps/host` | `npm run build` | `dist` |
-| Participant | `frontend/apps/participant` | `npm run build` | `dist` |
-| Present | `frontend/apps/present` | `npm run build` | `dist` |
-| Admin | `frontend/apps/admin` | `npm run build` | `dist` |
+| App | Dockerfile | 網域前綴 |
+|-----|------------|----------|
+| Host | `frontend/Dockerfile.host` | `le-host` |
+| Participant | `frontend/Dockerfile.participant` | `le-participant` |
+| Present | `frontend/Dockerfile.present` | `le-present` |
+| Admin | `frontend/Dockerfile.admin` | `le-admin` |
+
+MCP 部署時 `ref` 請用 `master`（勿寫 `refs/heads/master`，會重複前綴導致 clone 失敗）。
 
 ## 常見問題
 
