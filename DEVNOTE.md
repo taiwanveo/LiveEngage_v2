@@ -7,7 +7,7 @@
 ## SNAPSHOT（2026-06-13）
 
 - **Repo**：https://github.com/ColdRighter/LiveEngage.git（master）
-- **最新 commit**：（Phase C+ push 後更新）
+- **最新 commit**：0fbde82 Phase C+ — rate limit、Celery export、Runbook、測試帳號清理
 - **pytest**：58+ passed（含 Phase C rate limit、Celery export eager、XLSX）
 - **Zeabur**：五服務 + 可選 **worker**（`Dockerfile.worker`）
 
@@ -43,7 +43,7 @@ Quiz / Survey / Ideas、AI 旁路、SSO、Co-host、Integrations、E2E 自動化
 
 ## HISTORY
 
-### 2026-06-13 — Phase C+ 平台營運
+### 2026-06-13 — Phase C+ 平台營運（0fbde82）
 
 Rate limit、Celery export、測試帳號清理、Runbook
 
