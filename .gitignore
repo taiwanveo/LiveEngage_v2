@@ -1,0 +1,31 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# 環境變數（嚴禁提交真實機密）
+.env
+.env.*
+!.env.example
+
+# 本地資料庫 / 工具
+*.sqlite3
+.codegraph/
+
+# 編輯器 / 作業系統
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+
+# 前端（任務 2+）
+node_modules/
+dist/
+.turbo/

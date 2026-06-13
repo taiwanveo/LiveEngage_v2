@@ -1,0 +1,9 @@
+# 文字檔統一使用 LF（跨平台一致）
+* text=auto eol=lf
+
+# Binary 檔不做換行轉換
+*.docx binary
+*.png  binary
+*.jpg  binary
+*.jpeg binary
+*.svg  binary

@@ -1,0 +1,34 @@
+# LiveEngage 本地開發環境（僅 dev 用，勿用於正式環境）
+# 啟動：docker compose up -d
+# 對應 SDS §2 技術選型：PostgreSQL 16、Redis 7
+services:
+  postgres:
+    image: postgres:16
+    container_name: liveengage-postgres
+    environment:
+      POSTGRES_USER: liveengage
+      POSTGRES_PASSWORD: liveengage
+      POSTGRES_DB: liveengage
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U liveengage"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  redis:
+    image: redis:7
+    container_name: liveengage-redis
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  pgdata:
