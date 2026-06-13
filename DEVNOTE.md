@@ -7,7 +7,7 @@
 ## SNAPSHOT（2026-06-13）
 
 - **Repo**：https://github.com/ColdRighter/LiveEngage.git（master）
-- **最新 commit**：b42f960 Present/Admin Zeabur 建置與 VITE_API_BASE 支援
+- **最新 commit**：（本輪 push）`scripts/seed_admin.py` 管理員帳號建立腳本
 - **pytest**：50 passed（本地；未重跑）
 - **Zeabur 專案**：[liveengage](https://zeabur.com/projects/6a2d1bc82871baed5fc633ef?envID=6a2d1bc9cf558888ca4bc9da)
 - **Zeabur MCP**：可用（user-zeabur）
@@ -24,7 +24,8 @@
 
 - 前端建置內嵌 `VITE_API_BASE=https://le-api.zeabur.app`
 - API 已設 `LE_CORS_ORIGIN_REGEX=https://.*\.zeabur\.app`
-- 舊服務 `liveengage`、`liveengage-api`（SUSPENDED）已排程刪除；若 Dashboard 仍顯示可手動刪除
+- **管理員帳號**：無內建預設；用 `python scripts/seed_admin.py --email ...`（讀 `.env` 的 `LE_DATABASE_URL_SYNC`）
+- Neon `users` 表內 `host-*@example.com` 為 pytest 測試殘留（密碼皆為 `TestPass123!`），正式帳號請用 seed 腳本
 
 ### Sprint 7 進度
 
@@ -41,6 +42,10 @@
 ---
 
 ## HISTORY
+
+### 2026-06-13 — seed_admin 腳本
+
+- `scripts/seed_admin.py`：互動式建立 owner/admin，支援 `--org-id`、`--update`
 
 ### 2026-06-13 — Present/Admin Zeabur 部署（b42f960）
 
