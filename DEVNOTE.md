@@ -9,8 +9,8 @@
 ### 專案基本資訊
 - **Repo**：https://github.com/ColdRighter/LiveEngage.git（`master`）
 - **本地路徑**：`c:\Vibe_Coidng_Local\LiveEngage`
-- **最新 commit（已 push）**：Task 1/2a/2b + Sprint 3 Q&A（Sprint 4 Redis 後端本地完成，待 push）
-- **GitHub**：`origin/master` 已同步（Sprint 4 變更尚未 push）
+- **最新 commit（已 push）**：`085c7b3` Sprint 4（Redis + audit log + stream replay + PM-002 host UI）
+- **GitHub**：`origin/master` 同步至 Sprint 4
 - **資料庫**：Neon Postgres（`taiwanveo@gmail.com` 帳號專案，`ap-southeast-1`）
 - **Redis**：Upstash 雲端（`LE_REDIS_URL=rediss://default:<token>@sweeping-gecko-35121.upstash.io:6379`）
 - **Neon MCP**：`project-0-LiveEngage-neon` 已授權（org: TAIWANVEO，project: LiveEngage `damp-tooth-60940518`）
@@ -30,7 +30,7 @@
 | Task 2a | Auth + Session CRUD + join（FE-001/002） | ✅ pushed |
 | Task 2b | WS Gateway + state 快照 API | ✅ pushed |
 | Sprint 3 | Q&A：提問/列表/投票/審核（FE-004/005、BE-004） | ✅ migration 0002 + 8 AC 測試 |
-| Sprint 4（後端） | Redis：Pub/Sub、Idempotency、Q&A 計數 flush、節流、rate limit | ✅ 本地完成；**PM-002 審核 UI 待做** |
+| Sprint 4 | Redis（Pub/Sub + Stream replay）、Idempotency、Q&A flush/節流/rate limit、audit log、PM-002 審核 UI | ✅ pushed `085c7b3` |
 
 ### API 端點（已實作）
 | Method | Path | 說明 |
@@ -51,6 +51,13 @@
 | GET | `/api/v1/rooms/{roomId}/questions/moderation` | 審核清單（BE-004） |
 | POST | `/api/v1/questions/{id}/moderate` | 審核/答覆/高亮（BE-004） |
 | POST | `/api/v1/questions/{id}/replies` | Host 回覆（BE-004） |
+| WS | `/ws?...&last_event_id=` | 重放 `stream:room:{id}` 中遺漏事件（Sprint 4） |
+
+### 前端
+| App | 路徑 | 狀態 |
+|-----|------|------|
+| Host | `frontend/apps/host`（Vite + React 19 + TS strict + Tailwind） | ✅ PM-002 三欄審核 UI（pending / approved / answered）、登入頁；`npm install && npm run build` 通過 |
+| Participant / Present / Admin | — | 尚未建立 |
 
 ---
 
@@ -66,27 +73,50 @@
 8. **時區欄位地雷**：所有 `DateTime` 欄位 model 端務必加 `DateTime(timezone=True)`。
 9. **Q&A score** 為 DB `GENERATED ALWAYS AS (upvote_count - downvote_count) STORED`；有 Redis 時計數先寫 Redis 待 flush，無 Redis 時直接寫 DB。
 
-### Sprint 4 仍待補
-- **PM-002 審核三欄 UI**（前端 host app）
-- audit log 持久化（審核/高亮等動作）
-- Redis stream replay（`stream:room:{id}`）
-- upvote rate limit 30/min（目前僅提問 5/min）
+### Sprint 4 已完成（含本次 push）
+- ✅ PM-002 審核三欄 UI（host app）
+- ✅ audit log 持久化（migration 0003 idempotent；moderate / reply 寫入）
+- ✅ Redis stream replay（`stream:room:{id}` XADD MAXLEN 1000；WS `last_event_id` 補送）
+- ✅ upvote rate limit 30/min
+
+### 仍待補（後續 Sprint）
 - 相似問題偵測、Question AI、participant 互相回覆、label CRUD
 - Host/Present WS 連線的房間 org 歸屬查驗（participant 已綁定）
+- audit log 對外查詢 / 匯出 API
+- Participant / Present / Admin 前端 app
 
 ---
 
 ## HISTORY
 
-### 2026-06-13 — Sprint 4（後端）：Redis + Q&A 強化
-- **Upstash 連線**：`.env` 設 `LE_REDIS_URL=rediss://default:<token>@sweeping-gecko-35121.upstash.io:6379`（非 REST）
+### 2026-06-13 — Sprint 4 完整收斂（commit `085c7b3` pushed）
+
+**後端**
+- **Upstash 連線**：`LE_REDIS_URL=rediss://default:<token>@sweeping-gecko-35121.upstash.io:6379`（非 REST）
 - `core/redis.py`：async 連線池、ping、降級 fallback
-- `realtime/redis_pubsub.py`：`evt:room:{id}` Pub/Sub 跨副本廣播
+- `realtime/redis_pubsub.py`：
+  - `evt:room:{id}` Pub/Sub 跨副本廣播
+  - `stream:room:{id}` XADD（MAXLEN 1000）— `fetch_replay(last_event_id)` 重放
+- `gateway.py`：WS 接 `last_event_id` query，連線後補送遺漏事件（依 mode 過濾）
 - `core/idempotency.py`：`Idempotency-Key` middleware（SETNX，TTL 24h）
-- `services/qa_redis.py`：投票 HINCRBY + 2s flush 回 DB、投票 WS 節流 ≥300ms、提問 rate limit 5/min
-- `config.py`：專案根 `.env` 絕對路徑 + override shell 殘留 env
-- 依賴：`redis>=5.0`
-- 測試：ruff ✅ mypy strict ✅ pytest **19 passed**（整合測試刻意不連雲端 Redis）
+- `services/qa_redis.py`：
+  - 投票 HINCRBY + 2s flush 回 DB
+  - 投票廣播 ≥300ms 節流合併
+  - 提問 5/min、**upvote 30/min** rate limit
+- migration `0003_audit_logs`（idempotent — `inspector.has_table` 跳過已存在）
+- `audit_service.log()`：moderate / reply 寫稽核（`details_jsonb` 含 action / reply_id 等）
+- `config.py`：專案根 `.env` 絕對路徑 + `load_dotenv(override=True)` 覆蓋 shell 殘留
+
+**前端（首次建立）**
+- `frontend/apps/host`：Vite 6 + React 19 + TypeScript strict + Tailwind 3
+- 登入頁（`/api/v1/auth/login`）+ PM-002 三欄審核（pending / approved / answered）
+- `lib/api.ts`：JWT bearer + 統一錯誤信封；寫入帶 `Idempotency-Key`
+- TanStack Query 4s 輪詢 + invalidate
+- `tsc strict + vite build` 通過（246KB / gzip 76KB）
+
+**品質**
+- ruff ✅ · mypy --strict ✅ · pytest **19 passed**（含 8 個 Q&A AC 測試）
+- 前端 `npm run build` ✅
 
 ### 2026-06-13 — Sprint 3：Q&A 核心（FE-004/005、BE-004）
 - migration `0002_qa_tables`：questions / question_votes / question_replies / question_labels（+ enum question_status、reply_author_type）
