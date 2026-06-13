@@ -9,9 +9,10 @@
 ### 專案基本資訊
 - **Repo**：https://github.com/ColdRighter/LiveEngage.git（`master`）
 - **本地路徑**：`c:\Vibe_Coidng_Local\LiveEngage`
-- **最新 commit（本地）**：`683624e` Task 2a + 待 push Task 2b
+- **最新 commit（已 push）**：`611b161` — Task 2b WS + state 快照
+- **GitHub**：`origin/master` 已同步（Task 1/2a/2b 共 3 commits）
 - **資料庫**：Neon Postgres（`taiwanveo@gmail.com` 帳號專案，`ap-southeast-1`）
-- **Neon MCP**：`.cursor/mcp.json` 已設 OAuth remote；需在 Cursor 設定啟用並以 taiwanveo 帳號授權
+- **Neon MCP**：`project-0-LiveEngage-neon` 已授權（org: TAIWANVEO，project: LiveEngage `damp-tooth-60940518`）
 
 ### 技術棧
 - Python **3.14**、FastAPI、SQLAlchemy 2.0 async、Alembic、PyJWT、argon2-cffi
@@ -23,8 +24,8 @@
 | Sprint | 任務 | 狀態 |
 |--------|------|------|
 | Task 1 | backend 骨架 + migration 0001 | ✅ pushed |
-| Task 2a | Auth + Session CRUD + join（FE-001/002） | ✅ 本地 commit，待 push |
-| Task 2b | WS Gateway + state 快照 API | ✅ 本地完成，待 commit/push |
+| Task 2a | Auth + Session CRUD + join（FE-001/002） | ✅ pushed |
+| Task 2b | WS Gateway + state 快照 API | ✅ pushed |
 
 ### API 端點（已實作）
 | Method | Path | 說明 |
