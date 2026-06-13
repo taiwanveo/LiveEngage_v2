@@ -23,6 +23,7 @@ from app.core.errors import AppError, ErrorCode
 from app.core.ids import uuid7
 from app.models.enums import InteractionStatus, InteractionType
 from app.models.interaction import Interaction
+from app.models.participant import Participant
 from app.models.poll import PollOption, PollResponse
 from app.models.room import Room
 from app.models.session import Session
@@ -32,6 +33,8 @@ from app.schemas.poll import (
     POLL_TYPES,
     MultipleChoiceAnswer,
     MultipleChoiceSettings,
+    OpenTextAnswer,
+    OpenTextSettings,
     OptionCount,
     PollAction,
     PollActionRequest,
@@ -41,9 +44,18 @@ from app.schemas.poll import (
     PollResults,
     PollSubmitRequest,
     PollSubmitResult,
+    RankingAnswer,
+    RankingSettings,
+    RatingAnswer,
+    RatingSettings,
+    TextEntry,
+    WordCloudAnswer,
+    WordCloudSettings,
+    WordCount,
     parse_answer,
     parse_settings,
 )
+from app.serializers.mask_identity import mask_identity
 from app.services import audit_service
 from app.services.poll_redis import (
     acquire_room_lock,
@@ -51,6 +63,7 @@ from app.services.poll_redis import (
     clear_poll_agg,
     get_poll_agg,
     increment_option_count,
+    increment_rating_agg,
     release_room_lock,
     set_poll_agg_ttl,
     throttled_broadcast_result,
@@ -590,10 +603,42 @@ async def submit_poll_response(
             payload=payload,
             idempotency_key=idempotency_key,
         )
+    if interaction.type == InteractionType.WORD_CLOUD:
+        return await _submit_word_cloud(
+            db,
+            interaction=interaction,
+            participant_id=participant_id,
+            payload=payload,
+            idempotency_key=idempotency_key,
+        )
+    if interaction.type == InteractionType.OPEN_TEXT:
+        return await _submit_open_text(
+            db,
+            interaction=interaction,
+            participant_id=participant_id,
+            payload=payload,
+            idempotency_key=idempotency_key,
+        )
+    if interaction.type == InteractionType.RATING:
+        return await _submit_rating(
+            db,
+            interaction=interaction,
+            participant_id=participant_id,
+            payload=payload,
+            idempotency_key=idempotency_key,
+        )
+    if interaction.type == InteractionType.RANKING:
+        return await _submit_ranking(
+            db,
+            interaction=interaction,
+            participant_id=participant_id,
+            payload=payload,
+            idempotency_key=idempotency_key,
+        )
 
     raise AppError(
         ErrorCode.VALIDATION_ERROR,
-        f"題型 {interaction.type} 作答尚未實作（S5-4）",
+        f"題型 {interaction.type} 不支援作答",
     )
 
 
@@ -678,19 +723,223 @@ async def _submit_multiple_choice(
     for new_oid in option_ids:
         await increment_option_count(interaction.id, str(new_oid), delta=1)
 
-    response_count = await _count_responses(db, interaction.id)
-    broadcast_payload = await _build_mc_broadcast_payload(
-        db, interaction.id, response_count
-    )
-    await throttled_broadcast_result(
-        interaction.room_id, interaction.id, broadcast_payload
-    )
+    return await _finish_submit_broadcast(db, interaction)
 
-    return PollSubmitResult(
-        interaction_id=interaction.id,
-        submission_no=0,
-        accepted=True,
+
+async def _submit_word_cloud(
+    db: AsyncSession,
+    *,
+    interaction: Interaction,
+    participant_id: uuid.UUID,
+    payload: PollSubmitRequest,
+    idempotency_key: uuid.UUID | None,
+) -> PollSubmitResult:
+    """word_cloud 作答：多次提交、詞長驗證、Redis 詞頻（FE-007）。"""
+    settings = cast(
+        WordCloudSettings,
+        parse_settings(InteractionType.WORD_CLOUD, interaction.settings_jsonb),
     )
+    answer = cast(WordCloudAnswer, _parse_answer_typed(InteractionType.WORD_CLOUD, payload))
+
+    submitted = await _count_participant_submissions(
+        db, interaction.id, participant_id
+    )
+    if submitted >= settings.max_submissions:
+        raise AppError(
+            ErrorCode.ALREADY_RESPONDED,
+            f"已達提交上限（{settings.max_submissions} 次）",
+        )
+
+    normalized_words: list[str] = []
+    for word in answer.words:
+        stripped = word.strip()
+        if not stripped:
+            raise AppError(ErrorCode.VALIDATION_ERROR, "詞彙不可為空白")
+        if len(stripped) > settings.max_word_length:
+            raise AppError(
+                ErrorCode.VALIDATION_ERROR,
+                f"詞彙長度不可超過 {settings.max_word_length} 字",
+            )
+        normalized_words.append(stripped)
+
+    submission_no = await _next_submission_no(db, interaction.id, participant_id)
+    now = dt.datetime.now(dt.UTC)
+    answer_data = {"words": normalized_words}
+
+    db.add(
+        PollResponse(
+            id=uuid7(),
+            interaction_id=interaction.id,
+            participant_id=participant_id,
+            answer_jsonb=answer_data,
+            submission_no=submission_no,
+            idempotency_key=idempotency_key,
+            submitted_at=now,
+        )
+    )
+    await db.commit()
+
+    for word in normalized_words:
+        key = word.casefold()
+        await increment_option_count(interaction.id, key, delta=1)
+
+    return await _finish_submit_broadcast(db, interaction)
+
+
+async def _submit_open_text(
+    db: AsyncSession,
+    *,
+    interaction: Interaction,
+    participant_id: uuid.UUID,
+    payload: PollSubmitRequest,
+    idempotency_key: uuid.UUID | None,
+) -> PollSubmitResult:
+    """open_text 作答：字數驗證、單次/多次提交（FE-008）。"""
+    settings = cast(
+        OpenTextSettings,
+        parse_settings(InteractionType.OPEN_TEXT, interaction.settings_jsonb),
+    )
+    answer = cast(OpenTextAnswer, _parse_answer_typed(InteractionType.OPEN_TEXT, payload))
+    text = answer.text.strip()
+    if not text:
+        raise AppError(ErrorCode.VALIDATION_ERROR, "回答不可為空白")
+    if len(text) > settings.max_length:
+        raise AppError(
+            ErrorCode.VALIDATION_ERROR,
+            f"回答長度不可超過 {settings.max_length} 字",
+        )
+
+    submission_no: int
+    if settings.allow_multiple:
+        submission_no = await _next_submission_no(db, interaction.id, participant_id)
+    else:
+        existing = await _get_single_submission(
+            db, interaction.id, participant_id
+        )
+        if existing is not None:
+            raise AppError(ErrorCode.ALREADY_RESPONDED, "您已提交過答案")
+        submission_no = 0
+
+    now = dt.datetime.now(dt.UTC)
+    db.add(
+        PollResponse(
+            id=uuid7(),
+            interaction_id=interaction.id,
+            participant_id=participant_id,
+            answer_jsonb={"text": text},
+            submission_no=submission_no,
+            idempotency_key=idempotency_key,
+            submitted_at=now,
+        )
+    )
+    await db.commit()
+    return await _finish_submit_broadcast(db, interaction, submission_no=submission_no)
+
+
+async def _submit_rating(
+    db: AsyncSession,
+    *,
+    interaction: Interaction,
+    participant_id: uuid.UUID,
+    payload: PollSubmitRequest,
+    idempotency_key: uuid.UUID | None,
+) -> PollSubmitResult:
+    """rating 作答：區間驗證、單次提交、Redis sum/count（FE-009）。"""
+    settings = cast(
+        RatingSettings,
+        parse_settings(InteractionType.RATING, interaction.settings_jsonb),
+    )
+    answer = cast(RatingAnswer, _parse_answer_typed(InteractionType.RATING, payload))
+    value = answer.value
+    if value < settings.min_value or value > settings.max_value:
+        raise AppError(
+            ErrorCode.VALIDATION_ERROR,
+            f"評分須介於 {settings.min_value} 與 {settings.max_value}",
+        )
+
+    existing = await _get_single_submission(db, interaction.id, participant_id)
+    if existing is not None:
+        raise AppError(ErrorCode.ALREADY_RESPONDED, "您已提交過評分")
+
+    now = dt.datetime.now(dt.UTC)
+    db.add(
+        PollResponse(
+            id=uuid7(),
+            interaction_id=interaction.id,
+            participant_id=participant_id,
+            answer_jsonb={"value": value},
+            submission_no=0,
+            idempotency_key=idempotency_key,
+            submitted_at=now,
+        )
+    )
+    await db.commit()
+
+    await increment_rating_agg(interaction.id, value)
+    await increment_option_count(interaction.id, f"r:{value}", delta=1)
+
+    return await _finish_submit_broadcast(db, interaction)
+
+
+async def _submit_ranking(
+    db: AsyncSession,
+    *,
+    interaction: Interaction,
+    participant_id: uuid.UUID,
+    payload: PollSubmitRequest,
+    idempotency_key: uuid.UUID | None,
+) -> PollSubmitResult:
+    """ranking 作答：無重複、Borda 計分（FE-010）。"""
+    settings = cast(
+        RankingSettings,
+        parse_settings(InteractionType.RANKING, interaction.settings_jsonb),
+    )
+    answer = cast(RankingAnswer, _parse_answer_typed(InteractionType.RANKING, payload))
+    ranked = answer.ranked_option_ids
+
+    if len(ranked) != len(set(ranked)):
+        raise AppError(ErrorCode.VALIDATION_ERROR, "排序選項不可重複")
+
+    valid_ids = await _get_valid_option_ids(db, interaction.id)
+    if not valid_ids:
+        raise AppError(ErrorCode.VALIDATION_ERROR, "此 Poll 尚無選項")
+    invalid = [oid for oid in ranked if oid not in valid_ids]
+    if invalid:
+        raise AppError(ErrorCode.VALIDATION_ERROR, "含有無效的選項")
+
+    required = settings.top_n if settings.top_n is not None else len(valid_ids)
+    if len(ranked) != required:
+        raise AppError(
+            ErrorCode.VALIDATION_ERROR,
+            f"須排序 {required} 個選項",
+        )
+
+    existing = await _get_single_submission(db, interaction.id, participant_id)
+    if existing is not None:
+        raise AppError(ErrorCode.ALREADY_RESPONDED, "您已提交過排序")
+
+    now = dt.datetime.now(dt.UTC)
+    answer_data = {"ranked_option_ids": [str(oid) for oid in ranked]}
+    db.add(
+        PollResponse(
+            id=uuid7(),
+            interaction_id=interaction.id,
+            participant_id=participant_id,
+            answer_jsonb=answer_data,
+            submission_no=0,
+            idempotency_key=idempotency_key,
+            submitted_at=now,
+        )
+    )
+    await db.commit()
+
+    n = len(ranked)
+    if settings.ranking_mode == "borda":
+        for i, oid in enumerate(ranked):
+            points = n - 1 - i
+            await increment_option_count(interaction.id, str(oid), delta=points)
+
+    return await _finish_submit_broadcast(db, interaction)
 
 
 # ── 結果（GET /polls/{id}/results；鐵律 2 後端聚合）──────────────────
@@ -716,21 +965,186 @@ async def get_poll_results(
         raise AppError(ErrorCode.FORBIDDEN, "結果尚未揭示")
 
     response_count = await _count_responses(db, interaction_id)
+    itype = interaction.type
 
-    if interaction.type == InteractionType.MULTIPLE_CHOICE:
-        option_counts = await _get_mc_option_counts(db, interaction_id)
+    if itype == InteractionType.MULTIPLE_CHOICE:
         return PollResults(
             interaction_id=interaction_id,
-            type=interaction.type,
+            type=itype,
             status=interaction.status,
             response_count=response_count,
-            option_counts=option_counts,
+            option_counts=await _get_mc_option_counts(db, interaction_id),
+        )
+    if itype == InteractionType.WORD_CLOUD:
+        return PollResults(
+            interaction_id=interaction_id,
+            type=itype,
+            status=interaction.status,
+            response_count=response_count,
+            word_counts=await _get_word_counts(db, interaction_id),
+        )
+    if itype == InteractionType.RATING:
+        average, distribution = await _get_rating_results(db, interaction_id)
+        return PollResults(
+            interaction_id=interaction_id,
+            type=itype,
+            status=interaction.status,
+            response_count=response_count,
+            average=average,
+            distribution=distribution,
+        )
+    if itype == InteractionType.OPEN_TEXT:
+        settings = cast(
+            OpenTextSettings,
+            parse_settings(InteractionType.OPEN_TEXT, interaction.settings_jsonb),
+        )
+        entries = await _get_open_text_entries(
+            db, interaction_id, settings=settings, is_host=is_host
+        )
+        return PollResults(
+            interaction_id=interaction_id,
+            type=itype,
+            status=interaction.status,
+            response_count=response_count,
+            entries=entries,
+        )
+    if itype == InteractionType.RANKING:
+        ranking_settings = cast(
+            RankingSettings,
+            parse_settings(InteractionType.RANKING, interaction.settings_jsonb),
+        )
+        if ranking_settings.ranking_mode == "borda":
+            counts = await _get_mc_option_counts(db, interaction_id)
+        else:
+            counts = await _get_ranking_average_counts(db, interaction_id)
+        return PollResults(
+            interaction_id=interaction_id,
+            type=itype,
+            status=interaction.status,
+            response_count=response_count,
+            option_counts=counts,
         )
 
-    raise AppError(
-        ErrorCode.VALIDATION_ERROR,
-        f"題型 {interaction.type} 結果尚未實作（S5-4）",
+    raise AppError(ErrorCode.VALIDATION_ERROR, f"題型 {itype} 不支援結果查詢")
+
+
+# ── 作答／結果共用輔助 ─────────────────────────────────────────────
+
+
+def _parse_answer_typed(
+    itype: InteractionType, payload: PollSubmitRequest
+) -> object:
+    try:
+        return parse_answer(itype, payload.answer)
+    except ValueError as exc:
+        raise AppError(ErrorCode.VALIDATION_ERROR, str(exc)) from exc
+
+
+async def _count_participant_submissions(
+    db: AsyncSession, interaction_id: uuid.UUID, participant_id: uuid.UUID
+) -> int:
+    result = await db.execute(
+        select(func.count())
+        .select_from(PollResponse)
+        .where(
+            PollResponse.interaction_id == interaction_id,
+            PollResponse.participant_id == participant_id,
+        )
     )
+    return int(result.scalar_one())
+
+
+async def _next_submission_no(
+    db: AsyncSession, interaction_id: uuid.UUID, participant_id: uuid.UUID
+) -> int:
+    result = await db.execute(
+        select(func.coalesce(func.max(PollResponse.submission_no), -1)).where(
+            PollResponse.interaction_id == interaction_id,
+            PollResponse.participant_id == participant_id,
+        )
+    )
+    return int(result.scalar_one()) + 1
+
+
+async def _get_single_submission(
+    db: AsyncSession, interaction_id: uuid.UUID, participant_id: uuid.UUID
+) -> PollResponse | None:
+    result = await db.execute(
+        select(PollResponse).where(
+            PollResponse.interaction_id == interaction_id,
+            PollResponse.participant_id == participant_id,
+            PollResponse.submission_no == 0,
+        )
+    )
+    return result.scalar_one_or_none()
+
+
+async def _finish_submit_broadcast(
+    db: AsyncSession,
+    interaction: Interaction,
+    *,
+    submission_no: int | None = None,
+) -> PollSubmitResult:
+    if submission_no is None:
+        submission_no = 0
+    response_count = await _count_responses(db, interaction.id)
+    payload = await _build_broadcast_payload(db, interaction, response_count)
+    await throttled_broadcast_result(
+        interaction.room_id, interaction.id, payload
+    )
+    return PollSubmitResult(
+        interaction_id=interaction.id,
+        submission_no=submission_no,
+        accepted=True,
+    )
+
+
+async def _build_broadcast_payload(
+    db: AsyncSession,
+    interaction: Interaction,
+    response_count: int,
+) -> dict[str, Any]:
+    itype = interaction.type
+    base: dict[str, Any] = {
+        "poll_id": str(interaction.id),
+        "response_count": response_count,
+        "aggregates": {},
+    }
+    if itype == InteractionType.MULTIPLE_CHOICE:
+        counts = await _get_mc_option_counts(db, interaction.id)
+        base["aggregates"]["option_counts"] = [
+            {"option_id": str(oc.option_id), "count": oc.count} for oc in counts
+        ]
+    elif itype == InteractionType.WORD_CLOUD:
+        words = await _get_word_counts(db, interaction.id)
+        base["aggregates"]["word_counts"] = [
+            {"word": wc.word, "count": wc.count} for wc in words
+        ]
+    elif itype == InteractionType.RATING:
+        avg, dist = await _get_rating_results(db, interaction.id)
+        base["aggregates"]["average"] = avg
+        base["aggregates"]["distribution"] = dist
+    elif itype == InteractionType.RANKING:
+        settings = cast(
+            RankingSettings,
+            parse_settings(InteractionType.RANKING, interaction.settings_jsonb),
+        )
+        if settings.ranking_mode == "borda":
+            counts = await _get_mc_option_counts(db, interaction.id)
+        else:
+            counts = await _get_ranking_average_counts(db, interaction.id)
+        base["aggregates"]["option_counts"] = [
+            {"option_id": str(oc.option_id), "count": oc.count} for oc in counts
+        ]
+    return base
+
+
+def _is_uuid_field(key: str) -> bool:
+    try:
+        uuid.UUID(key)
+        return True
+    except ValueError:
+        return False
 
 
 async def _count_responses(db: AsyncSession, interaction_id: uuid.UUID) -> int:
@@ -759,7 +1173,10 @@ async def _get_mc_option_counts(
     option_keys = {
         k: int(v)
         for k, v in agg.items()
-        if k not in ("sum", "count") and v.isdigit()
+        if k not in ("sum", "count")
+        and not k.startswith("r:")
+        and _is_uuid_field(k)
+        and v.lstrip("-").isdigit()
     }
     if option_keys:
         return [
@@ -790,22 +1207,169 @@ async def _aggregate_mc_from_db(
         for oid in answer.get("option_ids", []):
             key = str(oid)
             counts[key] = counts.get(key, 0) + 1
+        ranked = answer.get("ranked_option_ids", [])
+        if ranked:
+            n = len(ranked)
+            for i, oid in enumerate(ranked):
+                key = str(oid)
+                counts[key] = counts.get(key, 0) + (n - 1 - i)
     return counts
 
 
-async def _build_mc_broadcast_payload(
+async def _get_word_counts(
+    db: AsyncSession, interaction_id: uuid.UUID
+) -> list[WordCount]:
+    agg = await get_poll_agg(interaction_id)
+    word_keys = {
+        k: int(v)
+        for k, v in agg.items()
+        if k not in ("sum", "count")
+        and not k.startswith("r:")
+        and not _is_uuid_field(k)
+        and v.isdigit()
+    }
+    if word_keys:
+        return [
+            WordCount(word=word, count=cnt)
+            for word, cnt in sorted(word_keys.items(), key=lambda x: -x[1])
+        ]
+
+    counts, display = await _aggregate_words_from_db(db, interaction_id)
+    return [
+        WordCount(word=display.get(w, w), count=cnt)
+        for w, cnt in sorted(counts.items(), key=lambda x: -x[1])
+    ]
+
+
+async def _aggregate_words_from_db(
+    db: AsyncSession, interaction_id: uuid.UUID
+) -> tuple[dict[str, int], dict[str, str]]:
+    result = await db.execute(
+        select(PollResponse.answer_jsonb).where(
+            PollResponse.interaction_id == interaction_id
+        )
+    )
+    counts: dict[str, int] = {}
+    display: dict[str, str] = {}
+    for row in result.all():
+        for word in row[0].get("words", []):
+            key = str(word).casefold()
+            counts[key] = counts.get(key, 0) + 1
+            display.setdefault(key, str(word))
+    return counts, display
+
+
+async def _get_rating_results(
+    db: AsyncSession, interaction_id: uuid.UUID
+) -> tuple[float | None, dict[int, int] | None]:
+    agg = await get_poll_agg(interaction_id)
+    total_sum = agg.get("sum")
+    total_count = agg.get("count")
+    if total_sum is not None and total_count is not None:
+        count = int(total_count)
+        if count > 0:
+            distribution = {
+                int(k[2:]): int(v)
+                for k, v in agg.items()
+                if k.startswith("r:") and v.isdigit()
+            }
+            return int(total_sum) / count, distribution or None
+
+    result = await db.execute(
+        select(PollResponse.answer_jsonb).where(
+            PollResponse.interaction_id == interaction_id,
+            PollResponse.submission_no == 0,
+        )
+    )
+    values: list[int] = []
+    for row in result.all():
+        val = row[0].get("value")
+        if isinstance(val, int):
+            values.append(val)
+    if not values:
+        return None, None
+    rating_distribution: dict[int, int] = {}
+    for v in values:
+        rating_distribution[v] = rating_distribution.get(v, 0) + 1
+    return sum(values) / len(values), rating_distribution
+
+
+async def _get_open_text_entries(
     db: AsyncSession,
     interaction_id: uuid.UUID,
-    response_count: int,
-) -> dict[str, Any]:
-    option_counts = await _get_mc_option_counts(db, interaction_id)
-    return {
-        "poll_id": str(interaction_id),
-        "response_count": response_count,
-        "aggregates": {
-            "option_counts": [
-                {"option_id": str(oc.option_id), "count": oc.count}
-                for oc in option_counts
-            ]
-        },
-    }
+    *,
+    settings: OpenTextSettings,
+    is_host: bool,
+) -> list[TextEntry]:
+    result = await db.execute(
+        select(PollResponse, Participant)
+        .join(Participant, PollResponse.participant_id == Participant.id)
+        .where(PollResponse.interaction_id == interaction_id)
+    )
+    rows = list(result.all())
+    if settings.sort == "oldest":
+        rows.sort(key=lambda r: r[0].submitted_at)
+    else:
+        rows.sort(key=lambda r: r[0].submitted_at, reverse=True)
+
+    entries: list[TextEntry] = []
+    for response, participant in rows:
+        text = str(response.answer_jsonb.get("text", ""))
+        author_display = _author_display(participant, settings, is_host=is_host)
+        entries.append(
+            TextEntry(
+                id=response.id,
+                text=text,
+                author_display=author_display,
+                created_at=response.submitted_at,
+            )
+        )
+    return entries
+
+
+def _author_display(
+    participant: Participant,
+    settings: OpenTextSettings,
+    *,
+    is_host: bool,
+) -> str | None:
+    if not settings.show_voter_names and not is_host:
+        return None
+    masked = mask_identity(
+        {
+            "display_name": participant.display_name,
+            "email": participant.email,
+            "is_anonymous": participant.is_anonymous,
+            "participant_id": str(participant.id),
+        }
+    )
+    return masked.get("display_name")
+
+
+async def _get_ranking_average_counts(
+    db: AsyncSession, interaction_id: uuid.UUID
+) -> list[OptionCount]:
+    """average 模式：選項平均名次愈小愈好，輸出為倒數名次分數（愈高愈好）。"""
+    result = await db.execute(
+        select(PollResponse.answer_jsonb).where(
+            PollResponse.interaction_id == interaction_id
+        )
+    )
+    position_sums: dict[str, float] = {}
+    position_counts: dict[str, int] = {}
+    for row in result.all():
+        ranked = row[0].get("ranked_option_ids", [])
+        for i, oid in enumerate(ranked):
+            key = str(oid)
+            position_sums[key] = position_sums.get(key, 0.0) + (i + 1)
+            position_counts[key] = position_counts.get(key, 0) + 1
+
+    scores: list[tuple[uuid.UUID, int]] = []
+    for oid, total in position_sums.items():
+        cnt = position_counts[oid]
+        avg_rank = total / cnt
+        # 轉為可排序分數：平均名次愈低分數愈高
+        score = max(0, int(round(1000 / avg_rank)))
+        scores.append((uuid.UUID(oid), score))
+    scores.sort(key=lambda x: -x[1])
+    return [OptionCount(option_id=oid, count=score) for oid, score in scores]

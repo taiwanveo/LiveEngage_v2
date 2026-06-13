@@ -1,4 +1,4 @@
-"""Sprint 5-3 Poll 整合測試（FE-006、BE-005；multiple_choice 先）。"""
+"""Sprint 5-3/5-4 Poll 整合測試（FE-006~010、BE-005）。"""
 
 from __future__ import annotations
 
@@ -36,13 +36,48 @@ def _live_session(client: TestClient, host_headers: dict[str, str]) -> dict[str,
     return dict(session)
 
 
-def _join(client: TestClient, session_id: str) -> tuple[str, str]:
+def _join(
+    client: TestClient, session_id: str, *, name: str = "投票者"
+) -> tuple[str, str]:
     resp = client.post(
-        f"/api/v1/sessions/{session_id}/join", json={"name": "投票者"}
+        f"/api/v1/sessions/{session_id}/join", json={"name": name}
     )
     assert resp.status_code == 200, resp.text
     body = resp.json()
     return body["participant_token"], body["room_id"]
+
+
+def _setup_poll(
+    client: TestClient,
+    host_headers: dict[str, str],
+    room_id: str,
+    *,
+    poll_type: str,
+    title: str,
+    settings: dict[str, object] | None = None,
+    options: list[dict[str, object]] | None = None,
+) -> tuple[str, list[dict[str, object]] | None]:
+    create = client.post(
+        f"/api/v1/rooms/{room_id}/interactions",
+        headers=host_headers,
+        json={
+            "type": poll_type,
+            "title": title,
+            "settings": settings or {},
+        },
+    )
+    assert create.status_code == 201, create.text
+    poll_id = str(create.json()["id"])
+    option_list: list[dict[str, object]] | None = None
+    if options is not None:
+        opts = client.put(
+            f"/api/v1/polls/{poll_id}/options",
+            headers=host_headers,
+            json={"options": options},
+        )
+        assert opts.status_code == 200, opts.text
+        option_list = opts.json()
+    return poll_id, option_list
 
 
 def _setup_mc_poll(
@@ -50,25 +85,30 @@ def _setup_mc_poll(
     host_headers: dict[str, str],
     room_id: str,
 ) -> tuple[str, list[dict[str, object]]]:
-    create = client.post(
-        f"/api/v1/rooms/{room_id}/interactions",
-        headers=host_headers,
-        json={"type": "multiple_choice", "title": "最愛水果"},
+    poll_id, opts = _setup_poll(
+        client,
+        host_headers,
+        room_id,
+        poll_type="multiple_choice",
+        title="最愛水果",
+        options=[
+            {"text": "蘋果", "order_no": 0},
+            {"text": "香蕉", "order_no": 1},
+        ],
     )
-    assert create.status_code == 201, create.text
-    poll_id = str(create.json()["id"])
-    opts = client.put(
-        f"/api/v1/polls/{poll_id}/options",
+    assert opts is not None
+    return poll_id, opts
+
+
+def _reveal_results(
+    client: TestClient, host_headers: dict[str, str], poll_id: str
+) -> None:
+    resp = client.post(
+        f"/api/v1/polls/{poll_id}/actions",
         headers=host_headers,
-        json={
-            "options": [
-                {"text": "蘋果", "order_no": 0},
-                {"text": "香蕉", "order_no": 1},
-            ]
-        },
+        json={"action": "reveal"},
     )
-    assert opts.status_code == 200, opts.text
-    return poll_id, opts.json()
+    assert resp.status_code == 200, resp.text
 
 
 def _start_poll(
@@ -266,3 +306,224 @@ def test_poll_start_stop_lifecycle(
     detail = client.get(f"/api/v1/polls/{poll_id}", headers=headers)
     assert detail.status_code == 200
     assert detail.json()["status"] == "stopped"
+
+
+def test_fe007_word_cloud_submit_and_counts(
+    client: TestClient, host_token: tuple[str, str]
+) -> None:
+    """FE-007：word_cloud 提交詞彙並聚合詞頻。"""
+    headers = _auth(host_token[0])
+    session = _live_session(client, headers)
+    ptoken, room_id = _join(client, session["id"])
+    poll_id, _ = _setup_poll(
+        client,
+        headers,
+        room_id,
+        poll_type="word_cloud",
+        title="關鍵字",
+        settings={"max_submissions": 2},
+    )
+    _start_poll(client, headers, poll_id)
+
+    submit = client.post(
+        f"/api/v1/polls/{poll_id}/responses",
+        headers=_auth(ptoken),
+        json={"answer": {"words": ["效率", "創新"]}},
+    )
+    assert submit.status_code == 201, submit.text
+
+    _reveal_results(client, headers, poll_id)
+    results = client.get(
+        f"/api/v1/polls/{poll_id}/results", headers=headers
+    )
+    assert results.status_code == 200, results.text
+    words = {w["word"]: w["count"] for w in results.json()["word_counts"]}
+    assert words.get("效率") == 1
+    assert words.get("創新") == 1
+
+
+def test_fe007_max_submissions_exceeded(
+    client: TestClient, host_token: tuple[str, str]
+) -> None:
+    """FE-007-FR2：超過 max_submissions 回 409。"""
+    headers = _auth(host_token[0])
+    session = _live_session(client, headers)
+    ptoken, room_id = _join(client, session["id"])
+    poll_id, _ = _setup_poll(
+        client,
+        headers,
+        room_id,
+        poll_type="word_cloud",
+        title="關鍵字",
+        settings={"max_submissions": 1},
+    )
+    _start_poll(client, headers, poll_id)
+
+    first = client.post(
+        f"/api/v1/polls/{poll_id}/responses",
+        headers=_auth(ptoken),
+        json={"answer": {"words": ["效率"]}},
+    )
+    assert first.status_code == 201
+
+    second = client.post(
+        f"/api/v1/polls/{poll_id}/responses",
+        headers=_auth(ptoken),
+        json={"answer": {"words": ["創新"]}},
+    )
+    assert second.status_code == 409
+    assert second.json()["error"]["code"] == "ALREADY_RESPONDED"
+
+
+def test_fe009_rating_average(
+    client: TestClient, host_token: tuple[str, str]
+) -> None:
+    """FE-009：rating 提交後平均與分布正確。"""
+    headers = _auth(host_token[0])
+    session = _live_session(client, headers)
+    ptoken, room_id = _join(client, session["id"])
+    poll_id, _ = _setup_poll(
+        client,
+        headers,
+        room_id,
+        poll_type="rating",
+        title="滿意度",
+        settings={"min_value": 1, "max_value": 5},
+    )
+    _start_poll(client, headers, poll_id)
+
+    submit = client.post(
+        f"/api/v1/polls/{poll_id}/responses",
+        headers=_auth(ptoken),
+        json={"answer": {"value": 4}},
+    )
+    assert submit.status_code == 201, submit.text
+
+    _reveal_results(client, headers, poll_id)
+    results = client.get(
+        f"/api/v1/polls/{poll_id}/results", headers=headers
+    )
+    assert results.status_code == 200, results.text
+    body = results.json()
+    assert body["average"] == 4.0
+    assert body["distribution"]["4"] == 1
+
+
+def test_fe008_open_text_mask_voter_names(
+    client: TestClient, host_token: tuple[str, str]
+) -> None:
+    """FE-008：show_voter_names=false 時 participant 看不到作者名。"""
+    headers = _auth(host_token[0])
+    session = _live_session(client, headers)
+    ptoken, room_id = _join(client, session["id"], name="公開者")
+    poll_id, _ = _setup_poll(
+        client,
+        headers,
+        room_id,
+        poll_type="open_text",
+        title="建議",
+        settings={"show_voter_names": False, "max_length": 200},
+    )
+    _start_poll(client, headers, poll_id)
+
+    submit = client.post(
+        f"/api/v1/polls/{poll_id}/responses",
+        headers=_auth(ptoken),
+        json={"answer": {"text": "希望加強互動"}},
+    )
+    assert submit.status_code == 201
+
+    _reveal_results(client, headers, poll_id)
+    p_results = client.get(
+        f"/api/v1/polls/{poll_id}/results", headers=_auth(ptoken)
+    )
+    assert p_results.status_code == 200
+    entry = p_results.json()["entries"][0]
+    assert entry["text"] == "希望加強互動"
+    assert entry["author_display"] is None
+
+
+def _join_anon(
+    client: TestClient, session_id: str
+) -> tuple[str, str]:
+    resp = client.post(
+        f"/api/v1/sessions/{session_id}/join",
+        json={"name": "匿名者", "is_anonymous": True},
+    )
+    assert resp.status_code == 200, resp.text
+    body = resp.json()
+    return body["participant_token"], body["room_id"]
+
+
+def test_fe008_anonymous_mask_on_results(
+    client: TestClient, host_token: tuple[str, str]
+) -> None:
+    """FE-008 + 鐵律 3：匿名參與者經 mask_identity 遮蔽。"""
+    headers = _auth(host_token[0])
+    session = _live_session(client, headers)
+    ptoken, room_id = _join_anon(client, session["id"])
+    poll_id, _ = _setup_poll(
+        client,
+        headers,
+        room_id,
+        poll_type="open_text",
+        title="匿名建議",
+        settings={"show_voter_names": True, "max_length": 200},
+    )
+    _start_poll(client, headers, poll_id)
+
+    client.post(
+        f"/api/v1/polls/{poll_id}/responses",
+        headers=_auth(ptoken),
+        json={"answer": {"text": "匿名回饋"}},
+    )
+
+    _reveal_results(client, headers, poll_id)
+    results = client.get(
+        f"/api/v1/polls/{poll_id}/results", headers=headers
+    )
+    assert results.status_code == 200
+    entry = results.json()["entries"][0]
+    assert entry["author_display"] == "Anonymous"
+
+
+def test_fe010_ranking_borda(
+    client: TestClient, host_token: tuple[str, str]
+) -> None:
+    """FE-010：ranking Borda 計分（第一名得分較高）。"""
+    headers = _auth(host_token[0])
+    session = _live_session(client, headers)
+    ptoken, room_id = _join(client, session["id"])
+    poll_id, options = _setup_poll(
+        client,
+        headers,
+        room_id,
+        poll_type="ranking",
+        title="優先順序",
+        settings={"ranking_mode": "borda"},
+        options=[
+            {"text": "A", "order_no": 0},
+            {"text": "B", "order_no": 1},
+            {"text": "C", "order_no": 2},
+        ],
+    )
+    assert options is not None
+    _start_poll(client, headers, poll_id)
+    ranked = [options[0]["id"], options[1]["id"], options[2]["id"]]
+
+    submit = client.post(
+        f"/api/v1/polls/{poll_id}/responses",
+        headers=_auth(ptoken),
+        json={"answer": {"ranked_option_ids": ranked}},
+    )
+    assert submit.status_code == 201, submit.text
+
+    _reveal_results(client, headers, poll_id)
+    results = client.get(
+        f"/api/v1/polls/{poll_id}/results", headers=headers
+    )
+    assert results.status_code == 200, results.text
+    counts = {c["option_id"]: c["count"] for c in results.json()["option_counts"]}
+    assert counts[str(options[0]["id"])] == 2
+    assert counts[str(options[1]["id"])] == 1
+    assert counts.get(str(options[2]["id"]), 0) == 0

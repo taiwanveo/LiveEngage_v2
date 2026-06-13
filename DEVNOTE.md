@@ -9,7 +9,7 @@
 ### 專案基本資訊
 - **Repo**：https://github.com/ColdRighter/LiveEngage.git（`master`）
 - **本地路徑**：`c:\Vibe_Coidng_Local\LiveEngage`
-- **最新 commit（已 push）**：`31bc8f0` S5-3 Poll REST API + multiple_choice 作答與結果
+- **最新 commit（已 push）**：S5-4 四題型作答與聚合
 - **GitHub**：`origin/master` 同步至 S5-3
 - **資料庫**：Neon Postgres（`taiwanveo@gmail.com` 帳號專案，`ap-southeast-1`）
 - **Redis**：Upstash 雲端（`LE_REDIS_URL=rediss://default:<token>@sweeping-gecko-35121.upstash.io:6379`）
@@ -20,7 +20,7 @@
 - Python **3.14**、FastAPI、SQLAlchemy 2.0 async、Alembic、PyJWT、argon2-cffi
 - **venv 在 `backend/.venv`**；驗證指令：`.\.venv\Scripts\python.exe -m ruff/mypy/pytest`
 - **Neon 連線**：async `?ssl=require`；sync `?sslmode=require`；dev 用 `NullPool`
-- ruff / mypy strict / pytest（**25 passed** on Neon，2026-06-13）
+- ruff / mypy strict / pytest（**31 passed** on Neon，2026-06-13）
 
 ### 目前完成進度
 
@@ -34,7 +34,8 @@
 | S5-1 | Poll Migration（0004）+ Models + Schemas | ✅ pushed |
 | S5-2 | Poll Service + 狀態機 + Redis 分散式鎖 | ✅ pushed `11fcef5` |
 | S5-3 | Poll REST API + multiple_choice 作答與結果 | ✅ pushed `31bc8f0` |
-| S5-4 | 其餘題型作答與聚合 | 待開始 |
+| S5-4 | word_cloud / open_text / rating / ranking 作答與聚合 | ✅ 待 push |
+| S6-1 | renderers 核心（3 mode） | 待開始 |
 
 ### API 端點（已實作）
 | Method | Path | 說明 |
@@ -89,7 +90,6 @@
 - ✅ upvote rate limit 30/min
 
 ### 仍待補（後續 Sprint）
-- S5-4：word_cloud / open_text / rating / ranking 作答與聚合
 - S6-1~S6-3：WebSocket events、前端 Poll UI（FE-006~010）、整合測試
 - Sprint 7–8：管理後台
 - Sprint 9+：Quiz / Survey / Ideas / AI / Integrations / Admin
@@ -101,6 +101,20 @@
 ---
 
 ## HISTORY
+
+### 2026-06-13 — S5-4：四題型作答與聚合（FE-007~010）
+
+**後端 `poll_service.py`**
+- **word_cloud**：多次提交（`submission_no` 遞增）、詞長驗證、`max_submissions` 上限、Redis 詞頻（casefold key）
+- **open_text**：字數驗證、單次/多次（`allow_multiple`）、結果明細 + `mask_identity` / `show_voter_names`
+- **rating**：區間驗證、Redis sum/count + `r:{value}` 分布
+- **ranking**：無重複、Borda 計分（average 模式 DB 聚合）、`top_n` 必填數驗證
+- 共用：`_finish_submit_broadcast`、DB fallback 支援無 Redis 測試環境
+
+**品質**
+- ruff ✅ · mypy --strict ✅（61 files）· pytest **31 passed**（+6 Poll S5-4）
+
+---
 
 ### 2026-06-13 — S5-3：Poll REST API + multiple_choice 作答與結果
 
