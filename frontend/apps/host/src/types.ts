@@ -32,6 +32,16 @@ export interface QuestionPublic {
   label_id: string | null;
   created_at: string;
   my_vote: "up" | "down" | null;
+  replies: QuestionReply[];
+}
+
+export interface QuestionReply {
+  id: string;
+  question_id: string;
+  author_type: "host" | "participant";
+  content: string;
+  is_private: boolean;
+  created_at: string;
 }
 
 export interface LoginResponse {

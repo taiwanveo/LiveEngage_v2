@@ -21,6 +21,7 @@ QUESTION_UPVOTED = "question_upvoted"
 QUESTION_DOWNVOTED = "question_downvoted"
 QUESTION_HIGHLIGHTED = "question_highlighted"
 QUESTION_ANSWERED = "question_answered"
+QUESTION_REPLIED = "question_replied"
 
 # Poll 事件型別（SDS §6.3；Sprint 5–6）
 POLL_STARTED = "poll_started"

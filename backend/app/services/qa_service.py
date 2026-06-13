@@ -46,6 +46,7 @@ from app.services import audit_service, interaction_service, qa_redis
 
 _DEFAULT_PAGE_SIZE = 50
 _VOTABLE_STATUSES = {QuestionStatus.APPROVED, QuestionStatus.ANSWERED}
+_PUBLIC_LIST_STATUSES = {QuestionStatus.APPROVED, QuestionStatus.ANSWERED}
 
 
 def _qa_settings(interaction_settings: dict[str, object] | None) -> QaSettings:
@@ -65,6 +66,7 @@ def _to_public(
     *,
     display_name: str | None,
     my_vote: VoteDirection | None = None,
+    replies: list[ReplyResponse] | None = None,
 ) -> QuestionPublic:
     return QuestionPublic(
         id=question.id,
@@ -83,7 +85,51 @@ def _to_public(
         label_id=question.label_id,
         created_at=question.created_at,
         my_vote=my_vote,
+        replies=replies or [],
     )
+
+
+def _to_reply(row: QuestionReply) -> ReplyResponse:
+    return ReplyResponse(
+        id=row.id,
+        question_id=row.question_id,
+        author_type=row.author_type,
+        content=row.content,
+        is_private=row.is_private,
+        created_at=row.created_at,
+    )
+
+
+async def _replies_by_question(
+    db: AsyncSession,
+    question_ids: list[uuid.UUID],
+    *,
+    for_host: bool,
+    viewer_participant_id: uuid.UUID | None = None,
+    question_owners: dict[uuid.UUID, uuid.UUID | None] | None = None,
+) -> dict[uuid.UUID, list[ReplyResponse]]:
+    """批次載入回覆；參與者僅見公開回覆與自己的私密回覆。"""
+    if not question_ids:
+        return {}
+    result = await db.execute(
+        select(QuestionReply)
+        .where(QuestionReply.question_id.in_(question_ids))
+        .order_by(QuestionReply.created_at.asc())
+    )
+    owners = question_owners or {}
+    grouped: dict[uuid.UUID, list[ReplyResponse]] = {qid: [] for qid in question_ids}
+    for row in result.scalars().all():
+        if for_host or not row.is_private:
+            grouped[row.question_id].append(_to_reply(row))
+            continue
+        owner = owners.get(row.question_id)
+        if (
+            viewer_participant_id is not None
+            and owner is not None
+            and owner == viewer_participant_id
+        ):
+            grouped[row.question_id].append(_to_reply(row))
+    return grouped
 
 
 async def _get_question(db: AsyncSession, question_id: uuid.UUID) -> Question:
@@ -195,7 +241,7 @@ async def list_public_questions(
         .outerjoin(Participant, Question.participant_id == Participant.id)
         .where(
             Question.room_id == room_id,
-            Question.status == QuestionStatus.APPROVED,
+            Question.status.in_(_PUBLIC_LIST_STATUSES),
         )
     )
     if sort == "newest":
@@ -213,10 +259,23 @@ async def list_public_questions(
     my_votes = await _my_votes(
         db, [q.id for q, _ in rows], participant_id
     )
+    owners = {q.id: q.participant_id for q, _ in rows}
+    replies_map = await _replies_by_question(
+        db,
+        [q.id for q, _ in rows],
+        for_host=False,
+        viewer_participant_id=participant_id,
+        question_owners=owners,
+    )
     items: list[QuestionPublic] = []
     for q, name in rows:
         up, down, score = await qa_redis.get_effective_counts(db, q)
-        pub = _to_public(q, display_name=name, my_vote=my_votes.get(q.id))
+        pub = _to_public(
+            q,
+            display_name=name,
+            my_vote=my_votes.get(q.id),
+            replies=replies_map.get(q.id, []),
+        )
         items.append(
             pub.model_copy(
                 update={"upvote_count": up, "downvote_count": down, "score": score}
@@ -386,7 +445,12 @@ async def list_moderation(
         stmt = stmt.where(Question.status == status)
     stmt = stmt.order_by(Question.created_at.desc())
     rows = (await db.execute(stmt)).all()
-    return [_to_public(q, display_name=name) for q, name in rows]
+    qids = [q.id for q, _ in rows]
+    replies_map = await _replies_by_question(db, qids, for_host=True)
+    return [
+        _to_public(q, display_name=name, replies=replies_map.get(q.id, []))
+        for q, name in rows
+    ]
 
 
 async def _load_question_for_host(
@@ -555,11 +619,22 @@ async def reply_question(
     )
     await db.commit()
     await db.refresh(reply)
-    return ReplyResponse(
-        id=reply.id,
-        question_id=reply.question_id,
-        author_type=reply.author_type,
-        content=reply.content,
-        is_private=reply.is_private,
-        created_at=reply.created_at,
-    )
+
+    reply_resp = _to_reply(reply)
+    payload = reply_resp.model_dump(mode="json")
+    if not reply.is_private:
+        await events.publish(
+            question.room_id,
+            events.QUESTION_REPLIED,
+            {"question_id": str(question.id), "reply": payload},
+            target_modes=events.MODE_ALL,
+        )
+    else:
+        await events.publish(
+            question.room_id,
+            events.QUESTION_REPLIED,
+            {"question_id": str(question.id), "reply": payload},
+            target_modes=events.MODE_HOST,
+        )
+
+    return reply_resp

@@ -31,3 +31,18 @@ export const POLL_EVENT_TYPES = new Set([
   POLL_RESULT_HIDDEN,
   POLL_RESPONSE_SUBMITTED,
 ]);
+
+/** Q&A 相關事件（與後端 events.py 同步）。 */
+export const QUESTION_APPROVED = "question_approved";
+export const QUESTION_ANSWERED = "question_answered";
+export const QUESTION_REPLIED = "question_replied";
+export const QUESTION_UPVOTED = "question_upvoted";
+export const QUESTION_DOWNVOTED = "question_downvoted";
+
+export const QA_EVENT_TYPES = new Set([
+  QUESTION_APPROVED,
+  QUESTION_ANSWERED,
+  QUESTION_REPLIED,
+  QUESTION_UPVOTED,
+  QUESTION_DOWNVOTED,
+]);

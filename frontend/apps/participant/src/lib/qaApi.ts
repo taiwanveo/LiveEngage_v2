@@ -2,6 +2,15 @@
 
 import { api, newIdempotencyKey } from "./api";
 
+export interface QuestionReply {
+  id: string;
+  question_id: string;
+  author_type: string;
+  content: string;
+  is_private: boolean;
+  created_at: string;
+}
+
 export interface QuestionPublic {
   id: string;
   room_id: string;
@@ -13,7 +22,9 @@ export interface QuestionPublic {
   downvote_count: number;
   score: number;
   highlighted: boolean;
+  answered_at: string | null;
   my_vote: "up" | "down" | null;
+  replies?: QuestionReply[];
 }
 
 export interface QuestionListResponse {

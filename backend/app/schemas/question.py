@@ -62,6 +62,7 @@ class QuestionPublic(BaseModel):
     label_id: uuid.UUID | None
     created_at: dt.datetime
     my_vote: VoteDirection | None = None
+    replies: list["ReplyResponse"] = Field(default_factory=list)
 
 
 class QuestionListResponse(BaseModel):
@@ -101,3 +102,6 @@ class ReplyResponse(BaseModel):
     content: str
     is_private: bool
     created_at: dt.datetime
+
+
+QuestionPublic.model_rebuild()

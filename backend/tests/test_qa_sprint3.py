@@ -298,3 +298,69 @@ def test_be004_answer_and_highlight_flow(
     )
     assert highlight.status_code == 200
     assert highlight.json()["highlighted"] is True
+
+
+def test_host_reply_appears_in_public_list(
+    client: TestClient, host_token: tuple[str, str]
+) -> None:
+    """Host 公開回覆後，參與者列表可見 replies。"""
+    headers = _auth(host_token[0])
+    session = _live_session(client, headers)
+    ptoken, room_id = _join(client, session["id"])
+    _open_qa(client, headers, room_id, settings={"moderation_enabled": True})
+
+    qid = client.post(
+        f"/api/v1/rooms/{room_id}/questions",
+        headers=_auth(ptoken),
+        json={"content": "需要回覆的問題"},
+    ).json()["id"]
+    client.post(
+        f"/api/v1/questions/{qid}/moderate",
+        headers=headers,
+        json={"action": "approve"},
+    )
+
+    reply_resp = client.post(
+        f"/api/v1/questions/{qid}/replies",
+        headers=headers,
+        json={"content": "謝謝提問，這是我們的回覆。", "is_private": False},
+    )
+    assert reply_resp.status_code == 201, reply_resp.text
+
+    listed = client.get(
+        f"/api/v1/rooms/{room_id}/questions",
+        headers=_auth(ptoken),
+    )
+    assert listed.status_code == 200
+    items = listed.json()["items"]
+    hit = next(i for i in items if i["id"] == qid)
+    assert len(hit["replies"]) == 1
+    assert hit["replies"][0]["content"] == "謝謝提問，這是我們的回覆。"
+
+
+def test_answered_questions_in_public_list(
+    client: TestClient, host_token: tuple[str, str]
+) -> None:
+    """已標記 answered 的問題仍出現在公開列表。"""
+    headers = _auth(host_token[0])
+    session = _live_session(client, headers)
+    ptoken, room_id = _join(client, session["id"])
+    _open_qa(client, headers, room_id, settings={"moderation_enabled": False})
+
+    qid = client.post(
+        f"/api/v1/rooms/{room_id}/questions",
+        headers=_auth(ptoken),
+        json={"content": "已答問題"},
+    ).json()["id"]
+    client.post(
+        f"/api/v1/questions/{qid}/moderate",
+        headers=headers,
+        json={"action": "answer"},
+    )
+
+    listed = client.get(
+        f"/api/v1/rooms/{room_id}/questions",
+        headers=_auth(ptoken),
+    )
+    ids = [i["id"] for i in listed.json()["items"]]
+    assert qid in ids

@@ -116,6 +116,21 @@ export function RoomQaPanel({ roomId }: Props): React.JSX.Element {
                 <p className="text-sm text-slate-900 whitespace-pre-wrap">
                   {q.content}
                 </p>
+                {q.status === "answered" ? (
+                  <span className="mt-1 inline-block rounded bg-emerald-50 px-2 py-0.5 text-xs text-emerald-700">
+                    已回答
+                  </span>
+                ) : null}
+                {(q.replies ?? []).length > 0 ? (
+                  <div className="mt-2 space-y-1 border-l-2 border-primary-200 pl-3">
+                    {(q.replies ?? []).map((r) => (
+                      <p key={r.id} className="text-xs text-slate-600">
+                        <span className="font-medium text-primary-700">主持人回覆：</span>
+                        {r.content}
+                      </p>
+                    ))}
+                  </div>
+                ) : null}
                 <div className="mt-2 flex flex-wrap items-center gap-3 text-xs text-slate-500">
                   <span>{q.is_anonymous ? "匿名" : q.author_display ?? "—"}</span>
                   <span>讚 {q.upvote_count}</span>

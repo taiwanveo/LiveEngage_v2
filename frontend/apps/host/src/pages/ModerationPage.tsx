@@ -8,12 +8,13 @@
  */
 
 import * as React from "react";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
-import { listModeration, moderate } from "../lib/qaApi";
+import { listModeration, moderate, reply } from "../lib/qaApi";
 import type {
   ModerateAction,
   QuestionPublic,
+  QuestionReply,
   QuestionStatus,
 } from "../types";
 
@@ -124,6 +125,7 @@ export function ModerationPage({ roomId, onLogout }: Props): React.JSX.Element {
           loading={isLoading}
           renderActions={(q) => (
             <>
+              <ReplyForm questionId={q.id} existing={q.replies} roomId={roomId} />
               <ActionButton
                 variant="primary"
                 onClick={() =>
@@ -165,6 +167,7 @@ export function ModerationPage({ roomId, onLogout }: Props): React.JSX.Element {
           loading={isLoading}
           renderActions={(q) => (
             <>
+              <ReplyForm questionId={q.id} existing={q.replies} roomId={roomId} />
               <ActionButton
                 variant="ghost"
                 onClick={() =>
@@ -281,6 +284,19 @@ function QuestionCard(props: {
       <p className="text-sm text-slate-900 whitespace-pre-wrap break-words">
         {q.content}
       </p>
+      {q.replies.length > 0 ? (
+        <ul className="mt-2 space-y-1 border-l-2 border-primary-100 pl-3">
+          {q.replies.map((r) => (
+            <li key={r.id} className="text-xs text-slate-600">
+              <span className="font-medium text-primary-700">主持人：</span>
+              {r.content}
+              {r.is_private ? (
+                <span className="ml-1 text-amber-600">（私密）</span>
+              ) : null}
+            </li>
+          ))}
+        </ul>
+      ) : null}
       <div className="mt-2 flex items-center gap-3 text-xs text-slate-500">
         <span>作者 {q.is_anonymous ? "匿名" : q.author_display ?? "—"}</span>
         <span>讚 {q.upvote_count}</span>
@@ -292,6 +308,80 @@ function QuestionCard(props: {
       </div>
       <div className="mt-3 flex flex-wrap gap-2">{props.actions}</div>
     </article>
+  );
+}
+
+function ReplyForm(props: {
+  questionId: string;
+  existing: QuestionReply[];
+  roomId: string;
+}): React.JSX.Element {
+  const queryClient = useQueryClient();
+  const [open, setOpen] = useState(false);
+  const [content, setContent] = useState("");
+  const [isPrivate, setIsPrivate] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const replyMutation = useMutation({
+    mutationFn: () => reply(props.questionId, content.trim(), isPrivate),
+    onSuccess: () => {
+      setContent("");
+      setOpen(false);
+      setError(null);
+      void queryClient.invalidateQueries({
+        queryKey: ["moderation", props.roomId],
+      });
+    },
+    onError: (err: unknown) => {
+      setError((err as Error).message);
+    },
+  });
+
+  if (!open) {
+    return (
+      <ActionButton variant="ghost" onClick={() => setOpen(true)}>
+        回覆（reply）
+      </ActionButton>
+    );
+  }
+
+  return (
+    <div className="w-full space-y-2 rounded-md border border-slate-200 bg-slate-50 p-2">
+      <textarea
+        rows={2}
+        maxLength={2000}
+        placeholder="輸入回覆內容…"
+        value={content}
+        onChange={(e) => setContent(e.target.value)}
+        className="w-full rounded border border-slate-300 px-2 py-1 text-xs"
+      />
+      <label className="flex items-center gap-1 text-xs text-slate-600">
+        <input
+          type="checkbox"
+          checked={isPrivate}
+          onChange={(e) => setIsPrivate(e.target.checked)}
+        />
+        僅提問者可見（私密回覆）
+      </label>
+      {error ? <p className="text-xs text-red-600">{error}</p> : null}
+      <div className="flex gap-2">
+        <ActionButton
+          variant="primary"
+          disabled={replyMutation.isPending || !content.trim()}
+          onClick={() => replyMutation.mutate()}
+        >
+          {replyMutation.isPending ? "送出中…" : "送出回覆"}
+        </ActionButton>
+        <ActionButton variant="ghost" onClick={() => setOpen(false)}>
+          取消
+        </ActionButton>
+      </div>
+      {props.existing.length > 0 ? (
+        <p className="text-xs text-slate-400">
+          已有 {props.existing.length} 則回覆
+        </p>
+      ) : null}
+    </div>
   );
 }
 
@@ -336,11 +426,7 @@ function RoomPicker(props: { onLogout: () => void }): React.JSX.Element {
           #/rooms/&lt;roomId&gt;/moderation
         </code>
         <p className="text-sm text-slate-600 text-left leading-relaxed">
-          <strong>roomId</strong> 可從建立活動 API{" "}
-          <code className="bg-slate-100 px-1 rounded text-xs">POST /api/v1/sessions</code>{" "}
-          回應的 <code className="bg-slate-100 px-1 rounded text-xs">room_id</code>{" "}
-          取得，或至 Neon 的 <code className="bg-slate-100 px-1 rounded text-xs">rooms</code>{" "}
-          表查詢。Host 活動儀表板（建 session UI）尚待實作。
+          請從<strong>活動儀表板</strong>選擇活動後進入 Q&amp;A 審核，或將網址中的佔位符換成實際 room ID。
         </p>
         <button
           onClick={props.onLogout}

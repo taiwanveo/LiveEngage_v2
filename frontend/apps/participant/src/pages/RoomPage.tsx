@@ -11,6 +11,7 @@ import {
   POLL_STOPPED,
   POLL_LOCKED,
   POLL_UNLOCKED,
+  QA_EVENT_TYPES,
   useRoomWebSocket,
   type WsEvent,
 } from "@liveengage/realtime";
@@ -64,10 +65,20 @@ export function RoomPage(): React.JSX.Element {
   // WS 事件處理：依事件類型決定 invalidate 策略
   const handleWsEvent = useCallback(
     (event: WsEvent) => {
+      if (QA_EVENT_TYPES.has(event.type)) {
+        void queryClient.invalidateQueries({ queryKey: ["qa-public", ctx?.roomId] });
+      }
       switch (event.type) {
         case POLL_STARTED:
+          setTab("poll");
+          void queryClient.invalidateQueries({
+            queryKey: ["session-state", ctx?.sessionId],
+          });
+          if (activePollId) {
+            void queryClient.invalidateQueries({ queryKey: ["poll", activePollId] });
+          }
+          break;
         case POLL_STOPPED:
-          // active_interactions 清單改變，重新取 session-state
           void queryClient.invalidateQueries({
             queryKey: ["session-state", ctx?.sessionId],
           });
@@ -191,6 +202,9 @@ export function RoomPage(): React.JSX.Element {
             }`}
           >
             投票（Poll）
+            {activePollId ? (
+              <span className="ml-1 inline-flex h-2 w-2 rounded-full bg-emerald-500" title="進行中" />
+            ) : null}
           </button>
           <button
             type="button"

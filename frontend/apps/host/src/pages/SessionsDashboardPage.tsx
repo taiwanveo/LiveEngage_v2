@@ -11,6 +11,7 @@ import {
   type SessionHost,
   type SessionStatus,
 } from "../lib/sessionApi";
+import { JoinShareCard } from "../components/JoinShareCard";
 import { ApiException } from "../lib/api";
 
 interface Props {
@@ -28,7 +29,6 @@ export function SessionsDashboardPage({ onLogout }: Props): React.JSX.Element {
   const qc = useQueryClient();
   const [title, setTitle] = useState("");
   const [error, setError] = useState<string | null>(null);
-  const [copiedId, setCopiedId] = useState<string | null>(null);
 
   const sessionsQuery = useQuery({
     queryKey: ["host-sessions"],
@@ -60,13 +60,6 @@ export function SessionsDashboardPage({ onLogout }: Props): React.JSX.Element {
     }) => updateSession(sessionId, { status }),
     onSuccess: () => void qc.invalidateQueries({ queryKey: ["host-sessions"] }),
   });
-
-  async function copyJoinLink(session: SessionHost): Promise<void> {
-    const url = participantJoinUrl(session.code);
-    await navigator.clipboard.writeText(url);
-    setCopiedId(session.id);
-    setTimeout(() => setCopiedId(null), 2000);
-  }
 
   return (
     <main className="min-h-full bg-slate-100">
@@ -139,8 +132,6 @@ export function SessionsDashboardPage({ onLogout }: Props): React.JSX.Element {
                 <SessionCard
                   key={session.id}
                   session={session}
-                  copied={copiedId === session.id}
-                  onCopyJoin={() => void copyJoinLink(session)}
                   onGoLive={() =>
                     statusMutation.mutate({ sessionId: session.id, status: "live" })
                   }
@@ -160,8 +151,6 @@ export function SessionsDashboardPage({ onLogout }: Props): React.JSX.Element {
 
 function SessionCard(props: {
   session: SessionHost;
-  copied: boolean;
-  onCopyJoin: () => void;
   onGoLive: () => void;
   onEnd: () => void;
   statusPending: boolean;
@@ -209,13 +198,6 @@ function SessionCard(props: {
               結束活動
             </button>
           ) : null}
-          <button
-            type="button"
-            onClick={props.onCopyJoin}
-            className="rounded-md bg-slate-100 px-3 py-1.5 text-xs text-slate-700 hover:bg-slate-200"
-          >
-            {props.copied ? "已複製連結" : "複製參與連結"}
-          </button>
         </div>
       </div>
 
@@ -238,9 +220,10 @@ function SessionCard(props: {
         <p className="mt-3 text-xs text-amber-700">此活動尚無房間，請聯絡管理員。</p>
       )}
 
-      <p className="mt-3 break-all text-xs text-slate-400">
-        參與者：{participantJoinUrl(session.code)}
-      </p>
+      <JoinShareCard
+        code={session.code}
+        joinUrl={participantJoinUrl(session.code)}
+      />
     </li>
   );
 }

@@ -7,63 +7,51 @@
 ## SNAPSHOT（2026-06-13）
 
 - **Repo**：https://github.com/ColdRighter/LiveEngage.git（master）
-- **最新 commit**：70732de 修正 `VITE_API_BASE` 未內嵌（admin 登入 HTTP 405）
-- **pytest**：50 passed（本地；未重跑）
+- **最新 commit**：（Phase B push 後更新）
+- **pytest**：53+ passed（含 Q&A 回覆、answered 公開列表）
 - **Zeabur 專案**：[liveengage](https://zeabur.com/projects/6a2d1bc82871baed5fc633ef?envID=6a2d1bc9cf558888ca4bc9da)
-- **Zeabur MCP**：可用（user-zeabur）
+- push `master` → 五服務自動 redeploy
 
-### 已上線服務（五服務皆連 GitHub `master`，push 自動 redeploy）
+### 已上線服務
 
-| 服務 | 網址 | 說明 |
-|------|------|------|
-| api | https://le-api.zeabur.app | FastAPI；根目錄 `Dockerfile` |
-| host | https://le-host.zeabur.app | Host 前端；`frontend/Dockerfile.host` |
-| participant | https://le-participant.zeabur.app | 參與者前端；`frontend/Dockerfile.participant` |
-| present | https://le-present.zeabur.app | 投影端；`frontend/Dockerfile.present` |
-| admin | https://le-admin.zeabur.app | 管理後台；`frontend/Dockerfile.admin` |
-
-- 前端建置內嵌 `VITE_API_BASE=https://le-api.zeabur.app`
-- API 已設 `LE_CORS_ORIGIN_REGEX=https://.*\.zeabur\.app`
-- **管理員帳號**：無內建預設；用 `python scripts/seed_admin.py --email ...`（讀 `.env` 的 `LE_DATABASE_URL_SYNC`）
-- Neon `users` 表內 `host-*@example.com` 為 pytest 測試殘留（密碼皆為 `TestPass123!`），正式帳號請用 seed 腳本
-
-### Sprint 7 進度
-
-| 任務 | 狀態 |
+| 服務 | 網址 |
 |------|------|
-| S7-1～S7-5 | done |
+| api | https://le-api.zeabur.app |
+| host | https://le-host.zeabur.app |
+| participant | https://le-participant.zeabur.app |
+| present | https://le-present.zeabur.app |
+| admin | https://le-admin.zeabur.app |
 
-### 仍待完成
+### 現場可用範圍（Phase A + B）
 
-- Host 活動儀表板（建 session UI）
-- Participant Q&A 提問頁
-- Sprint 9+：Quiz / Survey / Ideas / AI
+| 角色 | 能力 |
+|------|------|
+| Host | 儀表板建活動、go live、QR/代碼/連結分享、Q&A 審核與**文字回覆**、Poll 五題型建立與控場 |
+| Participant | 加入活動、Poll/Q&A 分頁切換、WS 即時更新、看主持人回覆 |
+| Present | 選 live session 投影 Poll |
+
+**尚非完整企業版**：Quiz/Survey/AI、Celery export、SSO、多房間進階、自動化 E2E 套件。
+
+### Phase B 完成項
+
+- Host `ModerationPage` 回覆 UI（公開/私密）
+- API `QuestionPublic.replies`；公開列表含 `answered` 狀態
+- WS `question_replied` 事件
+- `JoinShareCard`：QR + 代碼 + 複製連結
+- Participant：Q&A WS 刷新、Poll 進行中指示、已回答標籤
 
 ---
 
 ## HISTORY
 
-### 2026-06-13 — seed_admin 腳本
+### 2026-06-13 — Phase B 體驗補齊
 
-- `scripts/seed_admin.py`：互動式建立 owner/admin，支援 `--org-id`、`--update`
+### 2026-06-13 — Phase A 現場主流程（c4e0eff）
 
-### 2026-06-13 — Present/Admin Zeabur 部署（b42f960）
+Host 儀表板、Participant Q&A、Present 選活動、sessions API
 
-- `frontend/Dockerfile.present` / `Dockerfile.admin`
-- admin `tsconfig` / `vite.config` 補 `@liveengage/realtime` alias
-- MCP 建立服務 present / admin，網域 `le-present` / `le-admin`
+### 2026-06-13 — ModerationPage 繁中（44f9b1a）
 
-### 2026-06-13 — Zeabur 部署（f0c9327）
+### 2026-06-13 — VITE_API_BASE（70732de）
 
-- 根目錄 `Dockerfile`（API monorepo 建置）
-- `frontend/Dockerfile.host` / `Dockerfile.participant`
-- `VITE_API_BASE` + `apiBase.ts`；後端 CORS 設定
-- MCP 建立服務 api / host / participant 並驗證 health
-
-### 2026-06-13 — S7-4/S7-5（43854ce）
-
-Branding、Export、backend/Dockerfile 初版
-
-### 2026-06-13 — S7-2/S7-3（4be10c8）
-
-Admin API + UI
+### 2026-06-13 — seed_admin / Zeabur 五服務 / S7
