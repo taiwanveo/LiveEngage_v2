@@ -36,7 +36,8 @@
 | S5-3 | Poll REST API + multiple_choice 作答與結果 | ✅ pushed `31bc8f0` |
 | S5-4 | word_cloud / open_text / rating / ranking 作答與聚合 | ✅ pushed `1365be4` |
 | S6-1 | renderers 核心（3 mode） | ✅ pushed `7fbbc8b` |
-| S6-2 | Host Builder + 控制台 UI | 待開始 |
+| S6-2 | Host Builder + 控制台 UI | ✅ 本地完成（待 push） |
+| S6-3 | Present 控制列 + Recharts | ✅ 本地完成（待 push） |
 
 ### API 端點（已實作）
 | Method | Path | 說明 |
@@ -49,7 +50,8 @@
 | POST | `/api/v1/sessions/{id}/join` | 參與者加入 |
 | GET | `/api/v1/sessions/{id}/state` | 活動快照（RT-002） |
 | WS | `/ws?token=&room=&mode=` | Gateway（廣播 only，含房間綁定 + mode 過濾） |
-| POST | `/api/v1/rooms/{roomId}/interactions` | 建立互動（本 Sprint 供 Q&A 控場） |
+| GET | `/api/v1/rooms/{roomId}/interactions` | 列出房間互動（S6-2 Builder） |
+| POST | `/api/v1/rooms/{roomId}/interactions` | 建立互動（Poll / Q&A） |
 | PATCH | `/api/v1/interactions/{id}` | 開關 Q&A / 改設定 |
 | POST | `/api/v1/rooms/{roomId}/questions` | 提問（FE-004） |
 | GET | `/api/v1/rooms/{roomId}/questions` | 公開列表 top/newest（FE-005） |
@@ -67,8 +69,8 @@
 ### 前端
 | App | 路徑 | 狀態 |
 |-----|------|------|
-| Host | `frontend/apps/host`（Vite + React 19 + TS strict + Tailwind） | ✅ PM-002 審核 UI；S6-1 `#/poll-renderers-demo` 展示 Poll renderers |
-| `@liveengage/renderers` | `frontend/packages/renderers` | ✅ S6-1：`PollRenderer` 五題型 × 三 mode（answer/present/preview） |
+| Host | `frontend/apps/host` | ✅ Q&A 審核 + Poll Hub/Builder/Console/Present/Answer 路由 |
+| `@liveengage/renderers` | `frontend/packages/renderers` | ✅ 五題型三 mode + Recharts 投影圖表（S6-3） |
 | Participant / Present / Admin | — | 尚未建立 |
 
 ---
@@ -92,7 +94,7 @@
 - ✅ upvote rate limit 30/min
 
 ### 仍待補（後續 Sprint）
-- S6-2~S6-3：Host Poll Builder / 控制台、Present 控制列 + Recharts 圖表
+- Participant / Present 獨立 app、WS 即時訂閱取代輪詢
 - Sprint 7–8：管理後台
 - Sprint 9+：Quiz / Survey / Ideas / AI / Integrations / Admin
 - 相似問題偵測、Question AI、participant 互相回覆、label CRUD
@@ -103,6 +105,27 @@
 ---
 
 ## HISTORY
+
+### 2026-06-13 — S6-2~S6-3：Poll Host UI + Present 控制列
+
+**後端**
+- `GET /api/v1/rooms/{roomId}/interactions` — Host 列出房間互動（Builder / 控制台）
+
+**Host App（S6-2）**
+- `pollApi` / `interactionApi`；路由 `#/rooms/{roomId}/polls[...]`
+- **PollHubPage**：建立 Poll、列表、導向 Builder / 控制台 / 投影 / 參與者預覽
+- **PollBuilderPage**：編輯標題、選項（multiple_choice / ranking）、`preview` mode
+- **PollConsolePage**：控場按鈕 + 雙欄預覽（present / answer）+ 結果輪詢
+- **PollAnswerPage**：`answer` mode（實際提交需 participant token）
+
+**S6-3**
+- **PresentPage**：全螢幕投影 + **PresentControlBar**（Space/L/R/Esc 快捷鍵）
+- renderers 新增 **Recharts** `ResultBarChart` / `RatingBarChart`（present mode）
+
+**品質**
+- renderers typecheck ✅ · host `npm run build` ✅ · ruff/mypy（interactions 新增）✅
+
+---
 
 ### 2026-06-13 — S6-1：Poll renderers 核心（3 mode）
 

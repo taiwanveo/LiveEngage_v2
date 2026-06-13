@@ -21,6 +21,21 @@ from app.services import interaction_service
 router = APIRouter(tags=["interactions"])
 
 
+@router.get(
+    "/rooms/{room_id}/interactions",
+    response_model=list[InteractionResponse],
+)
+async def list_interactions(
+    room_id: uuid.UUID,
+    db: Annotated[AsyncSession, Depends(get_session)],
+    host: Annotated[User, Depends(get_current_user)],
+) -> list[InteractionResponse]:
+    """列出房間內互動項目（Host Builder / 控制台）。"""
+    return await interaction_service.list_room_interactions(
+        db, room_id=room_id, host=host
+    )
+
+
 @router.post(
     "/rooms/{room_id}/interactions",
     response_model=InteractionResponse,

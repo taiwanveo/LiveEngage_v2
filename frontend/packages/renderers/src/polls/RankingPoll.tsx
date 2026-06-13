@@ -2,6 +2,7 @@ import * as React from "react";
 import { useMemo, useState } from "react";
 import { PollShell } from "../PollShell";
 import { ResultBars } from "../present/ResultBars";
+import { ResultBarChart } from "../present/ResultBarChart";
 import { SubmitFooter } from "../SubmitFooter";
 import type { PollRendererProps } from "../types";
 import { canAnswer, readNumber } from "../utils";
@@ -66,11 +67,19 @@ export function RankingPoll({
       }
     >
       {showResults && results?.option_counts ? (
-        <ResultBars
-          options={sortedOptions}
-          counts={results.option_counts}
-          large={mode === "present"}
-        />
+        mode === "present" ? (
+          <ResultBarChart
+            options={sortedOptions}
+            counts={results.option_counts}
+            large
+          />
+        ) : (
+          <ResultBars
+            options={sortedOptions}
+            counts={results.option_counts}
+            large={false}
+          />
+        )
       ) : (
         <ol className="space-y-3">
           {ranks.map((rank, index) => (

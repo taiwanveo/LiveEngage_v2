@@ -206,6 +206,12 @@ function Topbar(props: {
           <p className="text-xs text-slate-500 font-mono">room: {props.roomId}</p>
         </div>
         <div className="flex items-center gap-2">
+          <a
+            href={`#/rooms/${props.roomId}/polls`}
+            className="text-sm px-3 py-1.5 rounded-md bg-primary-50 hover:bg-primary-100 text-primary-700"
+          >
+            Poll 管理
+          </a>
           <button
             onClick={props.onRefresh}
             className="text-sm px-3 py-1.5 rounded-md bg-slate-100 hover:bg-slate-200 text-slate-700"

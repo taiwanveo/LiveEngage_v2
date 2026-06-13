@@ -66,6 +66,22 @@ async def _load_interaction_for_host(
     return interaction
 
 
+async def list_room_interactions(
+    db: AsyncSession,
+    *,
+    room_id: uuid.UUID,
+    host: User,
+) -> list[InteractionResponse]:
+    """列出房間內所有互動項目（Host Builder / 控制台）。"""
+    await _load_room_for_host(db, room_id, host)
+    result = await db.execute(
+        select(Interaction)
+        .where(Interaction.room_id == room_id)
+        .order_by(Interaction.order_no, Interaction.created_at)
+    )
+    return [_to_response(i) for i in result.scalars().all()]
+
+
 async def create_interaction(
     db: AsyncSession,
     *,

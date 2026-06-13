@@ -2,6 +2,7 @@ import * as React from "react";
 import { useState } from "react";
 import { PollShell } from "../PollShell";
 import { RatingDisplay } from "../present/RatingDisplay";
+import { RatingBarChart } from "../present/RatingBarChart";
 import { SubmitFooter } from "../SubmitFooter";
 import type { PollRendererProps } from "../types";
 import { canAnswer, readNumber } from "../utils";
@@ -50,13 +51,23 @@ export function RatingPoll({
       }
     >
       {showResults ? (
-        <RatingDisplay
-          average={results?.average}
-          distribution={results?.distribution ?? undefined}
-          min={min}
-          max={max}
-          large={mode === "present"}
-        />
+        mode === "present" ? (
+          <RatingBarChart
+            average={results?.average}
+            distribution={results?.distribution ?? undefined}
+            min={min}
+            max={max}
+            large
+          />
+        ) : (
+          <RatingDisplay
+            average={results?.average}
+            distribution={results?.distribution ?? undefined}
+            min={min}
+            max={max}
+            large={false}
+          />
+        )
       ) : (
         <div className="flex flex-wrap gap-2" role="radiogroup" aria-label="評分">
           {values.map((v) => {

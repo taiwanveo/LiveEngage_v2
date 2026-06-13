@@ -2,6 +2,7 @@ import * as React from "react";
 import { useMemo, useState } from "react";
 import { PollShell } from "../PollShell";
 import { ResultBars } from "../present/ResultBars";
+import { ResultBarChart } from "../present/ResultBarChart";
 import { SubmitFooter } from "../SubmitFooter";
 import type { PollRendererProps } from "../types";
 import { canAnswer, readBool } from "../utils";
@@ -78,11 +79,19 @@ export function MultipleChoicePoll({
       ) : null}
 
       {showResults && results?.option_counts ? (
-        <ResultBars
-          options={sortedOptions}
-          counts={results.option_counts}
-          large={mode === "present"}
-        />
+        mode === "present" ? (
+          <ResultBarChart
+            options={sortedOptions}
+            counts={results.option_counts}
+            large
+          />
+        ) : (
+          <ResultBars
+            options={sortedOptions}
+            counts={results.option_counts}
+            large={false}
+          />
+        )
       ) : (
         <ul className="space-y-2" role={multiSelect ? "group" : "radiogroup"}>
           {sortedOptions.map((opt) => {
