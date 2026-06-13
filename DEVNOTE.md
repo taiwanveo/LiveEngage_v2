@@ -7,7 +7,7 @@
 ## SNAPSHOT（2026-06-13）
 
 - **Repo**：https://github.com/ColdRighter/LiveEngage.git（master）
-- **最新 commit**：（本輪 push）`scripts/seed_admin.py` 管理員帳號建立腳本
+- **最新 commit**：07f8020 `scripts/seed_admin.py` 管理員帳號建立腳本
 - **pytest**：50 passed（本地；未重跑）
 - **Zeabur 專案**：[liveengage](https://zeabur.com/projects/6a2d1bc82871baed5fc633ef?envID=6a2d1bc9cf558888ca4bc9da)
 - **Zeabur MCP**：可用（user-zeabur）
