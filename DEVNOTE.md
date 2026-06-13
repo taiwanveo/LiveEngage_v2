@@ -7,7 +7,7 @@
 ## SNAPSHOT（2026-06-13）
 
 - **Repo**：https://github.com/ColdRighter/LiveEngage.git（master）
-- **最新 commit**：（Phase D push 後更新）
+- **最新 commit**：5c98f3e Phase D — Sprint 9 Quiz/Ideas/Survey、worker SSL
 - **pytest**：63+ passed（含 `test_s9_phase_d`：Quiz / Ideas / Survey / AI-001 / Co-host）
 - **Zeabur**：**六服務** — api / host / participant / present / admin / **worker**
 
