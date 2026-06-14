@@ -110,7 +110,7 @@ export function PollConsolePage({
       title="Poll 控制台"
       subtitle={poll ? interactionMetaLine(poll.type, poll.status) : ""}
       roomId={roomId}
-      presentPollId={pollId}
+      presentHref={presentAppUrl(roomId, pollId)}
       onLogout={onLogout}
       activeNav="polls"
       titleAddon={

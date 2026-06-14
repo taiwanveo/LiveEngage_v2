@@ -6,6 +6,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useSystemNotice } from "@liveengage/ui";
 import { HostRoomHubBreadcrumb } from "../components/HostBreadcrumb";
 import { HostShell } from "../components/HostShell";
+import { quizPresentUrl } from "../lib/presentUrl";
 import { ApiException } from "../lib/api";
 import {
   createInteraction,
@@ -152,6 +153,14 @@ export function Sprint9HubPage({ roomId, onLogout }: Props): React.JSX.Element {
                   >
                     控制台
                   </a>
+                  {item.type === "quiz" ? (
+                    <a
+                      href={quizPresentUrl(roomId, item.id)}
+                      className="le-btn-primary !min-h-0 px-3 py-1.5 text-xs"
+                    >
+                      投影
+                    </a>
+                  ) : null}
                   {item.type === "quiz" ? (
                     <button
                       type="button"

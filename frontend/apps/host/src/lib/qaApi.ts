@@ -13,6 +13,16 @@ export async function listModeration(
   );
 }
 
+export async function listPublicQuestions(
+  roomId: string,
+  sort: "top" | "newest" = "top"
+): Promise<QuestionPublic[]> {
+  const res = await api<{ items: QuestionPublic[] }>(
+    `/api/v1/rooms/${roomId}/questions?sort=${sort}`
+  );
+  return res.items;
+}
+
 export async function moderate(
   questionId: string,
   action: ModerateAction

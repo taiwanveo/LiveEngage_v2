@@ -60,7 +60,21 @@ export function SessionsDashboardPage({ onLogout }: Props): React.JSX.Element {
       status: SessionStatus;
     }) => updateSession(sessionId, { status }),
     onSuccess: () => void qc.invalidateQueries({ queryKey: ["host-sessions"] }),
+    onError: (err: unknown) => {
+      showError(err instanceof ApiException ? err.error.message : "更新失敗");
+    },
   });
+
+  function archiveSession(session: SessionHost): void {
+    if (
+      !window.confirm(
+        `確定要封存「${session.title}」？\n\n封存後將從儀表板移出，資料仍保留供匯出與稽核。`
+      )
+    ) {
+      return;
+    }
+    statusMutation.mutate({ sessionId: session.id, status: "archived" });
+  }
 
   function openCreateModal(): void {
     setTitle("");
@@ -144,6 +158,7 @@ export function SessionsDashboardPage({ onLogout }: Props): React.JSX.Element {
                   onEnd={() =>
                     statusMutation.mutate({ sessionId: session.id, status: "ended" })
                   }
+                  onArchive={() => archiveSession(session)}
                   statusPending={statusMutation.isPending}
                 />
               ))}
@@ -160,6 +175,7 @@ function SessionCard(props: {
   session: SessionHost;
   onGoLive: () => void;
   onEnd: () => void;
+  onArchive: () => void;
   statusPending: boolean;
 }): React.JSX.Element {
   const { session } = props;
@@ -203,6 +219,16 @@ function SessionCard(props: {
               className="le-btn-secondary !min-h-[36px] !px-3 !py-1.5 !text-xs"
             >
               結束活動
+            </button>
+          ) : null}
+          {session.status === "ended" || session.status === "draft" ? (
+            <button
+              type="button"
+              disabled={props.statusPending}
+              onClick={props.onArchive}
+              className="le-btn-primary !min-h-[36px] !px-3 !py-1.5 !text-xs"
+            >
+              封存
             </button>
           ) : null}
         </div>

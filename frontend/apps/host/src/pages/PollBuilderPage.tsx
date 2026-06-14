@@ -6,6 +6,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { PollRenderer } from "@liveengage/renderers";
 import { useSystemNotice } from "@liveengage/ui";
 import { HostShell } from "../components/HostShell";
+import { presentAppUrl } from "../lib/presentUrl";
 import { HostTitleLink, HostTitleActions } from "../components/HostTitleActions";
 import { updateInteraction } from "../lib/interactionApi";
 import { getPoll, updatePollOptions } from "../lib/pollApi";
@@ -158,7 +159,7 @@ export function PollBuilderPage({
       title="投票編輯"
       subtitle={poll ? interactionTypeLabel(poll.type) : ""}
       roomId={roomId}
-      presentPollId={pollId}
+      presentHref={presentAppUrl(roomId, pollId)}
       onLogout={onLogout}
       activeNav="polls"
       titleAddon={

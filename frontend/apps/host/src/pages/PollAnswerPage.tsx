@@ -6,6 +6,7 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import { PollRenderer } from "@liveengage/renderers";
 import { useSystemNotice } from "@liveengage/ui";
 import { HostShell } from "../components/HostShell";
+import { presentAppUrl } from "../lib/presentUrl";
 import { getPoll, getPollResults, submitPollResponse } from "../lib/pollApi";
 
 interface Props {
@@ -60,7 +61,7 @@ export function PollAnswerPage({
       title="參與者作答預覽"
       subtitle="Host token 僅供預覽；實際提交需 participant token"
       roomId={roomId}
-      presentPollId={pollId}
+      presentHref={presentAppUrl(roomId, pollId)}
       onLogout={onLogout}
       activeNav="polls"
     >

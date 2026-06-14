@@ -181,6 +181,8 @@ async def update_session(
         session.description = payload.description
     if payload.status is not None:
         session.status = payload.status
+        if payload.status == SessionStatus.ARCHIVED:
+            session.archived_at = dt.datetime.now(dt.UTC).replace(tzinfo=None)
     if payload.visibility is not None:
         session.visibility = payload.visibility
     if payload.passcode is not None:
@@ -208,10 +210,13 @@ async def list_host_sessions(
     *,
     host: User,
 ) -> list[SessionHostResponse]:
-    """主持人自己的活動列表（依建立時間新到舊）。"""
+    """主持人自己的活動列表（依建立時間新到舊；不含已封存）。"""
     result = await db.execute(
         select(Session)
-        .where(Session.host_user_id == host.id)
+        .where(
+            Session.host_user_id == host.id,
+            Session.status != SessionStatus.ARCHIVED,
+        )
         .order_by(Session.created_at.desc())
     )
     sessions = result.scalars().all()

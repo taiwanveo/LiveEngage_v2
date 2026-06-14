@@ -12,8 +12,10 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { QA_EVENT_TYPES, useRoomWebSocket, type WsEvent } from "@liveengage/realtime";
 import { useSystemNotice } from "@liveengage/ui";
+import { HostRoomHubBreadcrumb } from "../components/HostBreadcrumb";
 import { HostShell } from "../components/HostShell";
 import { QaControlBar } from "../components/QaControlBar";
+import { qaPresentUrl } from "../lib/presentUrl";
 import { getAccessToken } from "../lib/auth";
 import { listModeration, moderate, reply } from "../lib/qaApi";
 import type {
@@ -114,6 +116,17 @@ export function ModerationPage({ roomId, onLogout }: Props): React.JSX.Element {
       roomId={roomId}
       onLogout={onLogout}
       activeNav="moderation"
+      presentHref={qaPresentUrl(roomId)}
+      breadcrumb={<HostRoomHubBreadcrumb roomId={roomId} currentLabel="Q&A 審核" />}
+      presentMenu={
+        <a
+          href={qaPresentUrl(roomId)}
+          className="inline-flex min-h-[28px] items-center px-1.5 text-[10px] text-accent-fg hover:bg-accent/90"
+          title="內嵌投影"
+        >
+          ···
+        </a>
+      }
     >
       <QaControlBar roomId={roomId} />
       {!wsConnected ? (

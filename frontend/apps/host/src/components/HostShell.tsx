@@ -23,8 +23,10 @@ interface HostShellProps {
   /** 標題右側附加控制（與標題間隔約兩字元） */
   titleAddon?: React.ReactNode;
   activeNav?: HostNavId;
-  /** 有 Poll 時可投影 */
-  presentPollId?: string | undefined;
+  /** 投影目標 URL（Poll / Q&A / Quiz） */
+  presentHref?: string | undefined;
+  /** 投影按鈕旁內嵌投影選單 */
+  presentMenu?: React.ReactNode;
   /** 標題列下方麵包屑（Poll／Quiz 管理等） */
   breadcrumb?: React.ReactNode;
 }
@@ -38,7 +40,8 @@ export function HostShell({
   actions,
   titleAddon,
   activeNav,
-  presentPollId,
+  presentHref,
+  presentMenu,
   breadcrumb,
 }: HostShellProps): React.JSX.Element {
   return (
@@ -53,7 +56,11 @@ export function HostShell({
         onLogout={onLogout}
         actions={actions}
         chromeFooterActions={
-          <HostRoomHeaderActions roomId={roomId} {...(presentPollId ? { presentPollId } : {})} />
+          <HostRoomHeaderActions
+            roomId={roomId}
+            {...(presentHref ? { presentHref } : {})}
+            {...(presentMenu ? { presentMenu } : {})}
+          />
         }
         navItems={HOST_NAV.map((item) => ({
           href: `#/rooms/${roomId}/${item.segment}`,

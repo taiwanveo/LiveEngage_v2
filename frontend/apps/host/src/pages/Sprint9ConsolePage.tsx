@@ -5,6 +5,7 @@ import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { HostShell } from "../components/HostShell";
 import { HostTitleLink } from "../components/HostTitleActions";
+import { quizPresentUrl } from "../lib/presentUrl";
 import { listInteractions } from "../lib/interactionApi";
 import {
   addQuizQuestion,
@@ -146,6 +147,20 @@ export function Sprint9ConsolePage({
       onLogout={onLogout}
       activeNav="sprint9"
       titleAddon={backToList}
+      {...(item.type === "quiz"
+        ? {
+            presentHref: quizPresentUrl(roomId, interactionId),
+            presentMenu: (
+              <a
+                href={quizPresentUrl(roomId, interactionId)}
+                className="inline-flex min-h-[28px] items-center px-1.5 text-[10px] text-accent-fg hover:bg-accent/90"
+                title="內嵌投影"
+              >
+                ···
+              </a>
+            ),
+          }
+        : {})}
     >
       {item.type === "quiz" ? (
         <div className="space-y-6">

@@ -34,6 +34,7 @@ import {
 import { HOST_DASHBOARD_HASH } from "../components/HostShell";
 import { HostRoomHeaderActions } from "../components/HostRoomHeaderActions";
 import { ControlToggle, isPollRunning } from "../components/PollControlBar";
+import { presentAppUrl } from "../lib/presentUrl";
 import {
   applyHostPollActionSuccess,
   createSelfPollActionGuard,
@@ -289,7 +290,9 @@ export function SessionWorkbenchPage({ roomId, pollId, onLogout }: Props): React
           chromeFooterActions={
             <HostRoomHeaderActions
               roomId={roomId}
-              {...(selectedPollId ? { presentPollId: selectedPollId } : {})}
+              {...(selectedPollId
+                ? { presentHref: presentAppUrl(roomId, selectedPollId) }
+                : {})}
               presentMenu={
                 selectedPollId ? (
                   <a

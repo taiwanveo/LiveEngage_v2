@@ -5,7 +5,6 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { JoinShareCard, Modal, participantJoinUrl } from "@liveengage/ui";
 import { listSessions } from "../lib/sessionApi";
-import { presentAppUrl } from "../lib/presentUrl";
 
 const BTN_SECONDARY =
   "inline-flex min-h-[28px] items-center gap-1 rounded-full border border-border bg-surface px-2.5 text-[11px] font-medium text-accent hover:border-accent/40";
@@ -14,13 +13,14 @@ const BTN_PRIMARY =
 
 interface Props {
   roomId: string;
-  presentPollId?: string | undefined;
+  /** 投影目標 URL（Poll / Q&A / Quiz 同源路由） */
+  presentHref?: string | undefined;
   presentMenu?: React.ReactNode;
 }
 
 export function HostRoomHeaderActions({
   roomId,
-  presentPollId,
+  presentHref,
   presentMenu,
 }: Props): React.JSX.Element {
   const [shareOpen, setShareOpen] = useState(false);
@@ -31,7 +31,7 @@ export function HostRoomHeaderActions({
   });
 
   const session = sessionsQuery.data?.find((s) => s.default_room_id === roomId) ?? null;
-  const showPresent = Boolean(presentPollId);
+  const showPresent = Boolean(presentHref);
 
   return (
     <>
@@ -42,7 +42,7 @@ export function HostRoomHeaderActions({
               type="button"
               title="開啟投影視窗"
               onClick={() => {
-                window.open(presentAppUrl(roomId, presentPollId!), "_blank", "noopener");
+                window.open(presentHref!, "_blank", "noopener");
               }}
               className={`${BTN_PRIMARY} !rounded-none !border-0`}
             >

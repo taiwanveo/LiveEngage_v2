@@ -10,6 +10,8 @@ import { PollConsolePage } from "./pages/PollConsolePage";
 import { PollHubPage } from "./pages/PollHubPage";
 import { PollRenderersDemoPage } from "./pages/PollRenderersDemoPage";
 import { PresentPage } from "./pages/PresentPage";
+import { QaPresentPage } from "./pages/QaPresentPage";
+import { QuizPresentPage } from "./pages/QuizPresentPage";
 import { SessionsDashboardPage } from "./pages/SessionsDashboardPage";
 import { SsoCallbackPage, parseSsoCallbackHash } from "./pages/SsoCallbackPage";
 import { SessionWorkbenchPage } from "./pages/SessionWorkbenchPage";
@@ -28,6 +30,8 @@ type Route =
   | { name: "poll-console"; roomId: string; pollId: string }
   | { name: "poll-answer"; roomId: string; pollId: string }
   | { name: "poll-present"; roomId: string; pollId: string }
+  | { name: "qa-present"; roomId: string }
+  | { name: "quiz-present"; roomId: string; quizId: string }
   | { name: "sprint9"; roomId: string }
   | { name: "workbench"; roomId: string; pollId?: string | undefined }
   | { name: "sprint9-console"; roomId: string; interactionId: string }
@@ -50,6 +54,9 @@ function parseHash(): Route {
       return { name: "workbench", roomId, pollId: parts[3] };
     }
     if (parts[2] === "moderation") {
+      if (parts[3] === "present") {
+        return { name: "qa-present", roomId };
+      }
       return { name: "moderation", roomId };
     }
     if (parts[2] === "polls") {
@@ -78,6 +85,9 @@ function parseHash(): Route {
       }
       if (parts[3] && parts[4] === "console") {
         return { name: "sprint9-console", roomId, interactionId: parts[3] };
+      }
+      if (parts[3] && parts[4] === "present") {
+        return { name: "quiz-present", roomId, quizId: parts[3] };
       }
       return { name: "sprint9", roomId };
     }
@@ -125,6 +135,14 @@ export function App(): React.JSX.Element {
 
   if (route.name === "poll-present" && authed) {
     return <PresentPage roomId={route.roomId} pollId={route.pollId} />;
+  }
+
+  if (route.name === "qa-present" && authed) {
+    return <QaPresentPage roomId={route.roomId} />;
+  }
+
+  if (route.name === "quiz-present" && authed) {
+    return <QuizPresentPage roomId={route.roomId} quizId={route.quizId} />;
   }
 
   if (!authed || route.name === "login") {
