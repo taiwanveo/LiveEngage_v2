@@ -7,9 +7,8 @@
 ## SNAPSHOT（2026-06-14）
 
 - **Repo**：https://github.com/ColdRighter/LiveEngage.git（master）
-- **最新 commit**：`c9b53f1` — 結束活動 WS 通知、Quiz 編輯、Poll/Quiz 刪除與多項 UX 修正
-- **pytest**：`test_s9_phase_d.py` + `test_poll_sprint5.py` 18 passed（約 6 分鐘，需 `LE_DATABASE_URL`）
-- **typecheck**：`realtime` / `host` / `participant` 通過
+- **最新 commit**：`f531f6e` — 活動開始通知、Sprint9 開放修復、全系統 Modal 提示
+- **typecheck**：`realtime` / `host` / `participant` / `admin` / `present` 通過
 - **Zeabur**：**六服務** — api / host / participant / present / admin / worker（push `master` 自動 redeploy）
 
 ### 已上線服務
@@ -23,31 +22,31 @@
 | admin | https://le-admin.zeabur.app |
 | worker | Celery（無公開 URL） |
 
-### 本輪重點（c9b53f1）
+### 本輪重點（f531f6e）
 
 | 區塊 | 內容 |
 |------|------|
-| **結束活動通知** | 後端 `SESSION_ENDED` WS 廣播（`session_service`／`admin_service`）；參與者 `RoomPage` Modal + 導回加入頁；`session-state.status === ended` 備援 |
-| **Quiz 編輯（Sprint 9）** | `PATCH /quizzes/questions/{id}`、`DELETE` 子題；`QuizQuestionEditPage`；控制台 pending 子題「編輯／刪除」；路由 `#/rooms/.../sprint9/.../questions/.../edit` |
-| **Poll / Quiz 刪除** | `DELETE /interactions/{id}`（`active` 不可刪）；`PollHubPage`／`Sprint9HubPage` 刪除按鈕 + confirm |
-| **Q&A 審核 UX** | 操作按鈕 hover 顯示；WS 本機先 broadcast + Redis；5s 輪詢備援 |
-| **參與者 UX** | Poll／Quiz／Q&A 提交成功改 Modal；頂欄分享按鈕（`ParticipantShareActions` + 共用 `JoinShareCard`） |
-| **Admin** | 參與度 `participants_engaged` UNION 去重；稽核動作／目標類型中文下拉（`auditLabels.ts`） |
-| **共用 UI** | `JoinShareCard`、`participantJoinUrl` 移至 `@liveengage/ui` |
+| **活動開始通知** | `SESSION_STARTED` WS 廣播（`session_service`／`admin_service`）；參與者 `RoomPage` Modal「活動已開始」 |
+| **互動開放通知** | `INTERACTION_STARTED` 廣播（Quiz／點子牆／問卷／Q&A 按「開放」）；參與者 Modal + 自動切換分頁 |
+| **Poll／Quiz 開始** | 既有 `poll_started`／`quiz_question_started` 亦改 Modal 提示 |
+| **Sprint9 開放修復** | `interaction_service` 房間鎖、狀態驗證、`IntegrityError` 中文錯誤；成功後 WS 廣播 |
+| **全系統 Modal** | `@liveengage/ui` 新增 `useSystemNotice`；24 檔遷移（Host／Admin／Present／Participant 錯誤／成功訊息） |
+| **共用標籤** | `interactionLabels.ts` 題型中文標籤 |
 
-### 先前已上線（e930fec 一帶）
+### 先前已上線（c9b53f1 一帶）
 
 | 區塊 | 內容 |
 |------|------|
-| **Host 繁中 UI** | 題型／狀態中文化；Q&A 審核開關／取消核准 |
-| **儀表板** | 建立活動 Modal；分享 Modal portal 置中 |
+| **結束活動** | `SESSION_ENDED` 廣播 + 參與者結束 Modal |
+| **Quiz 編輯／刪除** | 子題 PATCH/DELETE、編輯頁、Poll/Quiz 刪除 |
+| **Q&A／Admin UX** | 審核即時、參與度去重、稽核中文化、分享按鈕 |
 
 ### 現場流程速查
 
-1. **Poll**：Poll 管理 → 建立 → Builder → 控制台 start → 參與者作答  
-2. **Quiz**：Quiz 管理 → 建立 → 控制台新增子題 → 編輯（pending）→ 開始／揭曉  
-3. **結束活動**：儀表板或 Admin 將 session 設為 `ended` → 參與者即時 Modal  
-4. **刪除**：Poll／Quiz 須非 `active` 狀態方可刪除  
+1. **開始活動**：儀表板設為進行中 → 參與者頁 Modal「活動已開始」  
+2. **開放互動**：Quiz 管理「開放」→ 參與者 Modal「快問快答已開始」  
+3. **Poll**：控制台 start → 參與者 Modal「投票已開始」  
+4. **系統訊息**：成功／失敗皆以置中 Modal 顯示（點遮罩或關閉鈕可關）  
 
 > 同一 room 同時僅一個 `active` 互動。
 
@@ -64,12 +63,16 @@
 
 - Webhook outbound 派送（Celery）
 - Playwright join→poll→Q&A E2E
-- `delete_interaction`／`broadcast_session_ended` 專項 pytest
+- `session_started`／`interaction_started` 專項 pytest
 - Admin Integrations UI
 
 ---
 
 ## HISTORY
+
+### 2026-06-14 — 活動開始通知 + Sprint9 開放修復 + Modal 統一（f531f6e）
+
+`session_started`／`interaction_started` 廣播；Sprint9 開放房間鎖修復；`useSystemNotice` 全系統 Modal；參與者互動開始即時提示。
 
 ### 2026-06-14 — 結束活動通知 + Quiz 編輯 + Poll/Quiz 刪除（c9b53f1）
 
@@ -82,10 +85,6 @@ Host 題型／狀態中文化；Q&A 審核純中文按鈕與取消核准；審�
 ### 2026-06-14 — Q&A 開關 + 儀表板 Modal + 分享／meta UI（3078a70）
 
 `QaControlBar`；儀表板建立活動 Modal；`HostSessionMeta`；Modal portal＋關閉鈕；非工作台隱藏投影。
-
-### 2026-06-14 — Admin 重組 + Host 儀表板／工作台 UI（ae6af17）
-
-Admin 帳號管理、組織設定；Host 分享 Modal、工作台三欄、brand 回儀表板。
 
 ---
 
