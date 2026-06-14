@@ -69,6 +69,12 @@ export const IDEA_REACTED = "idea_reacted";
 export const IDEAS_EVENT_TYPES = new Set([IDEA_SUBMITTED, IDEA_REACTED]);
 
 /** Session 事件（活動生命週期） */
+export const SESSION_STARTED = "session_started";
 export const SESSION_ENDED = "session_ended";
 
-export const SESSION_EVENT_TYPES = new Set([SESSION_ENDED]);
+/** 互動開放（Quiz / Ideas / Survey / Q&A；Poll 另用 poll_started） */
+export const INTERACTION_STARTED = "interaction_started";
+
+export const SESSION_EVENT_TYPES = new Set([SESSION_STARTED, SESSION_ENDED]);
+
+export const INTERACTION_EVENT_TYPES = new Set([INTERACTION_STARTED]);

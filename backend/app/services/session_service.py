@@ -143,6 +143,25 @@ async def broadcast_session_ended(db: AsyncSession, session: Session) -> None:
         )
 
 
+async def broadcast_session_started(db: AsyncSession, session: Session) -> None:
+    """活動開始（live）時廣播至所有房間連線。"""
+    result = await db.execute(
+        select(Room.id).where(Room.session_id == session.id)
+    )
+    payload = {
+        "session_id": str(session.id),
+        "title": session.title,
+        "status": SessionStatus.LIVE.value,
+    }
+    for (room_id,) in result.all():
+        await events.publish(
+            room_id,
+            events.SESSION_STARTED,
+            payload,
+            target_modes=events.MODE_ALL,
+        )
+
+
 async def update_session(
     db: AsyncSession,
     *,
@@ -171,6 +190,11 @@ async def update_session(
 
     await db.commit()
     await db.refresh(session)
+    if (
+        payload.status == SessionStatus.LIVE
+        and old_status != SessionStatus.LIVE
+    ):
+        await broadcast_session_started(db, session)
     if (
         payload.status == SessionStatus.ENDED
         and old_status != SessionStatus.ENDED

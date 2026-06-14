@@ -1,6 +1,6 @@
 import * as React from "react";
 import { useEffect, useState } from "react";
-import { AuthCard } from "@liveengage/ui";
+import { AuthCard, useSystemNotice } from "@liveengage/ui";
 import { fetchSsoConfig, login, ssoAuthorizeUrl } from "../lib/authApi";
 import { setAuthTokens } from "../lib/auth";
 import { ApiException } from "../lib/api";
@@ -10,9 +10,9 @@ interface Props {
 }
 
 export function LoginPage({ onLoggedIn }: Props): React.JSX.Element {
+  const { showError, systemNoticeModal } = useSystemNotice();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [ssoEnabled, setSsoEnabled] = useState(false);
   const [ssoLabel, setSsoLabel] = useState("使用 SSO 登入");
@@ -28,7 +28,6 @@ export function LoginPage({ onLoggedIn }: Props): React.JSX.Element {
 
   async function onSubmit(e: React.FormEvent): Promise<void> {
     e.preventDefault();
-    setError(null);
     setLoading(true);
     try {
       const res = await login(email, password);
@@ -36,9 +35,9 @@ export function LoginPage({ onLoggedIn }: Props): React.JSX.Element {
       onLoggedIn();
     } catch (err) {
       if (err instanceof ApiException) {
-        setError(err.error.message);
+        showError(err.error.message);
       } else {
-        setError("登入失敗（login failed）");
+        showError("登入失敗（login failed）");
       }
     } finally {
       setLoading(false);
@@ -46,6 +45,7 @@ export function LoginPage({ onLoggedIn }: Props): React.JSX.Element {
   }
 
   return (
+    <>
     <AuthCard
       appTagline="管理後台（admin）"
       title="管理後台"
@@ -76,15 +76,6 @@ export function LoginPage({ onLoggedIn }: Props): React.JSX.Element {
           />
         </label>
 
-        {error ? (
-          <div
-            role="alert"
-            className="rounded-xl border border-danger/30 bg-danger/10 px-3 py-2 text-sm text-danger"
-          >
-            {error}
-          </div>
-        ) : null}
-
         <button type="submit" disabled={loading} className="le-btn-primary w-full">
           {loading ? "登入中…" : "登入（sign in）"}
         </button>
@@ -101,5 +92,7 @@ export function LoginPage({ onLoggedIn }: Props): React.JSX.Element {
         ) : null}
       </form>
     </AuthCard>
+    {systemNoticeModal}
+    </>
   );
 }

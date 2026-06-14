@@ -41,7 +41,11 @@ IDEA_SUBMITTED = "idea_submitted"
 IDEA_REACTED = "idea_reacted"
 
 # Session 事件（活動生命週期）
+SESSION_STARTED = "session_started"
 SESSION_ENDED = "session_ended"
+
+# 互動開放（Quiz / Ideas / Survey / Q&A 等；Poll 另用 poll_started）
+INTERACTION_STARTED = "interaction_started"
 
 # 接收端 mode 集合
 MODE_HOST = {"host"}

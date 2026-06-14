@@ -2,6 +2,7 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
+import { useSystemNotice } from "@liveengage/ui";
 import {
   AdminFormField,
   AdminPageHeader,
@@ -77,9 +78,9 @@ function ExportRow({ job }: { job: ExportJobData }) {
 
 export function ExportsPage({ onLogout }: Props): React.JSX.Element {
   const qc = useQueryClient();
+  const { showError, systemNoticeModal } = useSystemNotice();
   const [sessionId, setSessionId] = useState("");
   const [format, setFormat] = useState<"csv" | "xlsx">("csv");
-  const [error, setError] = useState("");
 
   const sessionsQuery = useQuery({
     queryKey: ["admin-sessions-export"],
@@ -95,9 +96,8 @@ export function ExportsPage({ onLogout }: Props): React.JSX.Element {
     mutationFn: () => createExport({ session_id: sessionId, format }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["admin-exports"] });
-      setError("");
     },
-    onError: (e: Error) => setError(e.message),
+    onError: (e: Error) => showError(e.message),
   });
 
   return (
@@ -143,7 +143,6 @@ export function ExportsPage({ onLogout }: Props): React.JSX.Element {
               {mutation.isPending ? "匯出中..." : "建立匯出"}
             </button>
           </div>
-          {error ? <p className="text-sm text-danger">{error}</p> : null}
         </AdminPanel>
 
         <AdminPanel className="overflow-hidden">
@@ -173,6 +172,7 @@ export function ExportsPage({ onLogout }: Props): React.JSX.Element {
           )}
         </AdminPanel>
       </div>
+      {systemNoticeModal}
     </AdminShell>
   );
 }

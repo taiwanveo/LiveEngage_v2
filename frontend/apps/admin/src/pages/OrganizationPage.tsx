@@ -2,6 +2,7 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
+import { useSystemNotice } from "@liveengage/ui";
 import {
   AdminFieldHint,
   AdminFormField,
@@ -23,6 +24,7 @@ import {
 
 function OrgSettings() {
   const qc = useQueryClient();
+  const { showError, systemNoticeModal } = useSystemNotice();
   const { data: org, isLoading } = useQuery({
     queryKey: ["admin-org"],
     queryFn: getOrganization,
@@ -30,16 +32,14 @@ function OrgSettings() {
 
   const [editing, setEditing] = useState(false);
   const [nameInput, setNameInput] = useState("");
-  const [error, setError] = useState("");
 
   const mutation = useMutation({
     mutationFn: (name: string) => updateOrganization({ name }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["admin-org"] });
       setEditing(false);
-      setError("");
     },
-    onError: (e: Error) => setError(e.message),
+    onError: (e: Error) => showError(e.message),
   });
 
   if (isLoading || !org) {
@@ -70,7 +70,6 @@ function OrgSettings() {
                 className={adminBtnSecondary}
                 onClick={() => {
                   setEditing(false);
-                  setError("");
                 }}
               >
                 取消
@@ -90,7 +89,6 @@ function OrgSettings() {
               </button>
             </div>
           )}
-          {error ? <p className="mt-1 text-sm text-danger">{error}</p> : null}
           <AdminFieldHint>
             參與者端公開顯示名稱亦使用此組織名稱（若未另外設定品牌顯示名）。
           </AdminFieldHint>
@@ -108,19 +106,20 @@ function OrgSettings() {
           </code>
         </AdminFormField>
       </div>
+      {systemNoticeModal}
     </AdminPanel>
   );
 }
 
 function BrandingSettings() {
   const qc = useQueryClient();
+  const { showError, systemNoticeModal } = useSystemNotice();
   const { data, isLoading } = useQuery({ queryKey: ["admin-branding"], queryFn: getBranding });
 
   const [logoUrl, setLogoUrl] = useState("");
   const [faviconUrl, setFaviconUrl] = useState("");
   const [primaryColor, setPrimaryColor] = useState("#2563eb");
   const [customDomain, setCustomDomain] = useState("");
-  const [error, setError] = useState("");
 
   useEffect(() => {
     if (data?.branding) {
@@ -142,9 +141,8 @@ function BrandingSettings() {
       }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["admin-branding"] });
-      setError("");
     },
-    onError: (e: Error) => setError(e.message),
+    onError: (e: Error) => showError(e.message),
   });
 
   if (isLoading) {
@@ -206,8 +204,6 @@ function BrandingSettings() {
         </div>
       ) : null}
 
-      {error ? <p className="text-sm text-danger">{error}</p> : null}
-
       <button
         className={adminBtnPrimary}
         disabled={mutation.isPending}
@@ -215,6 +211,7 @@ function BrandingSettings() {
       >
         {mutation.isPending ? "儲存中..." : "儲存品牌設定"}
       </button>
+      {systemNoticeModal}
     </AdminPanel>
   );
 }

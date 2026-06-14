@@ -2,6 +2,7 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
+import { useSystemNotice } from "@liveengage/ui";
 import {
   AdminFormField,
   AdminPageHeader,
@@ -29,11 +30,11 @@ const ROLE_LABELS: Record<string, string> = {
 };
 
 function InviteForm({ onDone }: { onDone: () => void }) {
+  const { showError, systemNoticeModal } = useSystemNotice();
   const [email, setEmail] = useState("");
   const [name, setName] = useState("");
   const [role, setRole] = useState("member");
   const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
 
   const mutation = useMutation({
     mutationFn: () => {
@@ -46,9 +47,8 @@ function InviteForm({ onDone }: { onDone: () => void }) {
       setEmail("");
       setName("");
       setPassword("");
-      setError("");
     },
-    onError: (e: Error) => setError(e.message),
+    onError: (e: Error) => showError(e.message),
   });
 
   return (
@@ -93,7 +93,6 @@ function InviteForm({ onDone }: { onDone: () => void }) {
           </select>
         </AdminFormField>
       </div>
-      {error ? <p className="text-sm text-danger">{error}</p> : null}
       <div className="flex justify-end gap-2">
         <button
           className={adminBtnPrimary}
@@ -103,6 +102,7 @@ function InviteForm({ onDone }: { onDone: () => void }) {
           {mutation.isPending ? "邀請中..." : "邀請"}
         </button>
       </div>
+      {systemNoticeModal}
     </div>
   );
 }

@@ -3,6 +3,7 @@
 import * as React from "react";
 import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useSystemNotice } from "@liveengage/ui";
 import { HostShell } from "../components/HostShell";
 import { HostTitleLink } from "../components/HostTitleActions";
 import { listQuizQuestions, updateQuizQuestion } from "../lib/sprint9Api";
@@ -27,6 +28,7 @@ export function QuizQuestionEditPage({
   onLogout,
 }: Props): React.JSX.Element {
   const qc = useQueryClient();
+  const { showError, showSuccess, systemNoticeModal } = useSystemNotice();
   const questionsQuery = useQuery({
     queryKey: ["quiz-questions", quizId],
     queryFn: () => listQuizQuestions(quizId),
@@ -40,7 +42,12 @@ export function QuizQuestionEditPage({
   const [speedBonus, setSpeedBonus] = useState(true);
   const [explanation, setExplanation] = useState("");
   const [options, setOptions] = useState<OptionDraft[]>([]);
-  const [saveMsg, setSaveMsg] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!questionsQuery.isLoading && !question) {
+      showError("找不到子題");
+    }
+  }, [questionsQuery.isLoading, question, showError]);
 
   useEffect(() => {
     if (!question) return;
@@ -72,7 +79,7 @@ export function QuizQuestionEditPage({
         })),
       }),
     onSuccess: () => {
-      setSaveMsg("已儲存");
+      showSuccess("已儲存");
       void qc.invalidateQueries({ queryKey: ["quiz-questions", quizId] });
     },
   });
@@ -90,7 +97,7 @@ export function QuizQuestionEditPage({
   if (!question) {
     return (
       <HostShell title="編輯 Quiz 子題" roomId={roomId} onLogout={onLogout} activeNav="sprint9">
-        <p className="text-sm text-danger">找不到子題</p>
+        {systemNoticeModal}
       </HostShell>
     );
   }
@@ -229,8 +236,6 @@ export function QuizQuestionEditPage({
           </button>
         </div>
 
-        {saveMsg ? <p className="text-sm text-success">{saveMsg}</p> : null}
-
         <button
           type="button"
           disabled={saveMutation.isPending || !title.trim() || options.some((o) => !o.text.trim())}
@@ -240,6 +245,7 @@ export function QuizQuestionEditPage({
           {saveMutation.isPending ? "儲存中…" : "儲存子題"}
         </button>
       </section>
+      {systemNoticeModal}
     </HostShell>
   );
 }

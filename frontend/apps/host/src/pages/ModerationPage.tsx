@@ -8,9 +8,10 @@
  */
 
 import * as React from "react";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { QA_EVENT_TYPES, useRoomWebSocket, type WsEvent } from "@liveengage/realtime";
+import { useSystemNotice } from "@liveengage/ui";
 import { HostShell } from "../components/HostShell";
 import { QaControlBar } from "../components/QaControlBar";
 import { getAccessToken } from "../lib/auth";
@@ -31,6 +32,7 @@ const WS_BACKUP_REFETCH_MS = 5_000;
 
 export function ModerationPage({ roomId, onLogout }: Props): React.JSX.Element {
   const queryClient = useQueryClient();
+  const { showError, systemNoticeModal } = useSystemNotice();
   const validRoom = roomId !== "_" && roomId.length > 0;
   const seenWsEventIds = React.useRef(new Set<string>());
 
@@ -98,6 +100,10 @@ export function ModerationPage({ roomId, onLogout }: Props): React.JSX.Element {
     return buckets;
   }, [items]);
 
+  useEffect(() => {
+    if (error) showError(`載入失敗：${(error as Error).message}`);
+  }, [error, showError]);
+
   if (!validRoom) {
     return <RoomPicker onLogout={onLogout} />;
   }
@@ -109,12 +115,6 @@ export function ModerationPage({ roomId, onLogout }: Props): React.JSX.Element {
       onLogout={onLogout}
       activeNav="moderation"
     >
-      {error ? (
-        <div className="mb-4 rounded-lg border border-danger/30 bg-danger/10 px-4 py-3 text-sm text-danger">
-          載入失敗：{(error as Error).message}
-        </div>
-      ) : null}
-
       <QaControlBar roomId={roomId} />
       {!wsConnected ? (
         <p className="mb-3 text-xs text-amber-700">
@@ -243,6 +243,7 @@ export function ModerationPage({ roomId, onLogout }: Props): React.JSX.Element {
           )}
         />
       </div>
+      {systemNoticeModal}
     </HostShell>
   );
 }
@@ -353,10 +354,10 @@ function ReplyForm(props: {
   onOpenChange?: (open: boolean) => void;
 }): React.JSX.Element {
   const queryClient = useQueryClient();
+  const { showError, systemNoticeModal } = useSystemNotice();
   const [open, setOpen] = useState(false);
   const [content, setContent] = useState("");
   const [isPrivate, setIsPrivate] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
   const setReplyOpen = (next: boolean): void => {
     setOpen(next);
@@ -368,13 +369,12 @@ function ReplyForm(props: {
     onSuccess: () => {
       setContent("");
       setReplyOpen(false);
-      setError(null);
       void queryClient.invalidateQueries({
         queryKey: ["moderation", props.roomId],
       });
     },
     onError: (err: unknown) => {
-      setError((err as Error).message);
+      showError((err as Error).message);
     },
   });
 
@@ -404,7 +404,6 @@ function ReplyForm(props: {
         />
         僅提問者可見（私密回覆）
       </label>
-      {error ? <p className="text-xs text-red-600">{error}</p> : null}
       <div className="flex gap-2">
         <ActionButton
           variant="primary"
@@ -422,6 +421,7 @@ function ReplyForm(props: {
           已有 {props.existing.length} 則回覆
         </p>
       ) : null}
+      {systemNoticeModal}
     </div>
   );
 }

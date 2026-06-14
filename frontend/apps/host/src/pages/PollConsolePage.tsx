@@ -1,7 +1,7 @@
 /** Poll 現場控制台（BE-005）：控場動作 + WS 即時結果（P-4/P-WS-1）。 */
 
 import * as React from "react";
-import { useCallback } from "react";
+import { useCallback, useEffect } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   POLL_EVENT_TYPES,
@@ -9,6 +9,7 @@ import {
   type WsEvent,
 } from "@liveengage/realtime";
 import { PollRenderer } from "@liveengage/renderers";
+import { useSystemNotice } from "@liveengage/ui";
 import { getAccessToken } from "../lib/auth";
 import { HostShell } from "../components/HostShell";
 import { PollControlBar } from "../components/PollControlBar";
@@ -30,6 +31,7 @@ export function PollConsolePage({
   onLogout,
 }: Props): React.JSX.Element {
   const queryClient = useQueryClient();
+  const { showError, systemNoticeModal } = useSystemNotice();
 
   const pollQuery = useQuery({
     queryKey: ["poll", pollId],
@@ -78,6 +80,10 @@ export function PollConsolePage({
   const results = resultsQuery.data ?? null;
   const err = pollQuery.error ?? resultsQuery.error ?? actionMutation.error;
 
+  useEffect(() => {
+    if (err) showError((err as Error).message);
+  }, [err, showError]);
+
   const runAction = (action: PollAction, needsConfirm?: boolean): void => {
     if (needsConfirm && !window.confirm("確定要重置並清除所有作答？")) return;
     actionMutation.mutate({ action, confirm: needsConfirm ?? false });
@@ -114,12 +120,6 @@ export function PollConsolePage({
         </HostTitleActions>
       }
     >
-      {err ? (
-        <div className="mb-4 rounded-lg border border-danger/30 bg-danger/10 px-4 py-3 text-sm text-danger">
-          {(err as Error).message}
-        </div>
-      ) : null}
-
       {poll ? (
         <>
           <PollControlBar
@@ -150,6 +150,7 @@ export function PollConsolePage({
       ) : (
         <p className="text-sm text-muted">載入中…</p>
       )}
+      {systemNoticeModal}
     </HostShell>
   );
 }

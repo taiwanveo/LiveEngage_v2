@@ -10,18 +10,18 @@ import {
 } from "../lib/participantAuth";
 import { joinSession, resolveSessionByCode } from "../lib/sessionApi";
 import { fetchSsoConfig, ssoAuthorizeUrl } from "../lib/authApi";
-import { AuthCard } from "@liveengage/ui";
+import { AuthCard, useSystemNotice } from "@liveengage/ui";
 
 interface Props {
   code: string;
 }
 
 export function JoinPage({ code }: Props): React.JSX.Element {
+  const { showError, systemNoticeModal } = useSystemNotice();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [passcode, setPasscode] = useState("");
   const [isAnonymous, setIsAnonymous] = useState(true);
-  const [formError, setFormError] = useState<string | null>(null);
   const [ssoEnabled, setSsoEnabled] = useState(false);
 
   useEffect(() => {
@@ -44,6 +44,16 @@ export function JoinPage({ code }: Props): React.JSX.Element {
     }
   }, [session]);
 
+  useEffect(() => {
+    if (sessionQuery.error) {
+      const msg =
+        sessionQuery.error instanceof ApiException
+          ? sessionQuery.error.error.message
+          : (sessionQuery.error as Error).message;
+      showError(msg);
+    }
+  }, [sessionQuery.error, showError]);
+
   const joinMutation = useMutation({
     mutationFn: async () => {
       if (!session) throw new Error("活動尚未載入");
@@ -60,7 +70,7 @@ export function JoinPage({ code }: Props): React.JSX.Element {
     },
     onSuccess: (res) => {
       if (!res.room_id) {
-        setFormError("加入成功但缺少房間資訊");
+        showError("加入成功但缺少房間資訊");
         return;
       }
       setParticipantSession({
@@ -74,9 +84,9 @@ export function JoinPage({ code }: Props): React.JSX.Element {
     },
     onError: (err: unknown) => {
       if (err instanceof ApiException) {
-        setFormError(err.error.message);
+        showError(err.error.message);
       } else {
-        setFormError((err as Error).message);
+        showError((err as Error).message);
       }
     },
   });
@@ -86,17 +96,15 @@ export function JoinPage({ code }: Props): React.JSX.Element {
   }
 
   if (sessionQuery.error) {
-    const msg =
-      sessionQuery.error instanceof ApiException
-        ? sessionQuery.error.error.message
-        : (sessionQuery.error as Error).message;
     return (
-      <CenteredMessage>
-        <p className="text-danger">{msg}</p>
-        <a href="#/join" className="mt-4 inline-block text-sm text-accent hover:underline">
-          重新輸入代碼
-        </a>
-      </CenteredMessage>
+      <>
+        <CenteredMessage>
+          <a href="#/join" className="inline-block text-sm text-accent hover:underline">
+            重新輸入代碼
+          </a>
+        </CenteredMessage>
+        {systemNoticeModal}
+      </>
     );
   }
 
@@ -140,7 +148,6 @@ export function JoinPage({ code }: Props): React.JSX.Element {
           className="space-y-4"
           onSubmit={(e) => {
             e.preventDefault();
-            setFormError(null);
             joinMutation.mutate();
           }}
         >
@@ -203,12 +210,6 @@ export function JoinPage({ code }: Props): React.JSX.Element {
             匿名參與
           </label>
 
-          {formError ? (
-            <p className="text-sm text-danger" role="alert">
-              {formError}
-            </p>
-          ) : null}
-
           <button
             type="submit"
             disabled={joinMutation.isPending}
@@ -218,6 +219,7 @@ export function JoinPage({ code }: Props): React.JSX.Element {
           </button>
         </form>
       )}
+      {systemNoticeModal}
     </AuthCard>
   );
 }

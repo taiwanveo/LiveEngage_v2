@@ -4,6 +4,7 @@ import * as React from "react";
 import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { PollRenderer } from "@liveengage/renderers";
+import { useSystemNotice } from "@liveengage/ui";
 import { HostShell } from "../components/HostShell";
 import { HostTitleLink } from "../components/HostTitleActions";
 import { updateInteraction } from "../lib/interactionApi";
@@ -25,6 +26,7 @@ export function PollBuilderPage({
   onLogout,
 }: Props): React.JSX.Element {
   const queryClient = useQueryClient();
+  const { showError, showSuccess, systemNoticeModal } = useSystemNotice();
   const { data: poll, isLoading, error } = useQuery({
     queryKey: ["poll", pollId],
     queryFn: () => getPoll(pollId),
@@ -33,7 +35,10 @@ export function PollBuilderPage({
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [options, setOptions] = useState<PollOptionInput[]>([]);
-  const [saveMsg, setSaveMsg] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (error) showError((error as Error).message);
+  }, [error, showError]);
 
   useEffect(() => {
     if (!poll) return;
@@ -54,7 +59,7 @@ export function PollBuilderPage({
     },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["poll", pollId] });
-      setSaveMsg("題目資訊已儲存");
+      showSuccess("題目資訊已儲存");
     },
   });
 
@@ -67,7 +72,7 @@ export function PollBuilderPage({
     },
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ["poll", pollId] });
-      setSaveMsg("選項已儲存");
+      showSuccess("選項已儲存");
     },
   });
 
@@ -101,15 +106,6 @@ export function PollBuilderPage({
         </HostTitleLink>
       }
     >
-      {error ? (
-        <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-          {(error as Error).message}
-        </div>
-      ) : null}
-      {saveMsg ? (
-        <p className="mb-4 text-sm text-emerald-700">{saveMsg}</p>
-      ) : null}
-
       {isLoading || !poll ? (
         <p className="text-sm text-slate-500">載入中…</p>
       ) : (
@@ -219,6 +215,7 @@ export function PollBuilderPage({
           </div>
         </div>
       )}
+      {systemNoticeModal}
     </HostShell>
   );
 }

@@ -1,8 +1,8 @@
 /** Q&A 審核頁：開啟／關閉 Q&A（參與者提問開關）。 */
 
 import * as React from "react";
-import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useSystemNotice } from "@liveengage/ui";
 import { ApiException } from "../lib/api";
 import {
   createInteraction,
@@ -23,7 +23,7 @@ function isModerationEnabled(settings: Record<string, unknown> | undefined): boo
 
 export function QaControlBar({ roomId }: Props): React.JSX.Element {
   const qc = useQueryClient();
-  const [actionError, setActionError] = useState<string | null>(null);
+  const { showError, systemNoticeModal } = useSystemNotice();
 
   const interactionsQuery = useQuery({
     queryKey: ["interactions", roomId],
@@ -47,10 +47,9 @@ export function QaControlBar({ roomId }: Props): React.JSX.Element {
       }
       return updateInteractionStatus(qaId, "active");
     },
-    onMutate: () => setActionError(null),
     onSuccess: () => void qc.invalidateQueries({ queryKey: ["interactions", roomId] }),
     onError: (err: unknown) => {
-      setActionError(
+      showError(
         err instanceof ApiException ? err.error.message : "開啟 Q&A 失敗，請稍後再試"
       );
     },
@@ -58,10 +57,9 @@ export function QaControlBar({ roomId }: Props): React.JSX.Element {
 
   const closeMutation = useMutation({
     mutationFn: () => updateInteractionStatus(qa!.id, "stopped"),
-    onMutate: () => setActionError(null),
     onSuccess: () => void qc.invalidateQueries({ queryKey: ["interactions", roomId] }),
     onError: (err: unknown) => {
-      setActionError(
+      showError(
         err instanceof ApiException ? err.error.message : "關閉 Q&A 失敗，請稍後再試"
       );
     },
@@ -72,10 +70,9 @@ export function QaControlBar({ roomId }: Props): React.JSX.Element {
       updateInteraction(qa!.id, {
         settings: { ...qa!.settings, moderation_enabled: enabled },
       }),
-    onMutate: () => setActionError(null),
     onSuccess: () => void qc.invalidateQueries({ queryKey: ["interactions", roomId] }),
     onError: (err: unknown) => {
-      setActionError(
+      showError(
         err instanceof ApiException ? err.error.message : "切換審核失敗，請稍後再試"
       );
     },
@@ -163,11 +160,7 @@ export function QaControlBar({ roomId }: Props): React.JSX.Element {
           )}
         </div>
       </div>
-      {actionError ? (
-        <p className="mt-2 text-xs text-danger" role="alert">
-          {actionError}
-        </p>
-      ) : null}
+      {systemNoticeModal}
     </section>
   );
 }

@@ -1,7 +1,7 @@
 /** 投影全螢幕 Poll 展示（唯讀；控場在 Host 控制台）。 */
 
 import * as React from "react";
-import { useCallback } from "react";
+import { useCallback, useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   POLL_EVENT_TYPES,
@@ -9,6 +9,7 @@ import {
   type WsEvent,
 } from "@liveengage/realtime";
 import { PollRenderer } from "@liveengage/renderers";
+import { useSystemNotice } from "@liveengage/ui";
 import { getAccessToken } from "../lib/auth";
 import { getPoll, getPollResults } from "../lib/pollApi";
 
@@ -19,6 +20,7 @@ interface Props {
 
 export function PollPresentPage({ roomId, pollId }: Props): React.JSX.Element {
   const queryClient = useQueryClient();
+  const { showError, systemNoticeModal } = useSystemNotice();
 
   const pollQuery = useQuery({
     queryKey: ["poll", pollId],
@@ -52,6 +54,10 @@ export function PollPresentPage({ roomId, pollId }: Props): React.JSX.Element {
   const poll = pollQuery.data;
   const err = pollQuery.error ?? resultsQuery.error;
 
+  useEffect(() => {
+    if (err) showError((err as Error).message);
+  }, [err, showError]);
+
   return (
     <div className="relative flex min-h-full flex-col bg-slate-950">
       {/* 連線指示燈：投影時低調顯示 */}
@@ -65,9 +71,7 @@ export function PollPresentPage({ roomId, pollId }: Props): React.JSX.Element {
       </div>
 
       <div className="flex-1 p-8 md:p-12 lg:p-16">
-        {err ? (
-          <p className="text-center text-red-400">{(err as Error).message}</p>
-        ) : poll ? (
+        {poll ? (
           <PollRenderer
             mode="present"
             poll={poll}
@@ -77,6 +81,7 @@ export function PollPresentPage({ roomId, pollId }: Props): React.JSX.Element {
           <p className="text-center text-slate-400">載入中…</p>
         )}
       </div>
+      {systemNoticeModal}
     </div>
   );
 }

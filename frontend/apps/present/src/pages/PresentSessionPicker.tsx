@@ -1,8 +1,9 @@
 /** 登入後選擇活動與 Poll 進行投影。 */
 
 import * as React from "react";
+import { useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { AppHeader } from "@liveengage/ui";
+import { AppHeader, useSystemNotice } from "@liveengage/ui";
 import {
   isPollType,
   listInteractions,
@@ -16,10 +17,17 @@ interface Props {
 }
 
 export function PresentSessionPicker({ onLogout }: Props): React.JSX.Element {
+  const { showError, systemNoticeModal } = useSystemNotice();
   const sessionsQuery = useQuery({
     queryKey: ["present-sessions"],
     queryFn: listSessions,
   });
+
+  useEffect(() => {
+    if (sessionsQuery.error) {
+      showError((sessionsQuery.error as Error).message);
+    }
+  }, [sessionsQuery.error, showError]);
 
   return (
     <main className="le-page-bg min-h-full">
@@ -33,8 +41,6 @@ export function PresentSessionPicker({ onLogout }: Props): React.JSX.Element {
       <div className="relative z-10 mx-auto max-w-2xl space-y-6 px-4 py-8 sm:px-6">
         {sessionsQuery.isLoading ? (
           <p className="text-muted">載入活動…</p>
-        ) : sessionsQuery.error ? (
-          <p className="text-danger">{(sessionsQuery.error as Error).message}</p>
         ) : sessionsQuery.data?.length === 0 ? (
           <p className="le-card border-dashed p-8 text-center text-muted">
             尚無活動。請先在 Host 建立活動並建立 Poll。
@@ -47,6 +53,7 @@ export function PresentSessionPicker({ onLogout }: Props): React.JSX.Element {
           </ul>
         )}
       </div>
+      {systemNoticeModal}
     </main>
   );
 }

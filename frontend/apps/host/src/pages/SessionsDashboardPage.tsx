@@ -11,7 +11,7 @@ import {
   type SessionStatus,
 } from "../lib/sessionApi";
 import { ApiException } from "../lib/api";
-import { AppHeader, JoinShareCard, Modal, participantJoinUrl } from "@liveengage/ui";
+import { AppHeader, JoinShareCard, Modal, participantJoinUrl, useSystemNotice } from "@liveengage/ui";
 import { HOST_DASHBOARD_HASH } from "../components/HostShell";
 
 interface Props {
@@ -27,9 +27,9 @@ const STATUS_LABEL: Record<SessionStatus, string> = {
 
 export function SessionsDashboardPage({ onLogout }: Props): React.JSX.Element {
   const qc = useQueryClient();
+  const { showError, systemNoticeModal } = useSystemNotice();
   const [createOpen, setCreateOpen] = useState(false);
   const [title, setTitle] = useState("");
-  const [error, setError] = useState<string | null>(null);
 
   const sessionsQuery = useQuery({
     queryKey: ["host-sessions"],
@@ -40,7 +40,6 @@ export function SessionsDashboardPage({ onLogout }: Props): React.JSX.Element {
     mutationFn: () => createSession({ title: title.trim() }),
     onSuccess: (session) => {
       setTitle("");
-      setError(null);
       setCreateOpen(false);
       void qc.invalidateQueries({ queryKey: ["host-sessions"] });
       if (session.default_room_id) {
@@ -48,7 +47,7 @@ export function SessionsDashboardPage({ onLogout }: Props): React.JSX.Element {
       }
     },
     onError: (err: unknown) => {
-      setError(err instanceof ApiException ? err.error.message : "建立失敗");
+      showError(err instanceof ApiException ? err.error.message : "建立失敗");
     },
   });
 
@@ -64,7 +63,6 @@ export function SessionsDashboardPage({ onLogout }: Props): React.JSX.Element {
   });
 
   function openCreateModal(): void {
-    setError(null);
     setTitle("");
     setCreateOpen(true);
   }
@@ -72,9 +70,14 @@ export function SessionsDashboardPage({ onLogout }: Props): React.JSX.Element {
   function closeCreateModal(): void {
     if (createMutation.isPending) return;
     setCreateOpen(false);
-    setError(null);
     setTitle("");
   }
+
+  React.useEffect(() => {
+    if (sessionsQuery.error) {
+      showError((sessionsQuery.error as Error).message);
+    }
+  }, [sessionsQuery.error, showError]);
 
   return (
     <main className="le-page-bg min-h-full">
@@ -112,11 +115,6 @@ export function SessionsDashboardPage({ onLogout }: Props): React.JSX.Element {
               className="le-input mt-2 w-full"
             />
           </label>
-          {error ? (
-            <p className="mt-2 text-sm text-danger" role="alert">
-              {error}
-            </p>
-          ) : null}
           <div className="mt-4 flex justify-end">
             <button type="submit" disabled={createMutation.isPending} className="le-btn-primary">
               {createMutation.isPending ? "建立中…" : "建立活動"}
@@ -130,10 +128,6 @@ export function SessionsDashboardPage({ onLogout }: Props): React.JSX.Element {
           <h2 className="mb-4 font-display text-lg font-semibold text-foreground">我的活動</h2>
           {sessionsQuery.isLoading ? (
             <p className="text-sm text-muted">載入中…</p>
-          ) : sessionsQuery.error ? (
-            <p className="text-sm text-danger">
-              {(sessionsQuery.error as Error).message}
-            </p>
           ) : sessionsQuery.data?.length === 0 ? (
             <p className="le-card border-dashed p-8 text-center text-sm text-muted">
               尚無活動，請先建立一場活動。
@@ -157,6 +151,7 @@ export function SessionsDashboardPage({ onLogout }: Props): React.JSX.Element {
           )}
         </section>
       </div>
+      {systemNoticeModal}
     </main>
   );
 }

@@ -14,6 +14,8 @@ import {
   QA_EVENT_TYPES,
   QUIZ_QUESTION_STARTED,
   SESSION_ENDED,
+  SESSION_STARTED,
+  INTERACTION_STARTED,
   IDEAS_EVENT_TYPES,
   useRoomWebSocket,
   type WsEvent,
@@ -30,11 +32,24 @@ import {
 import { getPoll, getPollResults, isPollType, submitPollResponse } from "../lib/pollApi";
 import { getSessionState } from "../lib/sessionApi";
 import { submitQuizAnswer, type ActiveQuizQuestion } from "../lib/sprint9Api";
-import { AppHeader, Modal } from "@liveengage/ui";
+import {
+  AppHeader,
+  Modal,
+  interactionTypeLabel,
+  useSystemNotice,
+} from "@liveengage/ui";
+
+function interactionStartedMessage(payload: Record<string, unknown>): string {
+  const type = typeof payload.type === "string" ? payload.type : "互動";
+  const label = interactionTypeLabel(type);
+  const title = typeof payload.title === "string" && payload.title.trim() ? payload.title : label;
+  return `「${title}」已開始，請參與 ${label}！`;
+}
 
 export function RoomPage(): React.JSX.Element {
   const ctx = getParticipantContext();
   const queryClient = useQueryClient();
+  const { showError, showInfo, systemNoticeModal } = useSystemNotice();
   const [tab, setTab] = useState<"poll" | "qa" | "ideas" | "quiz">("poll");
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [pollSubmitOk, setPollSubmitOk] = useState(false);
@@ -44,7 +59,6 @@ export function RoomPage(): React.JSX.Element {
   const [sessionEnded, setSessionEnded] = useState(false);
   const [endedTitle, setEndedTitle] = useState("活動");
 
-  // session-state：30s 安全備援；WS 事件觸發 invalidate
   const stateQuery = useQuery({
     queryKey: ["session-state", ctx?.sessionId],
     queryFn: () => getSessionState(ctx!.sessionId),
@@ -100,17 +114,45 @@ export function RoomPage(): React.JSX.Element {
     }
   }, [stateQuery.data?.status, stateQuery.data?.title]);
 
-  // WS 事件處理：依事件類型決定 invalidate 策略
+  useEffect(() => {
+    if (submitError) showError(submitError);
+  }, [submitError, showError]);
+
+  useEffect(() => {
+    if (pollQuery.error) showError((pollQuery.error as Error).message);
+  }, [pollQuery.error, showError]);
+
   const handleWsEvent = useCallback(
     (event: WsEvent) => {
       if (QA_EVENT_TYPES.has(event.type)) {
         void queryClient.invalidateQueries({ queryKey: ["qa-public", ctx?.roomId] });
       }
       switch (event.type) {
+        case SESSION_STARTED: {
+          const title =
+            typeof event.payload.title === "string" ? event.payload.title : "活動";
+          showInfo(`「${title}」已開始，歡迎參與！`, "活動已開始");
+          void queryClient.invalidateQueries({
+            queryKey: ["session-state", ctx?.sessionId],
+          });
+          break;
+        }
+        case INTERACTION_STARTED: {
+          const type = typeof event.payload.type === "string" ? event.payload.type : "";
+          showInfo(interactionStartedMessage(event.payload), "互動已開始");
+          void queryClient.invalidateQueries({
+            queryKey: ["session-state", ctx?.sessionId],
+          });
+          if (type === "ideas") setTab("ideas");
+          else if (type === "qa") setTab("qa");
+          else if (isPollType(type)) setTab("poll");
+          break;
+        }
         case POLL_STARTED: {
           setTab("poll");
           setPollSubmitOk(false);
           setSubmitError(null);
+          showInfo("主持人已啟動投票，請參與作答！", "投票已開始");
           const startedPollId =
             typeof event.payload.poll_id === "string" ? event.payload.poll_id : activePollId;
           if (startedPollId) {
@@ -159,6 +201,7 @@ export function RoomPage(): React.JSX.Element {
           if (q) {
             setQuizQuestion(q);
             setTab("quiz");
+            showInfo(`快問快答題目「${q.title ?? "新題目"}」已開始！`, "Quiz 已開始");
           }
           break;
         }
@@ -178,7 +221,7 @@ export function RoomPage(): React.JSX.Element {
           break;
       }
     },
-    [queryClient, ctx?.sessionId, activePollId, activeIdeasBoardId],
+    [queryClient, ctx?.sessionId, ctx?.roomId, activePollId, activeIdeasBoardId, showInfo],
   );
 
   const { connected } = useRoomWebSocket({
@@ -321,52 +364,47 @@ export function RoomPage(): React.JSX.Element {
             >
               <p className="text-sm text-muted">Quiz 已提交，感謝參與！</p>
             </Modal>
-            {submitError ? (
-              <p className="mt-3 text-sm text-danger">{submitError}</p>
-            ) : null}
           </div>
         ) : (
           <>
-        <Modal
-          open={pollSubmitOk}
-          onClose={() => setPollSubmitOk(false)}
-          title="提交成功"
-          size="sm"
-        >
-          <p className="text-sm text-muted">已提交，感謝參與！</p>
-        </Modal>
+            <Modal
+              open={pollSubmitOk}
+              onClose={() => setPollSubmitOk(false)}
+              title="提交成功"
+              size="sm"
+            >
+              <p className="text-sm text-muted">已提交，感謝參與！</p>
+            </Modal>
 
-        {stateQuery.isLoading ? (
-          <p className="text-center text-sm text-muted">載入活動狀態…</p>
-        ) : !activePollId ? (
-          <div className="le-card border-dashed p-10 text-center">
-            <p className="text-lg font-medium text-foreground">等待投票開始</p>
-            <p className="mt-2 text-sm text-muted">
-              主持人啟動 Poll 後，題目會自動出現在此頁
-            </p>
-          </div>
-        ) : pollQuery.error ? (
-          <p className="text-sm text-danger">
-            {(pollQuery.error as Error).message}
-          </p>
-        ) : poll ? (
-          <PollRenderer
-            mode="answer"
-            poll={poll}
-            results={poll.result_visible ? resultsQuery.data ?? null : null}
-            onSubmit={(answer) => {
-              setPollSubmitOk(false);
-              submitMutation.mutate(answer);
-            }}
-            submitting={submitMutation.isPending}
-            submitError={submitError}
-          />
-        ) : (
-          <p className="text-center text-sm text-muted">載入題目…</p>
-        )}
+            {stateQuery.isLoading ? (
+              <p className="text-center text-sm text-muted">載入活動狀態…</p>
+            ) : !activePollId ? (
+              <div className="le-card border-dashed p-10 text-center">
+                <p className="text-lg font-medium text-foreground">等待投票開始</p>
+                <p className="mt-2 text-sm text-muted">
+                  主持人啟動 Poll 後，題目會自動出現在此頁
+                </p>
+              </div>
+            ) : poll ? (
+              <PollRenderer
+                mode="answer"
+                poll={poll}
+                results={poll.result_visible ? resultsQuery.data ?? null : null}
+                onSubmit={(answer) => {
+                  setPollSubmitOk(false);
+                  submitMutation.mutate(answer);
+                }}
+                submitting={submitMutation.isPending}
+                submitError={submitError}
+              />
+            ) : (
+              <p className="text-center text-sm text-muted">載入題目…</p>
+            )}
           </>
         )}
       </div>
+
+      {systemNoticeModal}
 
       <Modal
         open={sessionEnded}

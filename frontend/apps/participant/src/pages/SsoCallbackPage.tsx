@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { joinWithSsoTicket } from "../lib/authApi";
 import { ApiException } from "../lib/api";
 import { setParticipantSession } from "../lib/participantAuth";
+import { useSystemNotice } from "@liveengage/ui";
 
 interface Props {
   ticket: string;
@@ -17,7 +18,8 @@ export function SsoCallbackPage({
   sessionId,
   sessionCode,
 }: Props): React.JSX.Element {
-  const [error, setError] = useState<string | null>(null);
+  const { showError, systemNoticeModal } = useSystemNotice();
+  const [failed, setFailed] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -35,27 +37,26 @@ export function SsoCallbackPage({
       })
       .catch((err: unknown) => {
         if (cancelled) return;
-        setError(err instanceof ApiException ? err.error.message : "SSO 加入失敗");
+        showError(err instanceof ApiException ? err.error.message : "SSO 加入失敗");
+        setFailed(true);
       });
     return () => {
       cancelled = true;
     };
-  }, [ticket, sessionId, sessionCode]);
+  }, [ticket, sessionId, sessionCode, showError]);
 
   return (
     <main className="le-page-bg flex min-h-full items-center justify-center px-4">
       <div className="le-card p-8 text-center">
-        {error ? (
-          <>
-            <p className="text-danger">{error}</p>
-            <a href={`#/join/${sessionCode}`} className="mt-4 inline-block text-sm text-accent">
-              返回
-            </a>
-          </>
+        {failed ? (
+          <a href={`#/join/${sessionCode}`} className="inline-block text-sm text-accent">
+            返回
+          </a>
         ) : (
           <p className="text-muted">SSO 登入處理中…</p>
         )}
       </div>
+      {systemNoticeModal}
     </main>
   );
 }

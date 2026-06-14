@@ -1,8 +1,8 @@
 /** 參與者 Q&A：提問與瀏覽已核准問題。 */
 
-import { Modal } from "@liveengage/ui";
-import { useState } from "react";
+import * as React from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Modal, useSystemNotice } from "@liveengage/ui";
 import { ApiException } from "../lib/api";
 import { listQuestions, submitQuestion, voteQuestion } from "../lib/qaApi";
 
@@ -12,10 +12,10 @@ interface Props {
 
 export function RoomQaPanel({ roomId }: Props): React.JSX.Element {
   const qc = useQueryClient();
-  const [content, setContent] = useState("");
-  const [anonymous, setAnonymous] = useState(false);
-  const [formError, setFormError] = useState<string | null>(null);
-  const [submitOk, setSubmitOk] = useState(false);
+  const { showError, systemNoticeModal } = useSystemNotice();
+  const [content, setContent] = React.useState("");
+  const [anonymous, setAnonymous] = React.useState(false);
+  const [submitOk, setSubmitOk] = React.useState(false);
 
   const questionsQuery = useQuery({
     queryKey: ["qa-public", roomId],
@@ -28,13 +28,12 @@ export function RoomQaPanel({ roomId }: Props): React.JSX.Element {
       submitQuestion(roomId, { content: content.trim(), is_anonymous: anonymous }),
     onSuccess: () => {
       setContent("");
-      setFormError(null);
       setSubmitOk(true);
       void qc.invalidateQueries({ queryKey: ["qa-public", roomId] });
     },
     onError: (err: unknown) => {
       setSubmitOk(false);
-      setFormError(
+      showError(
         err instanceof ApiException ? err.error.message : "提交失敗"
       );
     },
@@ -79,11 +78,6 @@ export function RoomQaPanel({ roomId }: Props): React.JSX.Element {
             />
             匿名提問
           </label>
-          {formError ? (
-            <p className="text-sm text-danger" role="alert">
-              {formError}
-            </p>
-          ) : null}
           <Modal
             open={submitOk}
             onClose={() => setSubmitOk(false)}
@@ -163,6 +157,7 @@ export function RoomQaPanel({ roomId }: Props): React.JSX.Element {
           </ul>
         )}
       </section>
+      {systemNoticeModal}
     </div>
   );
 }

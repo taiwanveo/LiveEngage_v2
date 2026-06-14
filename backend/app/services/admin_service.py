@@ -317,6 +317,13 @@ async def patch_session(
     await db.commit()
     await db.refresh(session)
     if (
+        payload.status == SessionStatus.LIVE
+        and old_status != SessionStatus.LIVE
+    ):
+        from app.services.session_service import broadcast_session_started
+
+        await broadcast_session_started(db, session)
+    if (
         payload.status == SessionStatus.ENDED
         and old_status != SessionStatus.ENDED
     ):

@@ -1,8 +1,9 @@
 /** Poll 列表與建立入口（S6-2）。 */
 
 import * as React from "react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useSystemNotice } from "@liveengage/ui";
 import { HostShell } from "../components/HostShell";
 import { createInteraction, deleteInteraction, listInteractions } from "../lib/interactionApi";
 import {
@@ -19,6 +20,7 @@ interface Props {
 
 export function PollHubPage({ roomId, onLogout }: Props): React.JSX.Element {
   const queryClient = useQueryClient();
+  const { showError, systemNoticeModal } = useSystemNotice();
   const [newType, setNewType] = useState<PollInteractionType>("multiple_choice");
   const [newTitle, setNewTitle] = useState("");
 
@@ -47,14 +49,12 @@ export function PollHubPage({ roomId, onLogout }: Props): React.JSX.Element {
 
   const polls = (items ?? []).filter((i) => isPollType(i.type));
 
+  useEffect(() => {
+    if (error) showError(`載入失敗：${(error as Error).message}`);
+  }, [error, showError]);
+
   return (
     <HostShell title="Poll 管理" roomId={roomId} onLogout={onLogout} activeNav="polls">
-      {error ? (
-        <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-          載入失敗：{(error as Error).message}
-        </div>
-      ) : null}
-
       <section className="le-card mb-8 p-6">
         <h2 className="mb-4 text-sm font-semibold text-foreground">建立新 Poll</h2>
         <div className="flex flex-wrap gap-3">
@@ -157,6 +157,7 @@ export function PollHubPage({ roomId, onLogout }: Props): React.JSX.Element {
           )}
         </ul>
       </section>
+      {systemNoticeModal}
     </HostShell>
   );
 }

@@ -3,6 +3,7 @@
 import * as React from "react";
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useSystemNotice } from "@liveengage/ui";
 import { HostShell } from "../components/HostShell";
 import { ApiException } from "../lib/api";
 import {
@@ -31,7 +32,7 @@ export function Sprint9HubPage({ roomId, onLogout }: Props): React.JSX.Element {
   const qc = useQueryClient();
   const [newType, setNewType] = useState<(typeof S9_TYPES)[number]["value"]>("quiz");
   const [title, setTitle] = useState("");
-  const [activateError, setActivateError] = useState<string | null>(null);
+  const { showError, showSuccess, systemNoticeModal } = useSystemNotice();
 
   const { data: items, isLoading } = useQuery({
     queryKey: ["interactions", roomId],
@@ -52,10 +53,12 @@ export function Sprint9HubPage({ roomId, onLogout }: Props): React.JSX.Element {
 
   const activateMutation = useMutation({
     mutationFn: (id: string) => updateInteractionStatus(id, "active"),
-    onMutate: () => setActivateError(null),
-    onSuccess: () => void qc.invalidateQueries({ queryKey: ["interactions", roomId] }),
+    onSuccess: () => {
+      showSuccess("已開放");
+      void qc.invalidateQueries({ queryKey: ["interactions", roomId] });
+    },
     onError: (err: unknown) => {
-      setActivateError(
+      showError(
         err instanceof ApiException ? err.error.message : "開放失敗，請稍後再試"
       );
     },
@@ -103,12 +106,6 @@ export function Sprint9HubPage({ roomId, onLogout }: Props): React.JSX.Element {
           </button>
         </div>
       </section>
-
-      {activateError ? (
-        <p className="mb-4 rounded-md border border-red-200 bg-red-50 px-4 py-2 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/40 dark:text-red-300">
-          {activateError}
-        </p>
-      ) : null}
 
       <section className="le-card overflow-hidden">
         <header className="border-b border-border px-6 py-4">
@@ -178,6 +175,7 @@ export function Sprint9HubPage({ roomId, onLogout }: Props): React.JSX.Element {
           </ul>
         )}
       </section>
+      {systemNoticeModal}
     </HostShell>
   );
 }

@@ -3,6 +3,7 @@
 import * as React from "react";
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useSystemNotice } from "@liveengage/ui";
 import { ApiException } from "../lib/api";
 import { listBoardIdeas, reactIdea, submitIdea } from "../lib/sprint9Api";
 
@@ -12,8 +13,8 @@ interface Props {
 
 export function RoomIdeasPanel({ boardId }: Props): React.JSX.Element {
   const qc = useQueryClient();
+  const { showError, systemNoticeModal } = useSystemNotice();
   const [content, setContent] = useState("");
-  const [error, setError] = useState<string | null>(null);
 
   const ideasQuery = useQuery({
     queryKey: ["ideas-board", boardId],
@@ -25,11 +26,10 @@ export function RoomIdeasPanel({ boardId }: Props): React.JSX.Element {
     mutationFn: () => submitIdea(boardId, content.trim()),
     onSuccess: () => {
       setContent("");
-      setError(null);
       void qc.invalidateQueries({ queryKey: ["ideas-board", boardId] });
     },
     onError: (err: unknown) => {
-      setError(err instanceof ApiException ? err.error.message : "提交失敗");
+      showError(err instanceof ApiException ? err.error.message : "提交失敗");
     },
   });
 
@@ -62,7 +62,6 @@ export function RoomIdeasPanel({ boardId }: Props): React.JSX.Element {
           送出
         </button>
       </form>
-      {error ? <p className="text-sm text-danger">{error}</p> : null}
       <ul className="space-y-3">
         {(ideasQuery.data?.items ?? []).map((idea) => (
           <li key={idea.id} className="le-card p-4">
@@ -80,6 +79,7 @@ export function RoomIdeasPanel({ boardId }: Props): React.JSX.Element {
           </li>
         ))}
       </ul>
+      {systemNoticeModal}
     </div>
   );
 }

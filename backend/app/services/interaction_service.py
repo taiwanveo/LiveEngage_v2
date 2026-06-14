@@ -2,11 +2,13 @@
 
 from __future__ import annotations
 
+import contextlib
 import datetime as dt
 import uuid
 from typing import cast
 
 from sqlalchemy import func, select, delete
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.errors import AppError, ErrorCode
@@ -25,7 +27,7 @@ from app.schemas.interaction import (
     InteractionUpdateRequest,
 )
 from app.schemas.poll import POLL_TYPES
-from app.services.poll_redis import set_poll_agg_ttl
+from app.services.poll_redis import acquire_room_lock, release_room_lock, set_poll_agg_ttl
 
 
 async def ensure_room_access(
@@ -130,25 +132,82 @@ async def update_interaction(
 ) -> InteractionResponse:
     """更新互動項目（標題／狀態／設定）。"""
     interaction = await _load_interaction_for_host(db, interaction_id, host)
+    room_id = interaction.room_id
 
     if payload.title is not None:
         interaction.title = payload.title
     if payload.description is not None:
         interaction.description = payload.description
-    if payload.status is not None:
-        if payload.status == InteractionStatus.ACTIVE:
-            await _stop_other_active_in_room(
-                db, interaction.room_id, interaction.id
-            )
-        _apply_status_transition(interaction, payload.status)
-    if payload.settings is not None:
-        interaction.settings_jsonb = payload.settings
-    if payload.result_visible is not None:
-        interaction.result_visible = payload.result_visible
 
-    await db.commit()
+    activating = (
+        payload.status is not None
+        and payload.status == InteractionStatus.ACTIVE
+        and interaction.status != InteractionStatus.ACTIVE
+    )
+
+    lock_token: str | None = None
+    if activating:
+        lock_token = await acquire_room_lock(room_id)
+
+    try:
+        if payload.status is not None:
+            if activating:
+                if interaction.status not in (
+                    InteractionStatus.IDLE,
+                    InteractionStatus.STOPPED,
+                ):
+                    raise AppError(
+                        ErrorCode.POLL_INVALID_STATE,
+                        f"僅閒置或已結束的互動可開放（目前為「{interaction.status.value}」）",
+                    )
+                await _stop_other_active_in_room(db, room_id, interaction.id)
+                await db.flush()
+                _apply_status_transition(interaction, InteractionStatus.ACTIVE)
+            elif payload.status != InteractionStatus.ACTIVE:
+                _apply_status_transition(interaction, payload.status)
+
+        if payload.settings is not None:
+            interaction.settings_jsonb = payload.settings
+        if payload.result_visible is not None:
+            interaction.result_visible = payload.result_visible
+
+        await db.commit()
+    except IntegrityError as exc:
+        await db.rollback()
+        raise AppError(
+            ErrorCode.POLL_INVALID_STATE,
+            "同時僅能有一個進行中的互動，請先停止其他互動後再試",
+        ) from exc
+    finally:
+        if lock_token is not None:
+            with contextlib.suppress(Exception):
+                await release_room_lock(room_id, lock_token)
+
     await db.refresh(interaction)
+
+    if activating:
+        await _broadcast_interaction_started(interaction, room_id)
+
     return _to_response(interaction)
+
+
+async def _broadcast_interaction_started(
+    interaction: Interaction,
+    room_id: uuid.UUID,
+) -> None:
+    """互動開放時通知參與者（Quiz／Ideas／Survey／Q&A 等）。"""
+    payload = {
+        "interaction_id": str(interaction.id),
+        "type": interaction.type.value,
+        "title": interaction.title,
+        "status": InteractionStatus.ACTIVE.value,
+    }
+    await events.publish(
+        room_id,
+        events.INTERACTION_STARTED,
+        payload,
+        target_modes=events.MODE_ALL,
+    )
 
 
 async def _stop_other_active_in_room(

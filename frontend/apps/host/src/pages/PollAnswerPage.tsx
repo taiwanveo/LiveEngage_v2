@@ -1,9 +1,10 @@
 /** 參與者作答預覽（需 participant token 才能真正提交）。 */
 
 import * as React from "react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { PollRenderer } from "@liveengage/renderers";
+import { useSystemNotice } from "@liveengage/ui";
 import { HostShell } from "../components/HostShell";
 import { getPoll, getPollResults, submitPollResponse } from "../lib/pollApi";
 
@@ -19,6 +20,7 @@ export function PollAnswerPage({
   onLogout,
 }: Props): React.JSX.Element {
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const { showError, systemNoticeModal } = useSystemNotice();
 
   const pollQuery = useQuery({
     queryKey: ["poll", pollId],
@@ -45,6 +47,14 @@ export function PollAnswerPage({
 
   const poll = pollQuery.data;
 
+  useEffect(() => {
+    if (pollQuery.error) showError((pollQuery.error as Error).message);
+  }, [pollQuery.error, showError]);
+
+  useEffect(() => {
+    if (submitError) showError(submitError);
+  }, [submitError, showError]);
+
   return (
     <HostShell
       title="參與者作答預覽"
@@ -54,12 +64,6 @@ export function PollAnswerPage({
       onLogout={onLogout}
       activeNav="polls"
     >
-      {pollQuery.error ? (
-        <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-          {(pollQuery.error as Error).message}
-        </div>
-      ) : null}
-
       {poll ? (
         <div className="max-w-xl">
           <PollRenderer
@@ -74,6 +78,7 @@ export function PollAnswerPage({
       ) : (
         <p className="text-sm text-slate-500">載入中…</p>
       )}
+      {systemNoticeModal}
     </HostShell>
   );
 }

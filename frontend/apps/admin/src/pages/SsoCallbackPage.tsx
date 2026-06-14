@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { exchangeSsoTicket } from "../lib/authApi";
 import { setAuthTokens } from "../lib/auth";
 import { ApiException } from "../lib/api";
+import { useSystemNotice } from "@liveengage/ui";
 
 interface Props {
   ticket: string;
@@ -17,7 +18,8 @@ export function SsoCallbackPage({
   returnTo,
   onLoggedIn,
 }: Props): React.JSX.Element {
-  const [error, setError] = useState<string | null>(null);
+  const { showError, systemNoticeModal } = useSystemNotice();
+  const [failed, setFailed] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -30,33 +32,32 @@ export function SsoCallbackPage({
       })
       .catch((err: unknown) => {
         if (cancelled) return;
-        setError(err instanceof ApiException ? err.error.message : "SSO 登入失敗");
+        showError(err instanceof ApiException ? err.error.message : "SSO 登入失敗");
+        setFailed(true);
       });
     return () => {
       cancelled = true;
     };
-  }, [ticket, returnTo, onLoggedIn]);
+  }, [ticket, returnTo, onLoggedIn, showError]);
 
   return (
     <main className="le-page-bg flex min-h-full items-center justify-center px-4">
       <div className="le-card p-8 text-center">
-        {error ? (
-          <>
-            <p className="text-danger">{error}</p>
-            <button
-              type="button"
-              className="le-btn-secondary mt-4"
-              onClick={() => {
-                window.location.hash = "";
-              }}
-            >
-              返回登入
-            </button>
-          </>
+        {failed ? (
+          <button
+            type="button"
+            className="le-btn-secondary mt-4"
+            onClick={() => {
+              window.location.hash = "";
+            }}
+          >
+            返回登入
+          </button>
         ) : (
           <p className="text-muted">SSO 登入處理中…</p>
         )}
       </div>
+      {systemNoticeModal}
     </main>
   );
 }

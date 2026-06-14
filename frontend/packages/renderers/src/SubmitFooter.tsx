@@ -12,16 +12,11 @@ export function SubmitFooter({
   onSubmit,
   submitting,
   disabled,
-  submitError,
+  submitError: _submitError,
   label = "提交",
 }: SubmitFooterProps): React.JSX.Element {
   return (
     <div className="space-y-2">
-      {submitError ? (
-        <p className="text-sm text-red-600" role="alert">
-          {submitError}
-        </p>
-      ) : null}
       <button
         type="button"
         onClick={onSubmit}
