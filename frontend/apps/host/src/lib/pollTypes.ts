@@ -38,10 +38,14 @@ export interface PollOptionInput {
   order_no?: number;
 }
 
+import type { PollResults } from "@liveengage/renderers";
+
 export interface PollActionResponse {
   poll_id: string;
   status: InteractionStatus;
   result_visible: boolean;
+  /** reveal 時後端附帶結果快照 */
+  results?: PollResults | null;
 }
 
 export const POLL_TYPES: { value: PollInteractionType; label: string }[] = [

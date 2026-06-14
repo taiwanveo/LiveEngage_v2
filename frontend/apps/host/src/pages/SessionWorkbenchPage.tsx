@@ -1,7 +1,7 @@
 /** Session 三欄工作台：互動清單｜控場｜Participant 預覽（Slido 風格）。 */
 
 import * as React from "react";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   POLL_EVENT_TYPES,
@@ -34,6 +34,11 @@ import {
 import { HOST_DASHBOARD_HASH } from "../components/HostShell";
 import { HostRoomHeaderActions } from "../components/HostRoomHeaderActions";
 import { ControlToggle, isPollRunning } from "../components/PollControlBar";
+import {
+  applyHostPollActionSuccess,
+  createSelfPollActionGuard,
+  handleHostPollWsEvent,
+} from "../lib/pollActionCache";
 
 interface Props {
   roomId: string;
@@ -73,6 +78,7 @@ function pollToolbarStatus(poll: {
 
 export function SessionWorkbenchPage({ roomId, pollId, onLogout }: Props): React.JSX.Element {
   const qc = useQueryClient();
+  const selfActionGuard = useRef(createSelfPollActionGuard());
   const [newType, setNewType] = useState<PollInteractionType>("multiple_choice");
   const [newTitle, setNewTitle] = useState("");
 
@@ -128,33 +134,29 @@ export function SessionWorkbenchPage({ roomId, pollId, onLogout }: Props): React
   const actionMutation = useMutation({
     mutationFn: ({ action, confirm }: { action: PollAction; confirm?: boolean }) =>
       pollAction(selectedPollId!, action, confirm ?? false),
-    onSuccess: (data) => {
-      if (selectedPollId) {
-        qc.setQueryData(
-          ["poll", selectedPollId],
-          (prev: typeof pollQuery.data) =>
-            prev
-              ? {
-                  ...prev,
-                  status: data.status,
-                  result_visible: data.result_visible,
-                }
-              : prev
-        );
-      }
-      void qc.invalidateQueries({ queryKey: ["poll", selectedPollId] });
-      void qc.invalidateQueries({ queryKey: ["poll-results", selectedPollId] });
-      void qc.invalidateQueries({ queryKey: ["interactions", roomId] });
+    onSuccess: (data, variables) => {
+      if (!selectedPollId) return;
+      selfActionGuard.current.mark(selectedPollId);
+      applyHostPollActionSuccess(qc, {
+        roomId,
+        pollId: selectedPollId,
+        action: variables.action,
+        data,
+      });
     },
   });
 
   const handleWsEvent = useCallback(
     (event: WsEvent) => {
       if (!selectedPollId || !POLL_EVENT_TYPES.has(event.type)) return;
-      void qc.invalidateQueries({ queryKey: ["poll", selectedPollId] });
-      void qc.invalidateQueries({ queryKey: ["poll-results", selectedPollId] });
+      handleHostPollWsEvent(qc, {
+        event,
+        pollId: selectedPollId,
+        roomId,
+        guard: selfActionGuard.current,
+      });
     },
-    [qc, selectedPollId]
+    [qc, roomId, selectedPollId]
   );
 
   const { connected } = useRoomWebSocket({

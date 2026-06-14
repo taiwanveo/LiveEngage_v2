@@ -63,7 +63,14 @@
 ### 3.5 API 503 / DB 連線失敗
 
 - 檢查 Neon 控制台連線數、是否暫停
-- Zeabur api 日誌；確認 `LE_DATABASE_URL` 使用 pooler URL
+- Zeabur api 日誌；確認 `LE_DATABASE_URL` 使用 **Pooler** URL（主機名含 `-pooler`）
+- Neon 區域建議 **ap-northeast-1（東京）**，與 Zeabur 首爾節點延遲較低
+
+### 3.6 Host 控場按鈕反應慢
+
+- **現象**：開始／揭曉／鎖定後 UI 停頓 0.5～2s
+- **常見原因**：Neon 與 Zeabur 跨區 RTT；未用 Pooler；舊版前端重複 refetch（已於 2026-06-14 優化）
+- **處置**：確認 Pooler + 東京區；`GET /ready` 檢查 Redis；強制重整 Host 快取（Ctrl+Shift+R）
 
 ---
 

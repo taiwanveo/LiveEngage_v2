@@ -12,6 +12,7 @@ from __future__ import annotations
 import contextlib
 import datetime as dt
 import uuid
+from collections.abc import Awaitable, Callable
 from typing import Any, cast
 
 from sqlalchemy import delete, func, select
@@ -128,6 +129,8 @@ _NEEDS_ROOM_LOCK: frozenset[PollAction] = frozenset(
     {PollAction.START, PollAction.STOP, PollAction.RESET}
 )
 
+PostCommitHook = Callable[[], Awaitable[None]]
+
 
 # ── 載入輔助 ───────────────────────────────────────────────────────
 
@@ -232,9 +235,8 @@ async def _action_start(
     interaction: Interaction,
     room_id: uuid.UUID,
     host: User,
-) -> None:
-    """start：idle/stopped → active；在房間鎖內執行。"""
-    # 先查同 room 是否有另一個 active poll → 自動 stop 它
+) -> list[PostCommitHook]:
+    """start：idle/stopped → active；在房間鎖內執行（不 commit，由入口統一提交）。"""
     existing_result = await db.execute(
         select(Interaction).where(
             Interaction.room_id == room_id,
@@ -243,54 +245,73 @@ async def _action_start(
         )
     )
     existing_active = existing_result.scalars().first()
+    stopped_poll_id: uuid.UUID | None = None
     if existing_active is not None:
         await _optimistic_status_update(
-            db, existing_active.id, InteractionStatus.ACTIVE, InteractionStatus.STOPPED,
+            db,
+            existing_active.id,
+            InteractionStatus.ACTIVE,
+            InteractionStatus.STOPPED,
             extra={"stopped_at": dt.datetime.now(dt.UTC)},
         )
-        # 固化舊 poll 的 Redis agg TTL，廣播停止
-        await set_poll_agg_ttl(existing_active.id)
-        await events.publish(
-            room_id, events.POLL_STOPPED,
-            {"poll_id": str(existing_active.id), "status": "stopped"},
-        )
+        stopped_poll_id = existing_active.id
 
     await _optimistic_status_update(
-        db, interaction.id, interaction.status, InteractionStatus.ACTIVE,
+        db,
+        interaction.id,
+        interaction.status,
+        InteractionStatus.ACTIVE,
         extra={"result_visible": False},
     )
-    await db.commit()
+    interaction.status = InteractionStatus.ACTIVE
+    interaction.result_visible = False
+    await db.flush()
 
     options = await _get_options(db, interaction.id, hide_correct=True)
-    await events.publish(
-        room_id,
-        events.POLL_STARTED,
-        {
-            "poll_id": str(interaction.id),
-            "type": interaction.type,
-            "title": interaction.title,
-            "options": [o.model_dump() for o in options],
-            "settings_public": _public_settings(interaction),
-            "result_visible": interaction.result_visible,
-        },
-    )
+    start_payload = {
+        "poll_id": str(interaction.id),
+        "type": interaction.type,
+        "title": interaction.title,
+        "options": [o.model_dump() for o in options],
+        "settings_public": _public_settings(interaction),
+        "result_visible": False,
+    }
+
+    async def _after_commit() -> None:
+        if stopped_poll_id is not None:
+            await set_poll_agg_ttl(stopped_poll_id)
+            await events.publish(
+                room_id,
+                events.POLL_STOPPED,
+                {"poll_id": str(stopped_poll_id), "status": "stopped"},
+            )
+        await events.publish(room_id, events.POLL_STARTED, start_payload)
+
+    return [_after_commit]
 
 
 async def _action_stop(
     db: AsyncSession,
     interaction: Interaction,
     room_id: uuid.UUID,
-) -> None:
+) -> list[PostCommitHook]:
     """stop：active/locked → stopped；固化 Redis agg TTL；廣播。"""
     await _optimistic_status_update(
         db, interaction.id, interaction.status, InteractionStatus.STOPPED,
     )
-    await db.commit()
-    await set_poll_agg_ttl(interaction.id)
-    await events.publish(
-        room_id, events.POLL_STOPPED,
-        {"poll_id": str(interaction.id), "status": "stopped"},
-    )
+    interaction.status = InteractionStatus.STOPPED
+    await db.flush()
+    poll_id = interaction.id
+
+    async def _after_commit() -> None:
+        await set_poll_agg_ttl(poll_id)
+        await events.publish(
+            room_id,
+            events.POLL_STOPPED,
+            {"poll_id": str(poll_id), "status": "stopped"},
+        )
+
+    return [_after_commit]
 
 
 async def _action_reset(
@@ -298,26 +319,33 @@ async def _action_reset(
     interaction: Interaction,
     room_id: uuid.UUID,
     confirm: bool,
-) -> None:
+) -> list[PostCommitHook]:
     """reset：清 poll_responses + 清 Redis agg + idle；需 confirm=true。"""
     if not confirm:
         raise AppError(
             ErrorCode.VALIDATION_ERROR,
             "reset 動作需要帶 confirm=true 確認",
         )
-    # 刪全部作答
     await db.execute(
         delete(PollResponse).where(PollResponse.interaction_id == interaction.id)
     )
     await _optimistic_status_update(
         db, interaction.id, interaction.status, InteractionStatus.IDLE,
     )
-    await db.commit()
-    await clear_poll_agg(interaction.id)
-    await events.publish(
-        room_id, events.POLL_STOPPED,
-        {"poll_id": str(interaction.id), "status": "idle"},
-    )
+    interaction.status = InteractionStatus.IDLE
+    interaction.result_visible = False
+    await db.flush()
+    poll_id = interaction.id
+
+    async def _after_commit() -> None:
+        await clear_poll_agg(poll_id)
+        await events.publish(
+            room_id,
+            events.POLL_STOPPED,
+            {"poll_id": str(poll_id), "status": "idle"},
+        )
+
+    return [_after_commit]
 
 
 async def _action_lock_unlock(
@@ -325,19 +353,26 @@ async def _action_lock_unlock(
     interaction: Interaction,
     room_id: uuid.UUID,
     to_status: InteractionStatus,
-) -> None:
+) -> list[PostCommitHook]:
     """lock / unlock：僅 DB 樂觀鎖，不需房間鎖。"""
     await _optimistic_status_update(
         db, interaction.id, interaction.status, to_status,
     )
-    await db.commit()
+    interaction.status = to_status
+    await db.flush()
+    poll_id = interaction.id
     event_type = (
         events.POLL_LOCKED if to_status == InteractionStatus.LOCKED else events.POLL_UNLOCKED
     )
-    await events.publish(
-        room_id, event_type,
-        {"poll_id": str(interaction.id), "status": to_status},
-    )
+
+    async def _after_commit() -> None:
+        await events.publish(
+            room_id,
+            event_type,
+            {"poll_id": str(poll_id), "status": to_status.value},
+        )
+
+    return [_after_commit]
 
 
 async def _action_reveal_hide(
@@ -345,8 +380,8 @@ async def _action_reveal_hide(
     interaction: Interaction,
     room_id: uuid.UUID,
     reveal: bool,
-) -> None:
-    """reveal / hide：只改 result_visible；DB 直接 UPDATE（不須 status 配對）。"""
+) -> list[PostCommitHook]:
+    """reveal / hide：只改 result_visible。"""
     cursor = cast(
         CursorResult[Any],
         await db.execute(
@@ -357,16 +392,23 @@ async def _action_reveal_hide(
     )
     if cursor.rowcount == 0:
         raise AppError(ErrorCode.NOT_FOUND, "互動項目不存在")
-    await db.commit()
+    interaction.result_visible = reveal
+    await db.flush()
 
+    poll_id = interaction.id
     event_type = events.POLL_RESULT_REVEALED if reveal else events.POLL_RESULT_HIDDEN
-    payload: dict[str, Any] = {"poll_id": str(interaction.id)}
+    payload: dict[str, Any] = {"poll_id": str(poll_id)}
+    correct_id_strs: list[str] = []
     if reveal:
-        # 揭示時一併送正解 option_ids（PM-003-FR5）
         correct_ids = await _get_correct_option_ids(db, interaction.id)
         if correct_ids:
-            payload["correct_option_ids"] = [str(oid) for oid in correct_ids]
-    await events.publish(room_id, event_type, payload)
+            correct_id_strs = [str(oid) for oid in correct_ids]
+            payload["correct_option_ids"] = correct_id_strs
+
+    async def _after_commit() -> None:
+        await events.publish(room_id, event_type, payload)
+
+    return [_after_commit]
 
 
 # ── 公開進入點 ──────────────────────────────────────────────────────
@@ -405,20 +447,31 @@ async def execute_poll_action(
     if action in _NEEDS_ROOM_LOCK:
         lock_token = await acquire_room_lock(room_id)
 
+    post_commit_hooks: list[PostCommitHook] = []
     try:
         if action == PollAction.START:
-            await _action_start(db, interaction, room_id, host)
+            post_commit_hooks.extend(
+                await _action_start(db, interaction, room_id, host)
+            )
         elif action == PollAction.STOP:
-            await _action_stop(db, interaction, room_id)
+            post_commit_hooks.extend(await _action_stop(db, interaction, room_id))
         elif action == PollAction.RESET:
-            await _action_reset(db, interaction, room_id, request.confirm)
+            post_commit_hooks.extend(
+                await _action_reset(db, interaction, room_id, request.confirm)
+            )
         elif action in (PollAction.LOCK, PollAction.UNLOCK):
             assert target_status is not None
-            await _action_lock_unlock(db, interaction, room_id, target_status)
+            post_commit_hooks.extend(
+                await _action_lock_unlock(db, interaction, room_id, target_status)
+            )
         elif action == PollAction.REVEAL:
-            await _action_reveal_hide(db, interaction, room_id, reveal=True)
+            post_commit_hooks.extend(
+                await _action_reveal_hide(db, interaction, room_id, reveal=True)
+            )
         elif action == PollAction.HIDE:
-            await _action_reveal_hide(db, interaction, room_id, reveal=False)
+            post_commit_hooks.extend(
+                await _action_reveal_hide(db, interaction, room_id, reveal=False)
+            )
     finally:
         if lock_token is not None:
             with contextlib.suppress(Exception):
@@ -435,16 +488,27 @@ async def execute_poll_action(
     )
     await db.commit()
 
+    for hook in post_commit_hooks:
+        await hook()
+
     refreshed = await db.execute(
         select(Interaction).where(Interaction.id == interaction_id)
     )
     current = refreshed.scalars().first()
     if current is None:
         raise AppError(ErrorCode.NOT_FOUND, "找不到互動項目")
+
+    results_snapshot: PollResults | None = None
+    if action in (PollAction.REVEAL, PollAction.RESET):
+        results_snapshot = await get_poll_results(
+            db, interaction_id, is_host=True
+        )
+
     return PollActionResponse(
         poll_id=current.id,
         status=current.status,
         result_visible=current.result_visible,
+        results=results_snapshot,
     )
 
 
@@ -1152,6 +1216,10 @@ def _is_uuid_field(key: str) -> bool:
 
 
 async def _count_responses(db: AsyncSession, interaction_id: uuid.UUID) -> int:
+    agg = await get_poll_agg(interaction_id)
+    raw = agg.get("count")
+    if raw is not None and str(raw).isdigit():
+        return int(raw)
     result = await db.execute(
         select(func.count())
         .select_from(PollResponse)

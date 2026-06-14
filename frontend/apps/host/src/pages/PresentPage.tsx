@@ -1,7 +1,7 @@
 /** PM-004：投影全螢幕 + 控制列 + 鍵盤快捷鍵（S6-3）+ WS 即時推送（P-4/P-WS-1）。 */
 
 import * as React from "react";
-import { useCallback, useEffect } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   POLL_EVENT_TYPES,
@@ -12,6 +12,11 @@ import { PollRenderer } from "@liveengage/renderers";
 import { getAccessToken } from "../lib/auth";
 import { getPoll, getPollResults, pollAction } from "../lib/pollApi";
 import type { PollAction, InteractionStatus } from "../lib/pollTypes";
+import {
+  applyHostPollActionSuccess,
+  createSelfPollActionGuard,
+  handleHostPollWsEvent,
+} from "../lib/pollActionCache";
 
 interface Props {
   roomId: string;
@@ -20,6 +25,7 @@ interface Props {
 
 export function PresentPage({ roomId, pollId }: Props): React.JSX.Element {
   const queryClient = useQueryClient();
+  const selfActionGuard = useRef(createSelfPollActionGuard());
 
   // WS 事件觸發 invalidate；30s 輪詢作安全備援
   const pollQuery = useQuery({
@@ -37,19 +43,28 @@ export function PresentPage({ roomId, pollId }: Props): React.JSX.Element {
 
   const actionMutation = useMutation({
     mutationFn: (action: PollAction) => pollAction(pollId, action),
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ["poll", pollId] });
-      void queryClient.invalidateQueries({ queryKey: ["poll-results", pollId] });
+    onSuccess: (data, action) => {
+      selfActionGuard.current.mark(pollId);
+      applyHostPollActionSuccess(queryClient, {
+        roomId,
+        pollId,
+        action,
+        data,
+      });
     },
   });
 
   const handleWsEvent = useCallback(
     (event: WsEvent) => {
       if (!POLL_EVENT_TYPES.has(event.type)) return;
-      void queryClient.invalidateQueries({ queryKey: ["poll", pollId] });
-      void queryClient.invalidateQueries({ queryKey: ["poll-results", pollId] });
+      handleHostPollWsEvent(queryClient, {
+        event,
+        pollId,
+        roomId,
+        guard: selfActionGuard.current,
+      });
     },
-    [queryClient, pollId],
+    [queryClient, pollId, roomId],
   );
 
   const { connected } = useRoomWebSocket({

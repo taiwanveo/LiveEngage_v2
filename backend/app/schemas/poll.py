@@ -190,6 +190,8 @@ class PollActionResponse(BaseModel):
     poll_id: uuid.UUID
     status: InteractionStatus
     result_visible: bool
+    """reveal 時附帶結果快照，Host 可免再打 GET /results。"""
+    results: PollResults | None = None
 
 
 class PollOptionsUpdateRequest(BaseModel):
