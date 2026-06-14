@@ -7,8 +7,9 @@
 ## SNAPSHOT（2026-06-14）
 
 - **Repo**：https://github.com/ColdRighter/LiveEngage.git（master）
-- **最新 commit**：`e930fec` — Host 繁中 UI、Q&A 審核開關／取消核准、參與者標記星號
-- **pytest**：`test_unapprove_returns_to_pending_and_hides_from_public` 通過（需 `LE_DATABASE_URL`）
+- **最新 commit**：`c9b53f1` — 結束活動 WS 通知、Quiz 編輯、Poll/Quiz 刪除與多項 UX 修正
+- **pytest**：`test_s9_phase_d.py` + `test_poll_sprint5.py` 18 passed（約 6 分鐘，需 `LE_DATABASE_URL`）
+- **typecheck**：`realtime` / `host` / `participant` 通過
 - **Zeabur**：**六服務** — api / host / participant / present / admin / worker（push `master` 自動 redeploy）
 
 ### 已上線服務
@@ -22,34 +23,33 @@
 | admin | https://le-admin.zeabur.app |
 | worker | Celery（無公開 URL） |
 
-### 本輪重點（e930fec）
+### 本輪重點（c9b53f1）
 
 | 區塊 | 內容 |
 |------|------|
-| **Host 繁中 UI** | `pollTypes.ts` 統一 `interactionTypeLabel`／`interactionStatusLabel`／`quizQuestionStateLabel`；Poll 列表、控制台、Builder、工作台、Sprint9、儀表板不再顯示 `multiple_choice`／`idle` 等代碼 |
-| **Q&A 審核** | 三欄標題與按鈕純中文；**取消核准**（`unapprove`）將已核准退回待審 |
-| **Q&A 控場** | `QaControlBar`：開／關 Q&A、開／關審核（`moderation_enabled`）；狀態徽章；控制列高度壓縮 |
-| **Q&A 即時** | 審核頁 `useRoomWebSocket` + `QA_EVENT_TYPES`；30s 輪詢備援 |
-| **參與者 Q&A** | 主持人標記問題顯示 ★，hover 提示「這個問題已被活動主持人標記」 |
-| **後端** | `ModerateAction.UNAPPROVE`；廣播 `question_dismissed` 至全端以更新公開列表 |
+| **結束活動通知** | 後端 `SESSION_ENDED` WS 廣播（`session_service`／`admin_service`）；參與者 `RoomPage` Modal + 導回加入頁；`session-state.status === ended` 備援 |
+| **Quiz 編輯（Sprint 9）** | `PATCH /quizzes/questions/{id}`、`DELETE` 子題；`QuizQuestionEditPage`；控制台 pending 子題「編輯／刪除」；路由 `#/rooms/.../sprint9/.../questions/.../edit` |
+| **Poll / Quiz 刪除** | `DELETE /interactions/{id}`（`active` 不可刪）；`PollHubPage`／`Sprint9HubPage` 刪除按鈕 + confirm |
+| **Q&A 審核 UX** | 操作按鈕 hover 顯示；WS 本機先 broadcast + Redis；5s 輪詢備援 |
+| **參與者 UX** | Poll／Quiz／Q&A 提交成功改 Modal；頂欄分享按鈕（`ParticipantShareActions` + 共用 `JoinShareCard`） |
+| **Admin** | 參與度 `participants_engaged` UNION 去重；稽核動作／目標類型中文下拉（`auditLabels.ts`） |
+| **共用 UI** | `JoinShareCard`、`participantJoinUrl` 移至 `@liveengage/ui` |
 
-### 先前已上線（3078a70 一帶）
+### 先前已上線（e930fec 一帶）
 
 | 區塊 | 內容 |
 |------|------|
-| **活動儀表板** | 「建立新活動」Modal；全寬列表 |
-| **頂欄 meta** | 活動名稱 + hover Room ID |
-| **分享 Modal** | portal 置中、關閉鈕與複製連結同列 |
-| **投影** | 僅工作台顯示 |
+| **Host 繁中 UI** | 題型／狀態中文化；Q&A 審核開關／取消核准 |
+| **儀表板** | 建立活動 Modal；分享 Modal portal 置中 |
 
-### 現場 Q&A 流程（主持人）
+### 現場流程速查
 
-1. 活動儀表板建立活動 → 設為進行中 → 分享 QR／連結  
-2. **Q&A 審核** → **開啟 Q&A**；可切換 **開啟／關閉審核**  
-3. 參與者提問 → 待審（有審核）或直接已核准（免審）  
-4. 核准／取消核准／標記／標為已答  
+1. **Poll**：Poll 管理 → 建立 → Builder → 控制台 start → 參與者作答  
+2. **Quiz**：Quiz 管理 → 建立 → 控制台新增子題 → 編輯（pending）→ 開始／揭曉  
+3. **結束活動**：儀表板或 Admin 將 session 設為 `ended` → 參與者即時 Modal  
+4. **刪除**：Poll／Quiz 須非 `active` 狀態方可刪除  
 
-> 同一 room 同時僅一個 `active` 互動；開 Q&A 會 stop 進行中的 Poll／Quiz。
+> 同一 room 同時僅一個 `active` 互動。
 
 ### 生產環境 env（api）
 
@@ -64,12 +64,16 @@
 
 - Webhook outbound 派送（Celery）
 - Playwright join→poll→Q&A E2E
+- `delete_interaction`／`broadcast_session_ended` 專項 pytest
 - Admin Integrations UI
-- 參與者提問成功文案依審核開關動態顯示
 
 ---
 
 ## HISTORY
+
+### 2026-06-14 — 結束活動通知 + Quiz 編輯 + Poll/Quiz 刪除（c9b53f1）
+
+`session_ended` 廣播；參與者結束 Modal；Quiz 子題 PATCH/DELETE 與編輯頁；互動 DELETE；Q&A 即時審核；參與度去重；稽核中文化；參與者分享與提交 Modal。
 
 ### 2026-06-14 — 繁中 UI + Q&A 審核增強（e930fec）
 
@@ -82,10 +86,6 @@ Host 題型／狀態中文化；Q&A 審核純中文按鈕與取消核准；審�
 ### 2026-06-14 — Admin 重組 + Host 儀表板／工作台 UI（ae6af17）
 
 Admin 帳號管理、組織設定；Host 分享 Modal、工作台三欄、brand 回儀表板。
-
-### 2026-06-14 — Quiz 開放 + Admin 版型 + Host 導覽（cbd1cfb）
-
-Quiz 管理開放；Admin 選單重排；Host 跨頁分享與導覽。
 
 ---
 
