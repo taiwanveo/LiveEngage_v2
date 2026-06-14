@@ -54,13 +54,13 @@ export function Sprint9HubPage({ roomId, onLogout }: Props): React.JSX.Element {
 
   return (
     <HostShell title="Quiz / Ideas / Survey" roomId={roomId} onLogout={onLogout}>
-      <section className="mb-8 rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-        <h2 className="mb-4 text-sm font-semibold text-slate-900">建立互動</h2>
+      <section className="le-card mb-8 p-6">
+        <h2 className="mb-4 text-sm font-semibold text-foreground">建立互動</h2>
         <div className="flex flex-wrap gap-3">
           <select
             value={newType}
             onChange={(e) => setNewType(e.target.value as typeof newType)}
-            className="rounded-lg border border-slate-300 px-3 py-2 text-sm"
+            className="le-input !w-auto min-w-[180px]"
           >
             {S9_TYPES.map((t) => (
               <option key={t.value} value={t.value}>
@@ -73,35 +73,37 @@ export function Sprint9HubPage({ roomId, onLogout }: Props): React.JSX.Element {
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             placeholder="標題（選填）"
-            className="min-w-[200px] flex-1 rounded-lg border border-slate-300 px-3 py-2 text-sm"
+            className="le-input min-w-[200px] flex-1"
           />
           <button
             type="button"
             disabled={createMutation.isPending}
             onClick={() => createMutation.mutate()}
-            className="rounded-lg bg-primary-600 px-4 py-2 text-sm font-medium text-white hover:bg-primary-700 disabled:opacity-50"
+            className="le-btn-primary !min-h-[42px]"
           >
             建立
           </button>
         </div>
       </section>
 
-      <section className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-        <h2 className="mb-4 text-sm font-semibold text-slate-900">已建立項目</h2>
+      <section className="le-card overflow-hidden">
+        <header className="border-b border-border px-6 py-4">
+          <h2 className="text-sm font-semibold text-foreground">已建立項目</h2>
+        </header>
         {isLoading ? (
-          <p className="text-sm text-slate-500">載入中…</p>
+          <p className="px-6 py-8 text-sm text-muted">載入中…</p>
         ) : s9Items.length === 0 ? (
-          <p className="text-sm text-slate-500">尚無 Quiz / Ideas / Survey</p>
+          <p className="px-6 py-8 text-sm text-muted">尚無 Quiz / Ideas / Survey</p>
         ) : (
-          <ul className="divide-y divide-slate-100">
+          <ul className="divide-y divide-border">
             {s9Items.map((item) => (
-              <li key={item.id} className="flex flex-wrap items-center justify-between gap-3 py-3">
+              <li key={item.id} className="flex flex-wrap items-center justify-between gap-3 px-6 py-3">
                 <div>
-                  <p className="font-medium text-slate-900">
+                  <p className="font-medium text-foreground">
                     {item.title ?? item.type}
-                    <span className="ml-2 text-xs text-slate-500">{item.type}</span>
+                    <span className="ml-2 text-xs text-muted">{item.type}</span>
                   </p>
-                  <p className="text-xs text-slate-400">狀態：{item.status}</p>
+                  <p className="text-xs text-muted">狀態：{item.status}</p>
                 </div>
                 <div className="flex flex-wrap gap-2">
                   {item.status !== "active" ? (
@@ -115,7 +117,7 @@ export function Sprint9HubPage({ roomId, onLogout }: Props): React.JSX.Element {
                   ) : null}
                   <a
                     href={`#/rooms/${roomId}/sprint9/${item.id}/console`}
-                    className="rounded-md bg-slate-900 px-3 py-1.5 text-xs text-white hover:bg-slate-800"
+                    className="le-btn-secondary !min-h-0 px-3 py-1.5 text-xs"
                   >
                     控制台
                   </a>

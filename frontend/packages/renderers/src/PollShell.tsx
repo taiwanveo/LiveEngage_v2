@@ -26,7 +26,7 @@ export function PollShell({
       className={
         isPresent
           ? "rounded-2xl bg-slate-900 p-8 text-white shadow-xl"
-          : "rounded-xl border border-slate-200 bg-white p-6 shadow-sm"
+          : "le-card p-6"
       }
     >
       <header className="mb-6 space-y-2">
@@ -35,7 +35,7 @@ export function PollShell({
             className={
               isPresent
                 ? "rounded-full bg-white/10 px-3 py-1 text-xs font-medium text-slate-200"
-                : "rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-600"
+                : "rounded-full bg-surface-elevated px-3 py-1 text-xs font-medium text-muted"
             }
           >
             {modeLabel(mode)}
@@ -44,7 +44,7 @@ export function PollShell({
             className={
               isPresent
                 ? "rounded-full bg-primary-500/20 px-3 py-1 text-xs font-medium text-primary-50"
-                : "rounded-full bg-primary-50 px-3 py-1 text-xs font-medium text-primary-700"
+                : "rounded-full bg-accent-muted px-3 py-1 text-xs font-medium text-accent"
             }
           >
             {statusLabel(status)}
@@ -54,7 +54,7 @@ export function PollShell({
           className={
             isPresent
               ? "text-3xl font-bold tracking-tight md:text-4xl"
-              : "text-xl font-semibold text-slate-900"
+              : "text-xl font-semibold text-foreground"
           }
         >
           {title ?? "未命名題目"}
@@ -64,7 +64,7 @@ export function PollShell({
             className={
               isPresent
                 ? "text-lg text-slate-300"
-                : "text-sm text-slate-600"
+                : "text-sm text-muted"
             }
           >
             {description}

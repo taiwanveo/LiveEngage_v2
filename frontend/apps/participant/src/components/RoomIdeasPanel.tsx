@@ -52,27 +52,27 @@ export function RoomIdeasPanel({ boardId }: Props): React.JSX.Element {
           value={content}
           onChange={(e) => setContent(e.target.value)}
           placeholder="分享你的點子…"
-          className="flex-1 rounded-lg border border-slate-300 px-3 py-2 text-sm"
+          className="le-input flex-1"
         />
         <button
           type="submit"
           disabled={submitMutation.isPending}
-          className="rounded-lg bg-primary-600 px-4 py-2 text-sm text-white disabled:opacity-50"
+          className="le-btn-primary !min-h-[42px] disabled:opacity-50"
         >
           送出
         </button>
       </form>
-      {error ? <p className="text-sm text-red-600">{error}</p> : null}
+      {error ? <p className="text-sm text-danger">{error}</p> : null}
       <ul className="space-y-3">
         {(ideasQuery.data?.items ?? []).map((idea) => (
-          <li key={idea.id} className="rounded-xl border border-slate-200 bg-white p-4">
-            <p className="text-slate-900">{idea.content}</p>
-            <div className="mt-2 flex items-center justify-between text-xs text-slate-500">
+          <li key={idea.id} className="le-card p-4">
+            <p className="text-foreground">{idea.content}</p>
+            <div className="mt-2 flex items-center justify-between text-xs text-muted">
               <span>{idea.author_display ?? "匿名"}</span>
               <button
                 type="button"
                 onClick={() => reactMutation.mutate(idea.id)}
-                className="rounded-full bg-slate-100 px-2 py-1 hover:bg-slate-200"
+                className="le-btn-secondary !min-h-0 rounded-full px-2 py-1 text-xs"
               >
                 👍 {idea.reaction_total}
               </button>

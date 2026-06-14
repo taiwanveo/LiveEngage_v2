@@ -48,13 +48,13 @@ export function PollHubPage({ roomId, onLogout }: Props): React.JSX.Element {
         </div>
       ) : null}
 
-      <section className="mb-8 rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-        <h2 className="mb-4 text-sm font-semibold text-slate-900">建立新 Poll</h2>
+      <section className="le-card mb-8 p-6">
+        <h2 className="mb-4 text-sm font-semibold text-foreground">建立新 Poll</h2>
         <div className="flex flex-wrap gap-3">
           <select
             value={newType}
             onChange={(e) => setNewType(e.target.value as PollInteractionType)}
-            className="rounded-lg border border-slate-300 px-3 py-2 text-sm"
+            className="le-input !w-auto min-w-[180px]"
           >
             {POLL_TYPES.map((t) => (
               <option key={t.value} value={t.value}>
@@ -67,30 +67,30 @@ export function PollHubPage({ roomId, onLogout }: Props): React.JSX.Element {
             value={newTitle}
             onChange={(e) => setNewTitle(e.target.value)}
             placeholder="題目標題（選填）"
-            className="min-w-[200px] flex-1 rounded-lg border border-slate-300 px-3 py-2 text-sm"
+            className="le-input min-w-[200px] flex-1"
           />
           <button
             type="button"
             disabled={createMutation.isPending}
             onClick={() => createMutation.mutate()}
-            className="rounded-lg bg-primary-600 px-4 py-2 text-sm font-medium text-white hover:bg-primary-700 disabled:opacity-50"
+            className="le-btn-primary !min-h-[42px]"
           >
             {createMutation.isPending ? "建立中…" : "建立"}
           </button>
         </div>
       </section>
 
-      <section className="rounded-xl border border-slate-200 bg-white shadow-sm">
-        <header className="border-b border-slate-200 px-4 py-3">
-          <h2 className="text-sm font-semibold text-slate-900">
+      <section className="le-card overflow-hidden">
+        <header className="border-b border-border px-4 py-3">
+          <h2 className="text-sm font-semibold text-foreground">
             房間內 Poll（{polls.length}）
           </h2>
         </header>
-        <ul className="divide-y divide-slate-100">
+        <ul className="divide-y divide-border">
           {isLoading ? (
-            <li className="px-4 py-8 text-center text-sm text-slate-400">載入中…</li>
+            <li className="px-4 py-8 text-center text-sm text-muted">載入中…</li>
           ) : polls.length === 0 ? (
-            <li className="px-4 py-8 text-center text-sm text-slate-400">尚無 Poll</li>
+            <li className="px-4 py-8 text-center text-sm text-muted">尚無 Poll</li>
           ) : (
             polls.map((poll) => (
               <li
@@ -98,10 +98,10 @@ export function PollHubPage({ roomId, onLogout }: Props): React.JSX.Element {
                 className="flex flex-wrap items-center justify-between gap-3 px-4 py-3"
               >
                 <div>
-                  <p className="font-medium text-slate-900">
+                  <p className="font-medium text-foreground">
                     {poll.title ?? "未命名題目"}
                   </p>
-                  <p className="text-xs text-slate-500">
+                  <p className="text-xs text-muted">
                     {poll.type} · {poll.status}
                     {poll.result_visible ? " · 結果已揭示" : ""}
                   </p>
@@ -136,7 +136,7 @@ function SmallLink(props: {
   return (
     <a
       href={props.href}
-      className="rounded-md bg-slate-100 px-2.5 py-1 text-xs text-slate-700 hover:bg-slate-200"
+      className="le-btn-secondary !min-h-0 px-2.5 py-1 text-xs"
     >
       {props.children}
     </a>

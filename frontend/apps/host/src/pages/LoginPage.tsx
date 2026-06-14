@@ -47,6 +47,7 @@ export function LoginPage({ onLoggedIn }: Props): React.JSX.Element {
 
   return (
     <AuthCard
+      appTagline="控場端（host）"
       title="Host 控制台"
       subtitle="主持人入口 — 建立活動、控場 Poll、審核 Q&A"
       footer="登入後可建立活動、複製參與連結，並進入 Q&A 審核或 Poll 控場。"

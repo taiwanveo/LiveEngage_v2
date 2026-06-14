@@ -19,30 +19,30 @@ export function JoinShareCard({ code, joinUrl }: Props): React.JSX.Element {
   }
 
   return (
-    <div className="mt-4 flex flex-wrap items-start gap-6 border-t border-slate-100 pt-4">
+    <div className="mt-4 flex flex-wrap items-start gap-6 border-t border-border pt-4">
       <div className="flex flex-col items-center gap-2">
         <img
           src={qrSrc}
           width={160}
           height={160}
           alt={`活動 ${code} 參與 QR code`}
-          className="rounded-lg border border-slate-200 bg-white"
+          className="le-surface-light rounded-lg border border-border"
           loading="lazy"
         />
-        <p className="text-xs text-slate-500">掃描加入（QR）</p>
+        <p className="text-xs text-muted">掃描加入（QR）</p>
       </div>
 
       <div className="min-w-[200px] flex-1 space-y-3">
         <div>
-          <p className="text-xs font-medium text-slate-500">活動代碼</p>
+          <p className="text-xs font-medium text-muted">活動代碼</p>
           <div className="mt-1 flex items-center gap-2">
-            <span className="font-mono text-2xl font-bold tracking-wider text-primary-700">
+            <span className="font-mono text-2xl font-bold tracking-wider text-accent">
               {code}
             </span>
             <button
               type="button"
               onClick={() => void copy(code, "code")}
-              className="rounded-md bg-slate-100 px-2 py-1 text-xs text-slate-700 hover:bg-slate-200"
+              className="le-btn-secondary !min-h-0 px-2 py-1 text-xs"
             >
               {copied === "code" ? "已複製" : "複製代碼"}
             </button>
@@ -50,8 +50,8 @@ export function JoinShareCard({ code, joinUrl }: Props): React.JSX.Element {
         </div>
 
         <div>
-          <p className="text-xs font-medium text-slate-500">參與連結</p>
-          <p className="mt-1 break-all text-xs text-slate-600">{joinUrl}</p>
+          <p className="text-xs font-medium text-muted">參與連結</p>
+          <p className="mt-1 break-all text-xs text-muted">{joinUrl}</p>
           <button
             type="button"
             onClick={() => void copy(joinUrl, "link")}

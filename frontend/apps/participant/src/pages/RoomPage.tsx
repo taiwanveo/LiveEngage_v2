@@ -28,7 +28,7 @@ import {
 import { getPoll, getPollResults, isPollType, submitPollResponse } from "../lib/pollApi";
 import { getSessionState } from "../lib/sessionApi";
 import { submitQuizAnswer, type ActiveQuizQuestion } from "../lib/sprint9Api";
-import { ThemeSwitcher } from "@liveengage/ui";
+import { AppHeader } from "@liveengage/ui";
 
 export function RoomPage(): React.JSX.Element {
   const ctx = getParticipantContext();
@@ -196,7 +196,7 @@ export function RoomPage(): React.JSX.Element {
     return (
       <main className="flex min-h-full items-center justify-center px-4">
         <div className="text-center">
-          <p className="text-slate-600">請先加入活動</p>
+          <p className="text-muted">請先加入活動</p>
           <a href="#/join" className="mt-4 inline-block text-primary-600 hover:underline">
             輸入活動代碼
           </a>
@@ -216,26 +216,19 @@ export function RoomPage(): React.JSX.Element {
 
   return (
     <main className="le-page-bg min-h-full">
-      <header className="sticky top-0 z-30 border-b border-border/80 bg-surface/90 backdrop-blur-xl">
-        <div className="mx-auto flex max-w-2xl items-center justify-between px-4 py-3">
-          <div>
-            <h1 className="font-display text-lg font-semibold text-foreground">{sessionTitle}</h1>
-            {ctx.displayName ? (
-              <p className="text-xs text-muted">你好，{ctx.displayName}</p>
-            ) : null}
-          </div>
-          <div className="flex items-center gap-2">
-            <span
-              className={connected ? "le-status-dot-live" : "le-status-dot bg-muted"}
-              title={connected ? "即時連線中" : "連線中斷，備援輪詢"}
-            />
-            <ThemeSwitcher compact />
-            <button type="button" onClick={leave} className="le-btn-ghost !min-h-[40px]">
-              離開
-            </button>
-          </div>
-        </div>
-      </header>
+      <AppHeader
+        brand={sessionTitle}
+        tagline={ctx.displayName ? `你好，${ctx.displayName}` : "參與者（participant）"}
+        maxWidth="2xl"
+        logoutLabel="離開"
+        onLogout={leave}
+        actions={
+          <span
+            className={connected ? "le-status-dot-live" : "le-status-dot bg-muted"}
+            title={connected ? "即時連線中" : "連線中斷，備援輪詢"}
+          />
+        }
+      />
 
       <div className="mx-auto max-w-2xl border-b border-border bg-surface/60 px-4 backdrop-blur-sm">
         <nav className="flex gap-1 overflow-x-auto" aria-label="互動分頁">

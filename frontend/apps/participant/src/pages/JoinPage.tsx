@@ -110,6 +110,7 @@ export function JoinPage({ code }: Props): React.JSX.Element {
 
   return (
     <AuthCard
+      appTagline="參與者（participant）"
       title={session.title}
       subtitle={`狀態：${statusLabel(session.status)}`}
       footer={

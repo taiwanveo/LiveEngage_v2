@@ -111,7 +111,7 @@ export function Sprint9ConsolePage({
   if (!item) {
     return (
       <HostShell title="Sprint 9 控制台" roomId={roomId} onLogout={onLogout}>
-        <p className="text-sm text-slate-500">載入中…</p>
+        <p className="text-sm text-muted">載入中…</p>
       </HostShell>
     );
   }
@@ -125,7 +125,7 @@ export function Sprint9ConsolePage({
       actions={
         <a
           href={`#/rooms/${roomId}/sprint9`}
-          className="rounded-md bg-slate-100 px-3 py-1.5 text-sm text-slate-700 hover:bg-slate-200"
+          className="le-btn-secondary !min-h-0 px-3 py-1.5 text-sm"
         >
           返回列表
         </a>
@@ -133,14 +133,14 @@ export function Sprint9ConsolePage({
     >
       {item.type === "quiz" ? (
         <div className="space-y-6">
-          <section className="rounded-xl border border-slate-200 bg-white p-4">
-            <h3 className="mb-3 text-sm font-semibold">新增子題</h3>
+          <section className="le-card p-4">
+            <h3 className="mb-3 text-sm font-semibold text-foreground">新增子題</h3>
             <div className="flex gap-2">
               <input
                 value={quizTitle}
                 onChange={(e) => setQuizTitle(e.target.value)}
                 placeholder="題目文字"
-                className="flex-1 rounded-lg border border-slate-300 px-3 py-2 text-sm"
+                className="le-input flex-1"
               />
               <button
                 type="button"
@@ -152,14 +152,14 @@ export function Sprint9ConsolePage({
               </button>
             </div>
           </section>
-          <section className="rounded-xl border border-slate-200 bg-white p-4">
-            <h3 className="mb-3 text-sm font-semibold">子題控場</h3>
+          <section className="le-card p-4">
+            <h3 className="mb-3 text-sm font-semibold text-foreground">子題控場</h3>
             <ul className="space-y-3">
               {(questionsQuery.data ?? []).map((q) => (
-                <li key={q.id} className="flex flex-wrap items-center justify-between gap-2 border-b pb-2">
+                <li key={q.id} className="flex flex-wrap items-center justify-between gap-2 border-b border-border pb-2">
                   <div>
-                    <p className="font-medium">{q.title}</p>
-                    <p className="text-xs text-slate-500">狀態：{q.state}</p>
+                    <p className="font-medium text-foreground">{q.title}</p>
+                    <p className="text-xs text-muted">狀態：{q.state}</p>
                   </div>
                   <div className="flex gap-2">
                     <button
@@ -185,8 +185,8 @@ export function Sprint9ConsolePage({
               ))}
             </ul>
           </section>
-          <section className="rounded-xl border border-slate-200 bg-white p-4">
-            <h3 className="mb-3 text-sm font-semibold">排行榜</h3>
+          <section className="le-card p-4">
+            <h3 className="mb-3 text-sm font-semibold text-foreground">排行榜</h3>
             <ol className="list-decimal pl-5 text-sm">
               {(leaderboardQuery.data?.entries ?? []).map((e) => (
                 <li key={e.participant_id}>
@@ -199,13 +199,13 @@ export function Sprint9ConsolePage({
       ) : null}
 
       {item.type === "ideas" ? (
-        <section className="rounded-xl border border-slate-200 bg-white p-4">
-          <h3 className="mb-3 text-sm font-semibold">點子列表</h3>
+        <section className="le-card p-4">
+          <h3 className="mb-3 text-sm font-semibold text-foreground">點子列表</h3>
           <ul className="space-y-3">
             {(ideasQuery.data?.items ?? []).map((idea) => (
-              <li key={idea.id} className="rounded-lg border border-slate-100 p-3">
-                <p>{idea.content}</p>
-                <p className="mt-1 text-xs text-slate-500">
+              <li key={idea.id} className="rounded-lg border border-border bg-surface-elevated p-3">
+                <p className="text-foreground">{idea.content}</p>
+                <p className="mt-1 text-xs text-muted">
                   {idea.author_display ?? "匿名"} · 👍 {idea.reaction_total}
                 </p>
                 <button
@@ -230,8 +230,8 @@ export function Sprint9ConsolePage({
           >
             新增評分題
           </button>
-          <section className="rounded-xl border border-slate-200 bg-white p-4">
-            <p className="text-sm">
+          <section className="le-card p-4">
+            <p className="text-sm text-foreground">
               提交數：{surveyResultsQuery.data?.submission_count ?? 0}
             </p>
           </section>

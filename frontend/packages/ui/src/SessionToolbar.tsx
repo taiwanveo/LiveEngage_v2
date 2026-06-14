@@ -1,7 +1,7 @@
-/** Session 頂欄：日期、代碼、可見性、Share、Present（Slido 風格）。 */
+/** Session 頂欄：日期、代碼、Share、Present；主題／登出與 AppHeader 對齊。 */
 
 import * as React from "react";
-import { ThemeSwitcher } from "./ThemeSwitcher";
+import { APP_HEADER_PADDING, AppHeaderChrome } from "./AppHeader";
 
 export interface SessionToolbarProps {
   title: string;
@@ -9,6 +9,8 @@ export interface SessionToolbarProps {
   code: string;
   visibilityLabel: string;
   statusLabel?: string;
+  /** 左上角：Stop / Prev / Next 等導覽控項 */
+  navControls?: React.ReactNode;
   onShare?: () => void;
   onPresent?: () => void;
   presentMenu?: React.ReactNode;
@@ -23,6 +25,7 @@ export function SessionToolbar({
   code,
   visibilityLabel,
   statusLabel,
+  navControls,
   onShare,
   onPresent,
   presentMenu,
@@ -31,15 +34,22 @@ export function SessionToolbar({
   extra,
 }: SessionToolbarProps): React.JSX.Element {
   return (
-    <header className="border-b border-border bg-surface">
-      <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-2.5 sm:px-5">
-        <div className="flex min-w-0 flex-wrap items-center gap-3">
+    <header className="sticky top-0 z-40 border-b border-border/80 bg-surface/80 backdrop-blur-xl">
+      <div className={`flex items-center gap-3 ${APP_HEADER_PADDING}`}>
+        <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-3 gap-y-2">
           {onBack ? (
             <button type="button" onClick={onBack} className="le-btn-ghost !min-h-[36px] !px-2">
               ← 返回
             </button>
           ) : null}
-          <div className="min-w-0">
+
+          {navControls ? (
+            <div className="flex flex-wrap items-center gap-1.5 border-r border-border pr-3">
+              {navControls}
+            </div>
+          ) : null}
+
+          <div className="min-w-0 flex-1">
             <h1 className="truncate font-display text-base font-semibold text-foreground">{title}</h1>
             <div className="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted">
               <span className="inline-flex items-center gap-1">
@@ -61,40 +71,40 @@ export function SessionToolbar({
               ) : null}
             </div>
           </div>
-        </div>
 
-        <div className="flex flex-wrap items-center gap-2">
-          {extra}
-          {onShare ? (
-            <button type="button" onClick={onShare} className="le-btn-secondary !min-h-[36px] !rounded-full !px-4 !text-sm text-accent">
-              <ShareIcon />
-              分享（Share）
-            </button>
-          ) : null}
-          {onPresent ? (
-            <div className="inline-flex overflow-hidden rounded-full border border-accent">
+          <div className="flex flex-wrap items-center gap-2">
+            {extra}
+            {onShare ? (
               <button
                 type="button"
-                onClick={onPresent}
-                className="inline-flex min-h-[36px] items-center gap-2 bg-accent px-4 text-sm font-semibold text-accent-fg hover:brightness-105"
+                onClick={onShare}
+                className="le-btn-secondary !min-h-[36px] !rounded-full !px-4 !text-sm text-accent"
               >
-                <PresentIcon />
-                投影（Present）
+                <ShareIcon />
+                分享（Share）
               </button>
-              {presentMenu ? (
-                <div className="flex items-center border-l border-accent/30 bg-accent px-1">
-                  {presentMenu}
-                </div>
-              ) : null}
-            </div>
-          ) : null}
-          <ThemeSwitcher compact />
-          {onLogout ? (
-            <button type="button" onClick={onLogout} className="le-btn-ghost !min-h-[36px]">
-              登出
-            </button>
-          ) : null}
+            ) : null}
+            {onPresent ? (
+              <div className="inline-flex overflow-hidden rounded-full border border-accent">
+                <button
+                  type="button"
+                  onClick={onPresent}
+                  className="inline-flex min-h-[36px] items-center gap-2 bg-accent px-4 text-sm font-semibold text-accent-fg hover:brightness-105"
+                >
+                  <PresentIcon />
+                  投影（Present）
+                </button>
+                {presentMenu ? (
+                  <div className="flex items-center border-l border-accent/30 bg-accent px-1">
+                    {presentMenu}
+                  </div>
+                ) : null}
+              </div>
+            ) : null}
+          </div>
         </div>
+
+        <AppHeaderChrome {...(onLogout ? { onLogout } : {})} />
       </div>
     </header>
   );

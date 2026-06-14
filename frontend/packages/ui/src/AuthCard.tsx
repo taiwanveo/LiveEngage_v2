@@ -1,11 +1,13 @@
-/** 登入／加入頁共用卡片外殼。 */
+/** 登入／加入頁共用卡片外殼（頂欄主題切換與四端對齊）。 */
 
 import * as React from "react";
-import { ThemeSwitcher } from "./ThemeSwitcher";
+import { AppHeader } from "./AppHeader";
 
 interface Props {
   title: string;
   subtitle?: string;
+  /** AppHeader 副標（例如「控場端（host）」） */
+  appTagline?: string;
   children: React.ReactNode;
   footer?: React.ReactNode;
 }
@@ -13,33 +15,35 @@ interface Props {
 export function AuthCard({
   title,
   subtitle,
+  appTagline = "LiveEngage",
   children,
   footer,
 }: Props): React.JSX.Element {
   return (
-    <main className="le-page-bg flex min-h-full items-center justify-center px-4 py-12">
-      <div className="relative z-10 w-full max-w-md animate-slide-up">
-        <div className="mb-4 flex justify-end">
-          <ThemeSwitcher compact />
-        </div>
-        <div className="le-card-elevated p-8 md:p-10">
-          <header className="mb-8 space-y-2">
-            <p className="font-mono text-xs uppercase tracking-[0.2em] text-accent">
-              LiveEngage
-            </p>
-            <h1 className="font-display text-3xl font-bold tracking-tight text-foreground">
-              {title}
-            </h1>
-            {subtitle ? (
-              <p className="text-sm leading-relaxed text-muted">{subtitle}</p>
+    <main className="le-page-bg flex min-h-full flex-col">
+      <AppHeader brand="LiveEngage" tagline={appTagline} maxWidth="2xl" />
+
+      <div className="relative z-10 flex flex-1 items-center justify-center px-4 py-8">
+        <div className="w-full max-w-md animate-slide-up">
+          <div className="le-card-elevated p-8 md:p-10">
+            <header className="mb-8 space-y-2">
+              <p className="font-mono text-xs uppercase tracking-[0.2em] text-accent">
+                LiveEngage
+              </p>
+              <h1 className="font-display text-3xl font-bold tracking-tight text-foreground">
+                {title}
+              </h1>
+              {subtitle ? (
+                <p className="text-sm leading-relaxed text-muted">{subtitle}</p>
+              ) : null}
+            </header>
+            {children}
+            {footer ? (
+              <footer className="mt-6 border-t border-border pt-4 text-xs text-muted">
+                {footer}
+              </footer>
             ) : null}
-          </header>
-          {children}
-          {footer ? (
-            <footer className="mt-6 border-t border-border pt-4 text-xs text-muted">
-              {footer}
-            </footer>
-          ) : null}
+          </div>
         </div>
       </div>
     </main>

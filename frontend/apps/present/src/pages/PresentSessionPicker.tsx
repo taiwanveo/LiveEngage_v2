@@ -25,7 +25,7 @@ export function PresentSessionPicker({ onLogout }: Props): React.JSX.Element {
     <main className="le-page-bg min-h-full">
       <AppHeader
         brand="投影展示"
-        tagline="選擇活動與 Poll，在大螢幕開啟投影頁"
+        tagline="投影展示（present）"
         maxWidth="2xl"
         onLogout={onLogout}
       />

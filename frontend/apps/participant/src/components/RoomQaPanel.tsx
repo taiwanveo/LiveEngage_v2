@@ -50,8 +50,8 @@ export function RoomQaPanel({ roomId }: Props): React.JSX.Element {
 
   return (
     <div className="space-y-6">
-      <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-        <h2 className="text-lg font-semibold text-slate-900">向主持人提問</h2>
+      <section className="le-card p-5">
+        <h2 className="text-lg font-semibold text-foreground">向主持人提問</h2>
         <form
           className="mt-4 space-y-3"
           onSubmit={(e) => {
@@ -68,30 +68,31 @@ export function RoomQaPanel({ roomId }: Props): React.JSX.Element {
             placeholder="輸入你的問題…"
             value={content}
             onChange={(e) => setContent(e.target.value)}
-            className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
+            className="le-input min-h-[88px] resize-y"
           />
-          <label className="flex items-center gap-2 text-sm text-slate-600">
+          <label className="flex items-center gap-2 text-sm text-muted">
             <input
               type="checkbox"
               checked={anonymous}
               onChange={(e) => setAnonymous(e.target.checked)}
+              className="h-4 w-4 rounded border-border accent-accent"
             />
             匿名提問
           </label>
           {formError ? (
-            <p className="text-sm text-red-600" role="alert">
+            <p className="text-sm text-danger" role="alert">
               {formError}
             </p>
           ) : null}
           {submitOk ? (
-            <p className="text-sm text-emerald-700">
+            <p className="text-sm text-success">
               已送出，待主持人審核後會顯示在列表中。
             </p>
           ) : null}
           <button
             type="submit"
             disabled={submitMutation.isPending}
-            className="rounded-lg bg-primary-600 px-4 py-2 text-sm font-medium text-white hover:bg-primary-700 disabled:bg-slate-400"
+            className="le-btn-primary !min-h-[42px] disabled:opacity-50"
           >
             {submitMutation.isPending ? "送出中…" : "送出問題"}
           </button>
@@ -99,46 +100,43 @@ export function RoomQaPanel({ roomId }: Props): React.JSX.Element {
       </section>
 
       <section>
-        <h2 className="mb-3 text-lg font-semibold text-slate-900">熱門問題</h2>
+        <h2 className="mb-3 text-lg font-semibold text-foreground">熱門問題</h2>
         {questionsQuery.isLoading ? (
-          <p className="text-sm text-slate-500">載入中…</p>
+          <p className="text-sm text-muted">載入中…</p>
         ) : items.length === 0 ? (
-          <p className="rounded-xl border border-dashed border-slate-300 bg-white p-8 text-center text-sm text-slate-500">
+          <p className="le-card border-dashed p-8 text-center text-sm text-muted">
             尚無已核准問題，成為第一個發問的人吧！
           </p>
         ) : (
           <ul className="space-y-3">
             {items.map((q) => (
-              <li
-                key={q.id}
-                className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm"
-              >
-                <p className="text-sm text-slate-900 whitespace-pre-wrap">
+              <li key={q.id} className="le-card p-4">
+                <p className="whitespace-pre-wrap text-sm text-foreground">
                   {q.content}
                 </p>
                 {q.status === "answered" ? (
-                  <span className="mt-1 inline-block rounded bg-emerald-50 px-2 py-0.5 text-xs text-emerald-700">
+                  <span className="mt-1 inline-block rounded bg-success/15 px-2 py-0.5 text-xs text-success">
                     已回答
                   </span>
                 ) : null}
                 {(q.replies ?? []).length > 0 ? (
-                  <div className="mt-2 space-y-1 border-l-2 border-primary-200 pl-3">
+                  <div className="mt-2 space-y-1 border-l-2 border-accent/30 pl-3">
                     {(q.replies ?? []).map((r) => (
-                      <p key={r.id} className="text-xs text-slate-600">
-                        <span className="font-medium text-primary-700">主持人回覆：</span>
+                      <p key={r.id} className="text-xs text-muted">
+                        <span className="font-medium text-accent">主持人回覆：</span>
                         {r.content}
                       </p>
                     ))}
                   </div>
                 ) : null}
-                <div className="mt-2 flex flex-wrap items-center gap-3 text-xs text-slate-500">
+                <div className="mt-2 flex flex-wrap items-center gap-3 text-xs text-muted">
                   <span>{q.is_anonymous ? "匿名" : q.author_display ?? "—"}</span>
                   <span>讚 {q.upvote_count}</span>
                   <button
                     type="button"
                     disabled={voteMutation.isPending || q.my_vote === "up"}
                     onClick={() => voteMutation.mutate(q.id)}
-                    className="rounded-md bg-slate-100 px-2 py-1 text-slate-700 hover:bg-slate-200 disabled:opacity-50"
+                    className="le-btn-secondary !min-h-0 px-2 py-1 text-xs disabled:opacity-50"
                   >
                     {q.my_vote === "up" ? "已按讚" : "按讚"}
                   </button>

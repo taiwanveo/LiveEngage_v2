@@ -36,6 +36,7 @@ export function LoginPage({ onLoggedIn }: Props): React.JSX.Element {
 
   return (
     <AuthCard
+      appTagline="投影展示（present）"
       title="投影展示"
       subtitle="大螢幕展示端 — 全場即時呈現 Poll 結果"
       footer="登入後選擇活動與 Poll 即可投影到大螢幕。"

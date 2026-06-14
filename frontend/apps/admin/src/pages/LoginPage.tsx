@@ -47,6 +47,7 @@ export function LoginPage({ onLoggedIn }: Props): React.JSX.Element {
 
   return (
     <AuthCard
+      appTagline="管理後台（admin）"
       title="管理後台"
       subtitle="組織管理員入口 — 成員、稽核、匯出與品牌設定"
     >

@@ -1,5 +1,5 @@
 export { AuthCard } from "./AuthCard";
-export { AppHeader } from "./AppHeader";
+export { AppHeader, APP_HEADER_PADDING, AppHeaderChrome } from "./AppHeader";
 export { AdminSidebarShell } from "./AdminSidebarShell";
 export type { SidebarNavItem } from "./AdminSidebarShell";
 export { SessionToolbar } from "./SessionToolbar";

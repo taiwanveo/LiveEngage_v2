@@ -21,6 +21,7 @@ import {
   isPollType,
   POLL_TYPES,
   type InteractionSummary,
+  type InteractionStatus,
   type PollAction,
   type PollInteractionType,
 } from "../lib/pollTypes";
@@ -53,15 +54,9 @@ const STATUS_LABEL: Record<SessionHost["status"], string> = {
   archived: "已封存",
 };
 
-const ACTIONS: { action: PollAction; label: string; needsConfirm?: boolean; danger?: boolean }[] = [
-  { action: "start", label: "開始" },
-  { action: "stop", label: "結束", danger: true },
-  { action: "lock", label: "鎖定" },
-  { action: "unlock", label: "解鎖" },
-  { action: "reveal", label: "揭示結果" },
-  { action: "hide", label: "隱藏結果" },
-  { action: "reset", label: "重置", needsConfirm: true },
-];
+function isPollRunning(status: InteractionStatus): boolean {
+  return status === "active" || status === "locked";
+}
 
 function presentAppUrl(roomId: string, pollId: string): string {
   const meta = import.meta as ImportMeta & { env?: { VITE_PRESENT_BASE?: string } };
@@ -193,6 +188,39 @@ export function SessionWorkbenchPage({ roomId, pollId, onLogout }: Props): React
           onBack={() => {
             window.location.hash = "#/dashboard";
           }}
+          navControls={
+            <>
+              <button
+                type="button"
+                disabled={!selectedPollId || !poll || !isPollRunning(poll.status)}
+                onClick={() => runAction("stop")}
+                className="rounded-full border border-danger/50 px-3 py-1 text-xs font-medium text-danger hover:bg-danger/5 disabled:opacity-40"
+              >
+                Stop
+              </button>
+              <button
+                type="button"
+                disabled={selectedIndex <= 0}
+                onClick={goPrev}
+                className="le-btn-secondary !min-h-[32px] !px-2.5 !text-xs"
+              >
+                Prev
+              </button>
+              <button
+                type="button"
+                disabled={selectedIndex < 0 || selectedIndex >= polls.length - 1}
+                onClick={goNext}
+                className="le-btn-secondary !min-h-[32px] !px-2.5 !text-xs"
+              >
+                Next
+              </button>
+              <span className="pl-1 text-xs tabular-nums text-muted">
+                {polls.length > 0 && selectedIndex >= 0
+                  ? `${selectedIndex + 1}/${polls.length}`
+                  : "—"}
+              </span>
+            </>
+          }
           {...(session ? { onShare: () => setShowShare((v) => !v) } : {})}
           {...(selectedPollId
             ? {
@@ -246,6 +274,12 @@ export function SessionWorkbenchPage({ roomId, pollId, onLogout }: Props): React
             <EmptyMain message="載入 Poll…" />
           ) : poll ? (
             <>
+              <PollControlBar
+                poll={poll}
+                pending={actionMutation.isPending}
+                onToggle={(action, needsConfirm) => runAction(action, needsConfirm)}
+              />
+
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <div>
                   <p className="text-xs font-medium uppercase tracking-wide text-muted">
@@ -273,24 +307,6 @@ export function SessionWorkbenchPage({ roomId, pollId, onLogout }: Props): React
                 <h3 className="mb-3 text-sm font-semibold text-foreground">投影預覽</h3>
                 <PollRenderer mode="present" poll={poll} results={results} />
               </div>
-
-              <div className="flex flex-wrap gap-2">
-                {ACTIONS.map(({ action, label, needsConfirm, danger }) => (
-                  <button
-                    key={action}
-                    type="button"
-                    disabled={actionMutation.isPending}
-                    onClick={() => runAction(action, needsConfirm)}
-                    className={
-                      danger
-                        ? "rounded-full border border-danger/40 bg-surface px-3 py-1.5 text-sm text-danger hover:bg-danger/5 disabled:opacity-50"
-                        : "rounded-full border border-border bg-surface px-3 py-1.5 text-sm hover:bg-surface-elevated disabled:opacity-50"
-                    }
-                  >
-                    {label}
-                  </button>
-                ))}
-              </div>
             </>
           ) : (
             <EmptyMain message="無法載入 Poll。" />
@@ -313,42 +329,92 @@ export function SessionWorkbenchPage({ roomId, pollId, onLogout }: Props): React
           )}
         </ParticipantPreviewFrame>
       }
-      footer={
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="flex flex-wrap gap-2">
-            <button
-              type="button"
-              disabled={!selectedPollId || poll?.status !== "active"}
-              onClick={() => runAction("stop")}
-              className="rounded-full border border-danger/50 px-4 py-1.5 text-sm font-medium text-danger disabled:opacity-40"
-            >
-              Stop
-            </button>
-            <button
-              type="button"
-              disabled={selectedIndex <= 0}
-              onClick={goPrev}
-              className="le-btn-secondary !min-h-[36px] !px-3 !text-xs"
-            >
-              Prev
-            </button>
-            <button
-              type="button"
-              disabled={selectedIndex < 0 || selectedIndex >= polls.length - 1}
-              onClick={goNext}
-              className="le-btn-secondary !min-h-[36px] !px-3 !text-xs"
-            >
-              Next
-            </button>
-          </div>
-          <p className="text-xs text-muted">
-            {polls.length > 0 && selectedIndex >= 0
-              ? `${selectedIndex + 1} / ${polls.length}`
-              : "尚無互動"}
-          </p>
-        </div>
-      }
     />
+  );
+}
+
+function PollControlBar(props: {
+  poll: {
+    status: InteractionStatus;
+    result_visible: boolean;
+  };
+  pending: boolean;
+  onToggle: (action: PollAction, needsConfirm?: boolean) => void;
+}): React.JSX.Element {
+  const { poll, pending, onToggle } = props;
+  const running = isPollRunning(poll.status);
+  const locked = poll.status === "locked";
+
+  return (
+    <div className="flex flex-wrap items-center gap-2 rounded-xl border border-border bg-surface p-2">
+      <ControlToggle
+        active={running}
+        activeLabel="進行中"
+        inactiveLabel="開始"
+        disabled={pending}
+        accent={running ? "success" : "default"}
+        onClick={() => onToggle(running ? "stop" : "start")}
+      />
+      <ControlToggle
+        active={locked}
+        activeLabel="已鎖定"
+        inactiveLabel="鎖定"
+        disabled={pending || !running}
+        onClick={() => onToggle(locked ? "unlock" : "lock")}
+      />
+      <ControlToggle
+        active={poll.result_visible}
+        activeLabel="結果顯示"
+        inactiveLabel="隱藏結果"
+        disabled={pending}
+        onClick={() => onToggle(poll.result_visible ? "hide" : "reveal")}
+      />
+      <button
+        type="button"
+        disabled={pending}
+        onClick={() => onToggle("reset", true)}
+        className="rounded-full border border-border px-3 py-1 text-xs text-muted hover:bg-surface-elevated hover:text-foreground disabled:opacity-50"
+      >
+        重置
+      </button>
+    </div>
+  );
+}
+
+function ControlToggle(props: {
+  active: boolean;
+  activeLabel: string;
+  inactiveLabel: string;
+  disabled?: boolean;
+  accent?: "default" | "success";
+  onClick: () => void;
+}): React.JSX.Element {
+  const label = props.active ? props.activeLabel : props.inactiveLabel;
+  return (
+    <button
+      type="button"
+      disabled={props.disabled}
+      onClick={props.onClick}
+      aria-pressed={props.active}
+      className={`inline-flex min-h-[32px] items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-medium transition disabled:opacity-50 ${
+        props.active
+          ? props.accent === "success"
+            ? "border-success/40 bg-success/10 text-success"
+            : "border-accent/40 bg-accent-muted text-accent"
+          : "border-border bg-background text-muted hover:border-accent/30 hover:text-foreground"
+      }`}
+    >
+      <span
+        className={`h-1.5 w-1.5 shrink-0 rounded-full ${
+          props.active
+            ? props.accent === "success"
+              ? "bg-success"
+              : "bg-accent"
+            : "bg-muted"
+        }`}
+      />
+      {label}
+    </button>
   );
 }
 
@@ -373,7 +439,7 @@ function InteractionSidebar(props: {
   onSelect: (id: string) => void;
 }): React.JSX.Element {
   return (
-    <div className="flex h-full max-h-[calc(100vh-8rem)] flex-col">
+    <div className="flex h-full max-h-[calc(100vh-4.5rem)] flex-col">
       <div className="border-b border-border p-4">
         <div className="flex items-center justify-between">
           <h2 className="text-sm font-semibold text-foreground">My interactions</h2>

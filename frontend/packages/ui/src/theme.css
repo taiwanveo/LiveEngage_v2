@@ -96,8 +96,8 @@
 [data-theme="dark"] {
   --le-bg: 15 23 42;
   --le-fg: 248 250 252;
-  --le-surface: 30 41 59;
-  --le-surface-elevated: 51 65 85;
+  --le-surface: 36 48 68;
+  --le-surface-elevated: 55 70 92;
   --le-muted: 148 163 184;
   --le-border: 51 65 85;
   --le-accent: 96 165 250;
@@ -126,8 +126,8 @@
   --le-font-display: "Instrument Sans", system-ui, sans-serif;
   --le-bg: 20 18 11;
   --le-fg: 236 233 225;
-  --le-surface: 28 26 20;
-  --le-surface-elevated: 38 36 28;
+  --le-surface: 34 32 24;
+  --le-surface-elevated: 46 44 34;
   --le-muted: 160 155 140;
   --le-border: 48 46 38;
   --le-accent: 245 78 0;
@@ -178,6 +178,176 @@
     radial-gradient(ellipse 55% 45% at 5% 95%, rgb(194 98 68 / 0.06), transparent 45%);
   --le-bg-grid: linear-gradient(rgb(38 37 34 / 0.025) 1px, transparent 1px),
     linear-gradient(90deg, rgb(38 37 34 / 0.025) 1px, transparent 1px);
+}
+
+/* ── 深色主題相容：修正仍使用 slate/gray 硬編碼的淺色 class ── */
+[data-theme="dark"] .bg-white:not(.le-surface-light),
+[data-theme="cursor"] .bg-white:not(.le-surface-light) {
+  background-color: rgb(var(--le-surface));
+}
+
+[data-theme="dark"] .bg-slate-50,
+[data-theme="dark"] .bg-gray-50,
+[data-theme="cursor"] .bg-slate-50,
+[data-theme="cursor"] .bg-gray-50 {
+  background-color: rgb(var(--le-surface-elevated));
+}
+
+[data-theme="dark"] .bg-slate-100,
+[data-theme="dark"] .bg-gray-100,
+[data-theme="cursor"] .bg-slate-100,
+[data-theme="cursor"] .bg-gray-100 {
+  background-color: rgb(var(--le-surface-elevated));
+}
+
+[data-theme="dark"] .text-slate-900,
+[data-theme="dark"] .text-slate-800,
+[data-theme="dark"] .text-gray-900,
+[data-theme="dark"] .text-gray-800,
+[data-theme="cursor"] .text-slate-900,
+[data-theme="cursor"] .text-slate-800,
+[data-theme="cursor"] .text-gray-900,
+[data-theme="cursor"] .text-gray-800 {
+  color: rgb(var(--le-fg));
+}
+
+[data-theme="dark"] .text-slate-700,
+[data-theme="dark"] .text-slate-600,
+[data-theme="dark"] .text-gray-700,
+[data-theme="dark"] .text-gray-600,
+[data-theme="cursor"] .text-slate-700,
+[data-theme="cursor"] .text-slate-600,
+[data-theme="cursor"] .text-gray-700,
+[data-theme="cursor"] .text-gray-600 {
+  color: rgb(var(--le-fg) / 0.88);
+}
+
+[data-theme="dark"] .text-slate-500,
+[data-theme="dark"] .text-slate-400,
+[data-theme="dark"] .text-gray-500,
+[data-theme="dark"] .text-gray-400,
+[data-theme="cursor"] .text-slate-500,
+[data-theme="cursor"] .text-slate-400,
+[data-theme="cursor"] .text-gray-500,
+[data-theme="cursor"] .text-gray-400 {
+  color: rgb(var(--le-muted));
+}
+
+[data-theme="dark"] .border-slate-100,
+[data-theme="dark"] .border-slate-200,
+[data-theme="dark"] .border-slate-300,
+[data-theme="dark"] .border-gray-100,
+[data-theme="dark"] .border-gray-200,
+[data-theme="dark"] .border-gray-300,
+[data-theme="cursor"] .border-slate-100,
+[data-theme="cursor"] .border-slate-200,
+[data-theme="cursor"] .border-slate-300,
+[data-theme="cursor"] .border-gray-100,
+[data-theme="cursor"] .border-gray-200,
+[data-theme="cursor"] .border-gray-300 {
+  border-color: rgb(var(--le-border));
+}
+
+[data-theme="dark"] .divide-slate-100 > :not([hidden]) ~ :not([hidden]),
+[data-theme="dark"] .divide-gray-100 > :not([hidden]) ~ :not([hidden]),
+[data-theme="cursor"] .divide-slate-100 > :not([hidden]) ~ :not([hidden]),
+[data-theme="cursor"] .divide-gray-100 > :not([hidden]) ~ :not([hidden]) {
+  border-color: rgb(var(--le-border));
+}
+
+[data-theme="dark"] .hover\:bg-slate-50:hover,
+[data-theme="dark"] .hover\:bg-gray-50:hover,
+[data-theme="cursor"] .hover\:bg-slate-50:hover,
+[data-theme="cursor"] .hover\:bg-gray-50:hover {
+  background-color: rgb(var(--le-surface-elevated));
+}
+
+[data-theme="dark"] .hover\:bg-slate-200:hover,
+[data-theme="dark"] .hover\:bg-gray-200:hover,
+[data-theme="cursor"] .hover\:bg-slate-200:hover,
+[data-theme="cursor"] .hover\:bg-gray-200:hover {
+  background-color: rgb(var(--le-surface-elevated));
+}
+
+[data-theme="dark"] .hover\:text-slate-900:hover,
+[data-theme="dark"] .hover\:text-gray-900:hover,
+[data-theme="cursor"] .hover\:text-slate-900:hover,
+[data-theme="cursor"] .hover\:text-gray-900:hover {
+  color: rgb(var(--le-fg));
+}
+
+[data-theme="dark"] select[class*="border-slate"],
+[data-theme="dark"] select[class*="border-gray"],
+[data-theme="dark"] input[class*="border-slate"],
+[data-theme="dark"] input[class*="border-gray"],
+[data-theme="dark"] textarea[class*="border-slate"],
+[data-theme="dark"] textarea[class*="border-gray"],
+[data-theme="cursor"] select[class*="border-slate"],
+[data-theme="cursor"] select[class*="border-gray"],
+[data-theme="cursor"] input[class*="border-slate"],
+[data-theme="cursor"] input[class*="border-gray"],
+[data-theme="cursor"] textarea[class*="border-slate"],
+[data-theme="cursor"] textarea[class*="border-gray"] {
+  background-color: rgb(var(--le-surface));
+  color: rgb(var(--le-fg));
+}
+
+.le-surface-light {
+  background-color: #fff;
+}
+
+.le-analytics-accent-pink {
+  border-color: rgb(251 207 232 / 0.7);
+  background-color: rgb(253 242 248 / 0.65);
+}
+
+.le-analytics-accent-yellow {
+  border-color: rgb(253 230 138 / 0.7);
+  background-color: rgb(255 251 235 / 0.65);
+}
+
+.le-analytics-accent-green {
+  border-color: rgb(167 243 208 / 0.7);
+  background-color: rgb(236 253 245 / 0.65);
+}
+
+.le-analytics-accent-blue {
+  border-color: rgb(186 230 253 / 0.7);
+  background-color: rgb(240 249 255 / 0.65);
+}
+
+[data-theme="dark"] .le-analytics-accent-pink,
+[data-theme="cursor"] .le-analytics-accent-pink {
+  border-color: rgb(236 72 153 / 0.35);
+  background-color: rgb(236 72 153 / 0.1);
+}
+
+[data-theme="dark"] .le-analytics-accent-yellow,
+[data-theme="cursor"] .le-analytics-accent-yellow {
+  border-color: rgb(251 191 36 / 0.35);
+  background-color: rgb(251 191 36 / 0.08);
+}
+
+[data-theme="dark"] .le-analytics-accent-green,
+[data-theme="cursor"] .le-analytics-accent-green {
+  border-color: rgb(52 211 153 / 0.35);
+  background-color: rgb(52 211 153 / 0.08);
+}
+
+[data-theme="dark"] .le-analytics-accent-blue,
+[data-theme="cursor"] .le-analytics-accent-blue {
+  border-color: rgb(56 189 248 / 0.35);
+  background-color: rgb(56 189 248 / 0.08);
+}
+
+[data-theme="dark"] .bg-primary-50,
+[data-theme="cursor"] .bg-primary-50 {
+  background-color: rgb(var(--le-accent-muted));
+}
+
+[data-theme="dark"] .hover\:bg-primary-700:hover,
+[data-theme="cursor"] .hover\:bg-primary-700:hover {
+  filter: brightness(1.08);
 }
 
 @layer base {
