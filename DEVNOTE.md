@@ -7,7 +7,7 @@
 ## SNAPSHOT（2026-06-14）
 
 - **Repo**：https://github.com/ColdRighter/LiveEngage.git（master）
-- **最新 commit**：`c08e157` — Quiz 開放修復、Admin 版型、Host 導覽統一
+- **最新 commit**：`cbd1cfb` — Quiz 開放修復、Admin 版型、Host 導覽統一
 - **pytest**：含 `test_activate_quiz_stops_existing_active_poll`；全 suite 建議 CI 再跑
 - **Zeabur**：**六服務** — api / host / participant / present / admin / worker（push `master` 自動 redeploy）
 
@@ -52,7 +52,7 @@
 
 ## HISTORY
 
-### 2026-06-14 — Quiz 開放 + Admin 版型 + Host 導覽（c08e157）
+### 2026-06-14 — Quiz 開放 + Admin 版型 + Host 導覽（cbd1cfb）
 
 後端 unique index 衝突修復；Admin 移除開發代號快捷入口與 typography 統一；Host 頂欄三選單與 Q&A 重新整理位置調整。
 
