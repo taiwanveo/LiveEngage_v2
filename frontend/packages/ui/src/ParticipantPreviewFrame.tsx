@@ -49,15 +49,30 @@ function formatClockParts(date: Date): { hour: string; minute: string } {
   };
 }
 
+/** 手機螢幕內容區：貼齊寬度、去除巢狀卡片留白，模擬真實參與者畫面。 */
 const PHONE_SCROLL_CLASS =
-  "min-h-0 flex-1 overflow-y-auto overscroll-contain px-1 pb-1 " +
+  "min-h-0 w-full flex-1 overflow-y-auto overscroll-contain px-2 pb-1 " +
   "[scrollbar-width:thin] [scrollbar-color:rgb(64_64_64)_transparent] " +
   "[&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-track]:bg-transparent " +
   "[&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-neutral-600 " +
   "[&::-webkit-scrollbar-thumb]:hover:bg-neutral-500 " +
-  "[&_*]:max-w-[90%] [&_*]:text-[6px] [&_button]:mx-auto [&_button]:block [&_button]:w-[90%] " +
-  "[&_button]:py-0.5 [&_button]:text-[5px] [&_h2]:mx-auto [&_h2]:w-[90%] [&_h2]:text-[7px] " +
-  "[&_label]:mx-auto [&_label]:block [&_label]:w-[90%] [&_p]:mx-auto [&_p]:w-[90%]";
+  "[&>*]:w-full [&>*]:max-w-full " +
+  "[&_article]:box-border [&_article]:!w-full [&_article]:!max-w-full " +
+  "[&_article]:!rounded-none [&_article]:!border-0 [&_article]:!bg-transparent [&_article]:!p-0 [&_article]:!shadow-none " +
+  "[&_header]:!mb-1.5 [&_header]:w-full " +
+  "[&_header_div]:w-full " +
+  "[&_header_span]:text-[3px] [&_header_span]:!px-1 [&_header_span]:!py-0.5 " +
+  "[&_h2]:w-full [&_h2]:max-w-full [&_h2]:text-[8px] [&_h2]:leading-tight " +
+  "[&_p]:w-full [&_p]:max-w-full [&_p]:text-[5px] [&_p]:leading-snug " +
+  "[&_article>div]:w-full [&_ul]:w-full [&_li]:w-full " +
+  "[&_label]:flex [&_label]:w-full [&_label]:min-w-0 [&_label]:max-w-full [&_label]:items-center [&_label]:gap-1 " +
+  "[&_label]:!px-1.5 [&_label]:!py-1 [&_label]:text-[4px] " +
+  "[&_label_span]:min-w-0 [&_label_span]:flex-1 [&_label_span]:truncate [&_label_span]:whitespace-nowrap " +
+  "[&_label_input]:size-2 [&_label_input]:shrink-0 " +
+  "[&_select]:w-full [&_select]:min-w-0 [&_select]:max-w-full [&_select]:truncate [&_select]:text-[4px] " +
+  "[&_li>div]:w-full [&_li>div]:min-w-0 " +
+  "[&_li>div_span:first-child]:min-w-0 [&_li>div_span:first-child]:flex-1 [&_li>div_span:first-child]:truncate [&_li>div_span:first-child]:whitespace-nowrap [&_li>div_span:first-child]:text-[4px] " +
+  "[&_button]:block [&_button]:w-full [&_button]:max-w-full [&_button]:py-0.5 [&_button]:text-[5px]";
 
 export function ParticipantPreviewFrame({
   title = "預覽參與者畫面",

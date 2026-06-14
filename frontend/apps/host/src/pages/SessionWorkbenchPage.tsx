@@ -33,7 +33,7 @@ import {
 } from "../lib/sessionApi";
 import { HOST_DASHBOARD_HASH } from "../components/HostShell";
 import { HostRoomHeaderActions } from "../components/HostRoomHeaderActions";
-import { PollControlBar, isPollRunning } from "../components/PollControlBar";
+import { ControlToggle, isPollRunning } from "../components/PollControlBar";
 
 interface Props {
   roomId: string;
@@ -55,6 +55,21 @@ const STATUS_LABEL: Record<SessionHost["status"], string> = {
   ended: "已結束",
   archived: "已封存",
 };
+
+function pollToolbarStatus(poll: {
+  status: InteractionSummary["status"];
+}): { label: string; variant: "live" | "accent" | "muted" } {
+  switch (poll.status) {
+    case "active":
+      return { label: "進行中", variant: "live" };
+    case "locked":
+      return { label: "已鎖定", variant: "accent" };
+    case "stopped":
+      return { label: "已結束", variant: "muted" };
+    default:
+      return { label: "閒置", variant: "muted" };
+  }
+}
 
 export function SessionWorkbenchPage({ roomId, pollId, onLogout }: Props): React.JSX.Element {
   const qc = useQueryClient();
@@ -113,9 +128,23 @@ export function SessionWorkbenchPage({ roomId, pollId, onLogout }: Props): React
   const actionMutation = useMutation({
     mutationFn: ({ action, confirm }: { action: PollAction; confirm?: boolean }) =>
       pollAction(selectedPollId!, action, confirm ?? false),
-    onSuccess: () => {
+    onSuccess: (data) => {
+      if (selectedPollId) {
+        qc.setQueryData(
+          ["poll", selectedPollId],
+          (prev: typeof pollQuery.data) =>
+            prev
+              ? {
+                  ...prev,
+                  status: data.status,
+                  result_visible: data.result_visible,
+                }
+              : prev
+        );
+      }
       void qc.invalidateQueries({ queryKey: ["poll", selectedPollId] });
       void qc.invalidateQueries({ queryKey: ["poll-results", selectedPollId] });
+      void qc.invalidateQueries({ queryKey: ["interactions", roomId] });
     },
   });
 
@@ -138,6 +167,16 @@ export function SessionWorkbenchPage({ roomId, pollId, onLogout }: Props): React
   const poll = pollQuery.data;
   const results = resultsQuery.data ?? null;
   const selectedIndex = polls.findIndex((p) => p.id === selectedPollId);
+  const running = poll ? isPollRunning(poll.status) : false;
+  const locked = poll?.status === "locked";
+  const toolbarStatus = poll
+    ? pollToolbarStatus(poll)
+    : session
+      ? {
+          label: STATUS_LABEL[session.status],
+          variant: session.status === "live" ? ("live" as const) : ("muted" as const),
+        }
+      : null;
 
   const selectPoll = (id: string): void => {
     window.location.hash = `#/rooms/${roomId}/workbench/${id}`;
@@ -176,27 +215,34 @@ export function SessionWorkbenchPage({ roomId, pollId, onLogout }: Props): React
           dateLabel={dateLabel}
           code={session?.code ?? "—"}
           visibilityLabel={session ? VISIBILITY_LABEL[session.visibility] : "—"}
-          {...(session ? { statusLabel: STATUS_LABEL[session.status] } : {})}
+          {...(toolbarStatus
+            ? {
+                statusLabel: toolbarStatus.label,
+                statusBadgeVariant: toolbarStatus.variant,
+              }
+            : {})}
+          backLabel="← 回到活動列表"
           onBack={() => {
             window.location.hash = "#/dashboard";
           }}
           navControls={
             <>
-              <button
-                type="button"
-                disabled={!selectedPollId || !poll || !isPollRunning(poll.status)}
-                onClick={() => runAction("stop")}
-                className="rounded-full border border-danger/50 px-2 py-0.5 text-[10px] font-medium text-danger hover:bg-danger/5 disabled:opacity-40"
-              >
-                Stop
-              </button>
+              <ControlToggle
+                active={running}
+                activeLabel="結束"
+                inactiveLabel="開始"
+                disabled={!poll || actionMutation.isPending}
+                accent={running ? "success" : "default"}
+                size="compact"
+                onClick={() => runAction(running ? "stop" : "start")}
+              />
               <button
                 type="button"
                 disabled={selectedIndex <= 0}
                 onClick={goPrev}
                 className="le-btn-secondary !min-h-[24px] !px-2 !py-0.5 !text-[10px]"
               >
-                Prev
+                上一題
               </button>
               <button
                 type="button"
@@ -204,13 +250,37 @@ export function SessionWorkbenchPage({ roomId, pollId, onLogout }: Props): React
                 onClick={goNext}
                 className="le-btn-secondary !min-h-[24px] !px-2 !py-0.5 !text-[10px]"
               >
-                Next
+                下一題
               </button>
               <span className="pl-0.5 text-[10px] tabular-nums text-muted">
                 {polls.length > 0 && selectedIndex >= 0
                   ? `${selectedIndex + 1}/${polls.length}`
                   : "—"}
               </span>
+              <ControlToggle
+                active={locked}
+                activeLabel="解除鎖定"
+                inactiveLabel="鎖定"
+                disabled={!poll || actionMutation.isPending || !running}
+                size="compact"
+                onClick={() => runAction(locked ? "unlock" : "lock")}
+              />
+              <ControlToggle
+                active={Boolean(poll?.result_visible)}
+                activeLabel="隱藏答案"
+                inactiveLabel="揭曉答案"
+                disabled={!poll || actionMutation.isPending}
+                size="compact"
+                onClick={() => runAction(poll?.result_visible ? "hide" : "reveal")}
+              />
+              <button
+                type="button"
+                disabled={!poll || actionMutation.isPending}
+                onClick={() => runAction("reset", true)}
+                className="rounded-full border border-border px-2 py-0.5 text-[10px] text-muted hover:bg-surface-elevated hover:text-foreground disabled:opacity-50"
+              >
+                重置
+              </button>
             </>
           }
           chromeFooterActions={
@@ -261,12 +331,6 @@ export function SessionWorkbenchPage({ roomId, pollId, onLogout }: Props): React
             <EmptyMain message="載入 Poll…" />
           ) : poll ? (
             <>
-              <PollControlBar
-                poll={poll}
-                pending={actionMutation.isPending}
-                onToggle={(action, needsConfirm) => runAction(action, needsConfirm)}
-              />
-
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <div>
                   <p className="text-xs font-medium text-muted">
@@ -316,6 +380,7 @@ export function SessionWorkbenchPage({ roomId, pollId, onLogout }: Props): React
               mode="answer"
               poll={poll}
               results={poll.result_visible ? results : null}
+              hostWorkbenchPreview
             />
           ) : (
             <p className="text-center text-xs text-muted">選擇 Poll 以預覽參與者畫面</p>
@@ -352,16 +417,6 @@ function InteractionSidebar(props: {
         <div className="flex items-center justify-between">
           <h2 className="text-xs font-semibold text-foreground">互動項目</h2>
         </div>
-        <div className="mt-2 flex gap-1.5">
-          <button
-            type="button"
-            className="le-btn-primary w-full !min-h-[32px] !py-1.5 !text-[11px]"
-            onClick={props.onCreate}
-            disabled={props.creating}
-          >
-            {props.creating ? "…" : "+ Add"}
-          </button>
-        </div>
         <div className="mt-2 space-y-1.5">
           <select
             value={props.newType}
@@ -379,12 +434,20 @@ function InteractionSidebar(props: {
             value={props.newTitle}
             onChange={(e) => props.onNewTitle(e.target.value)}
             placeholder="題目標題（選填）"
-            className="le-input w-full !py-1 !text-[11px]"
+            className="le-input w-full !py-1 !text-[11px] placeholder:text-[10px]"
           />
+          <button
+            type="button"
+            className="le-btn-primary w-full !min-h-[32px] !py-1.5 !text-[11px]"
+            onClick={props.onCreate}
+            disabled={props.creating}
+          >
+            {props.creating ? "…" : "新增題目"}
+          </button>
         </div>
       </div>
       <ul
-        className={`min-h-0 flex-1 p-1.5 ${
+        className={`min-h-0 flex-1 p-1.5 pt-3 ${
           props.polls.length >= 6 ? "overflow-y-auto" : "overflow-y-visible"
         }`}
       >

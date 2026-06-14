@@ -66,6 +66,8 @@ export interface PollRendererProps {
   mode: RenderMode;
   poll: PollDetail;
   results?: PollResults | null;
+  /** Host 工作台右欄：依控場狀態預覽參與者畫面（揭曉後即顯示統計等） */
+  hostWorkbenchPreview?: boolean;
   onSubmit?: (answer: Record<string, unknown>) => void;
   submitting?: boolean;
   submitError?: string | null;

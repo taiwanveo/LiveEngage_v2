@@ -11,6 +11,7 @@ export function RankingPoll({
   mode,
   poll,
   results,
+  hostWorkbenchPreview = false,
   onSubmit,
   submitting = false,
   submitError,
@@ -48,7 +49,15 @@ export function RankingPoll({
   const showResults =
     mode === "present" ||
     (mode === "answer" &&
-      shouldShowParticipantResults(poll, results?.option_counts != null));
+      shouldShowParticipantResults(poll, results?.option_counts != null, {
+        hostWorkbenchPreview,
+      }));
+
+  const optionCounts =
+    results?.option_counts ??
+    (hostWorkbenchPreview && poll.result_visible
+      ? sortedOptions.map((o) => ({ option_id: o.id, count: 0 }))
+      : null);
 
   return (
     <PollShell
@@ -67,17 +76,17 @@ export function RankingPoll({
         ) : undefined
       }
     >
-      {showResults && results?.option_counts ? (
+      {showResults && optionCounts ? (
         mode === "present" ? (
           <ResultBarChart
             options={sortedOptions}
-            counts={results.option_counts}
+            counts={optionCounts}
             large
           />
         ) : (
           <ResultBars
             options={sortedOptions}
-            counts={results.option_counts}
+            counts={optionCounts}
             large={false}
           />
         )

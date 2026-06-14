@@ -9,7 +9,11 @@ export interface SessionToolbarProps {
   code: string;
   visibilityLabel: string;
   statusLabel?: string;
-  /** 第二列：Stop / Prev / Next 等導覽控項 */
+  /** 狀態徽章樣式（預設 live 綠色） */
+  statusBadgeVariant?: "live" | "accent" | "muted";
+  /** 返回按鈕文字（預設「← 返回」） */
+  backLabel?: string;
+  /** 第二列：控場 / 導覽按鈕 */
   navControls?: React.ReactNode;
   onBack?: () => void;
   /** 設定後標題可點擊導覽（例如回到活動儀表板） */
@@ -26,6 +30,8 @@ export function SessionToolbar({
   code,
   visibilityLabel,
   statusLabel,
+  statusBadgeVariant = "live",
+  backLabel = "← 返回",
   navControls,
   onBack,
   titleHref,
@@ -69,7 +75,17 @@ export function SessionToolbar({
                 {statusLabel ? (
                   <>
                     <span className="hidden h-3 w-px bg-border sm:inline-block" />
-                    <span className="le-badge le-badge-live">{statusLabel}</span>
+                    <span
+                      className={`le-badge ${
+                        statusBadgeVariant === "live"
+                          ? "le-badge-live"
+                          : statusBadgeVariant === "accent"
+                            ? "bg-accent/15 text-accent"
+                            : "bg-muted/20 text-muted"
+                      }`}
+                    >
+                      {statusLabel}
+                    </span>
                   </>
                 ) : null}
               </div>
@@ -85,7 +101,7 @@ export function SessionToolbar({
                   onClick={onBack}
                   className="le-btn-ghost !min-h-[26px] !px-1.5 !text-[10px] text-muted"
                 >
-                  ← 返回
+                  {backLabel}
                 </button>
               ) : null}
               {navControls ? (

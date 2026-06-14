@@ -11,6 +11,7 @@ export function RatingPoll({
   mode,
   poll,
   results,
+  hostWorkbenchPreview = false,
   onSubmit,
   submitting = false,
   submitError,
@@ -29,7 +30,8 @@ export function RatingPoll({
 
   const showResults =
     mode === "present" ||
-    (mode === "answer" && shouldShowParticipantResults(poll, results != null));
+    (mode === "answer" &&
+      shouldShowParticipantResults(poll, results != null, { hostWorkbenchPreview }));
 
   const values = Array.from({ length: max - min + 1 }, (_, i) => min + i);
 

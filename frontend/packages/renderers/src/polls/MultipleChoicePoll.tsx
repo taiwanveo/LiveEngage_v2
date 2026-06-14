@@ -11,6 +11,7 @@ export function MultipleChoicePoll({
   mode,
   poll,
   results,
+  hostWorkbenchPreview = false,
   onSubmit,
   submitting = false,
   submitError,
@@ -52,7 +53,15 @@ export function MultipleChoicePoll({
   const showResults =
     mode === "present" ||
     (mode === "answer" &&
-      shouldShowParticipantResults(poll, results?.option_counts != null));
+      shouldShowParticipantResults(poll, results?.option_counts != null, {
+        hostWorkbenchPreview,
+      }));
+
+  const optionCounts =
+    results?.option_counts ??
+    (hostWorkbenchPreview && poll.result_visible
+      ? sortedOptions.map((o) => ({ option_id: o.id, count: 0 }))
+      : null);
 
   return (
     <PollShell
@@ -71,7 +80,7 @@ export function MultipleChoicePoll({
         ) : undefined
       }
     >
-      {interactive && !answerable ? (
+      {interactive && !answerable && !showResults ? (
         <p className="text-sm text-slate-500">
           {poll.status !== "active"
             ? "目前無法作答"
@@ -79,17 +88,17 @@ export function MultipleChoicePoll({
         </p>
       ) : null}
 
-      {showResults && results?.option_counts ? (
+      {showResults && optionCounts ? (
         mode === "present" ? (
           <ResultBarChart
             options={sortedOptions}
-            counts={results.option_counts}
+            counts={optionCounts ?? []}
             large
           />
         ) : (
           <ResultBars
             options={sortedOptions}
-            counts={results.option_counts}
+            counts={optionCounts}
             large={false}
           />
         )

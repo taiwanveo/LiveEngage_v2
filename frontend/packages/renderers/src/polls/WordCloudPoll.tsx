@@ -10,6 +10,7 @@ export function WordCloudPoll({
   mode,
   poll,
   results,
+  hostWorkbenchPreview = false,
   onSubmit,
   submitting = false,
   submitError,
@@ -37,7 +38,9 @@ export function WordCloudPoll({
   const showResults =
     mode === "present" ||
     (mode === "answer" &&
-      shouldShowParticipantResults(poll, Boolean(results?.word_counts?.length)));
+      shouldShowParticipantResults(poll, Boolean(results?.word_counts?.length), {
+        hostWorkbenchPreview,
+      }));
 
   return (
     <PollShell
@@ -56,8 +59,8 @@ export function WordCloudPoll({
         ) : undefined
       }
     >
-      {showResults && results?.word_counts ? (
-        <WordCloudDisplay words={results.word_counts} large={mode === "present"} />
+      {showResults ? (
+        <WordCloudDisplay words={results?.word_counts ?? []} large={mode === "present"} />
       ) : mode === "preview" ? (
         <p className="text-sm text-slate-500">參與者將輸入關鍵字詞</p>
       ) : interactive && answerable ? (

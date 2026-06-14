@@ -10,6 +10,7 @@ export function OpenTextPoll({
   mode,
   poll,
   results,
+  hostWorkbenchPreview = false,
   onSubmit,
   submitting = false,
   submitError,
@@ -34,7 +35,9 @@ export function OpenTextPoll({
   const showResults =
     mode === "present" ||
     (mode === "answer" &&
-      shouldShowParticipantResults(poll, Boolean(results?.entries?.length)));
+      shouldShowParticipantResults(poll, Boolean(results?.entries?.length), {
+        hostWorkbenchPreview,
+      }));
 
   return (
     <PollShell
@@ -53,8 +56,8 @@ export function OpenTextPoll({
         ) : undefined
       }
     >
-      {showResults && results?.entries ? (
-        <OpenTextList entries={results.entries} large={mode === "present"} />
+      {showResults ? (
+        <OpenTextList entries={results?.entries ?? []} large={mode === "present"} />
       ) : mode === "preview" ? (
         multiline ? (
           <div className="h-24 rounded-lg border border-dashed border-slate-300 bg-slate-50" />
