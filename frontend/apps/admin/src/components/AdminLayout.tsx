@@ -2,15 +2,18 @@
 
 import * as React from "react";
 
+/** 頁面主內容區：標題區與下方區塊間距（緊湊）。 */
+export const adminPageStackClass = "space-y-3";
+
 export function AdminPageHeader(props: {
   title: string;
   description?: string;
 }): React.JSX.Element {
   return (
-    <header>
+    <header className="pb-1">
       <h1 className="font-display text-2xl font-bold text-foreground">{props.title}</h1>
       {props.description ? (
-        <p className="mt-1 text-sm text-muted">{props.description}</p>
+        <p className="mt-0.5 text-sm text-muted">{props.description}</p>
       ) : null}
     </header>
   );

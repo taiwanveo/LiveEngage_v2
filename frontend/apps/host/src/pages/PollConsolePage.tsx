@@ -12,6 +12,7 @@ import { PollRenderer } from "@liveengage/renderers";
 import { getAccessToken } from "../lib/auth";
 import { HostShell } from "../components/HostShell";
 import { PollControlBar } from "../components/PollControlBar";
+import { HostTitleActions, HostTitleLink } from "../components/HostTitleActions";
 import { getPoll, getPollResults, pollAction } from "../lib/pollApi";
 import type { PollAction } from "../lib/pollTypes";
 import { presentAppUrl } from "../lib/presentUrl";
@@ -86,29 +87,30 @@ export function PollConsolePage({
       title="Poll 控制台"
       subtitle={poll ? `${poll.type} · ${poll.status}` : ""}
       roomId={roomId}
+      presentPollId={pollId}
       onLogout={onLogout}
       activeNav="polls"
-      actions={
-        <div className="flex items-center gap-3">
+      titleAddon={
+        <HostTitleActions>
           <span
             className={`le-status-dot ${connected ? "le-status-dot-live" : "bg-muted"}`}
             title={connected ? "WS 已連線" : "WS 未連線"}
           />
-          <a
+          <HostTitleLink
             href={presentAppUrl(roomId, pollId)}
+            variant="primary"
             target="_blank"
             rel="noopener noreferrer"
-            className="le-btn-primary !min-h-[36px] !text-sm"
           >
             投影模式
-          </a>
-          <a
+          </HostTitleLink>
+          <HostTitleLink
             href={`#/rooms/${roomId}/polls/${pollId}/present`}
-            className="le-btn-secondary !min-h-[36px] !text-sm"
+            variant="secondary"
           >
             內嵌投影
-          </a>
-        </div>
+          </HostTitleLink>
+        </HostTitleActions>
       }
     >
       {err ? (

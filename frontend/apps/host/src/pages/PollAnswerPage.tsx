@@ -50,6 +50,7 @@ export function PollAnswerPage({
       title="參與者作答預覽"
       subtitle="Host token 僅供預覽；實際提交需 participant token"
       roomId={roomId}
+      presentPollId={pollId}
       onLogout={onLogout}
       activeNav="polls"
     >

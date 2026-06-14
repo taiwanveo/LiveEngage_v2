@@ -14,6 +14,7 @@ import {
 import { JoinShareCard } from "../components/JoinShareCard";
 import { ApiException } from "../lib/api";
 import { AppHeader } from "@liveengage/ui";
+import { HOST_DASHBOARD_HASH } from "../components/HostShell";
 
 interface Props {
   onLogout: () => void;
@@ -66,76 +67,79 @@ export function SessionsDashboardPage({ onLogout }: Props): React.JSX.Element {
     <main className="le-page-bg min-h-full">
       <AppHeader
         brand="LiveEngage Host"
-        tagline="活動儀表板（sessions）"
-        maxWidth="4xl"
+        brandHref={HOST_DASHBOARD_HASH}
+        tagline="活動儀表板"
+        maxWidth="6xl"
         onLogout={onLogout}
       />
 
-      <div className="relative z-10 mx-auto max-w-4xl space-y-8 px-4 py-8 sm:px-6">
-        <section className="le-card p-6 animate-slide-up">
-          <h2 className="font-display text-lg font-semibold text-foreground">建立新活動</h2>
-          <form
-            className="mt-4 flex flex-col gap-3 sm:flex-row"
-            onSubmit={(e) => {
-              e.preventDefault();
-              if (!title.trim()) return;
-              createMutation.mutate();
-            }}
-          >
-            <input
-              type="text"
-              required
-              maxLength={255}
-              placeholder="活動名稱"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              className="le-input flex-1"
-            />
-            <button
-              type="submit"
-              disabled={createMutation.isPending}
-              className="le-btn-primary shrink-0"
+      <div className="relative z-10 mx-auto max-w-6xl px-4 py-8 sm:px-6">
+        <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:gap-8">
+          <section className="le-card w-full animate-slide-up p-5 lg:w-[40%] lg:shrink-0">
+            <h2 className="font-display text-lg font-semibold text-foreground">建立新活動</h2>
+            <form
+              className="mt-4 flex flex-col gap-3"
+              onSubmit={(e) => {
+                e.preventDefault();
+                if (!title.trim()) return;
+                createMutation.mutate();
+              }}
             >
-              {createMutation.isPending ? "建立中…" : "建立並進入審核"}
-            </button>
-          </form>
-          {error ? (
-            <p className="mt-2 text-sm text-danger" role="alert">
-              {error}
-            </p>
-          ) : null}
-        </section>
+              <input
+                type="text"
+                required
+                maxLength={255}
+                placeholder="活動名稱"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                className="le-input w-full"
+              />
+              <button
+                type="submit"
+                disabled={createMutation.isPending}
+                className="le-btn-primary w-full"
+              >
+                {createMutation.isPending ? "建立中…" : "建立並進入審核"}
+              </button>
+            </form>
+            {error ? (
+              <p className="mt-2 text-sm text-danger" role="alert">
+                {error}
+              </p>
+            ) : null}
+          </section>
 
-        <section>
-          <h2 className="mb-4 font-display text-lg font-semibold text-foreground">我的活動</h2>
-          {sessionsQuery.isLoading ? (
-            <p className="text-sm text-muted">載入中…</p>
-          ) : sessionsQuery.error ? (
-            <p className="text-sm text-danger">
-              {(sessionsQuery.error as Error).message}
-            </p>
-          ) : sessionsQuery.data?.length === 0 ? (
-            <p className="le-card border-dashed p-8 text-center text-sm text-muted">
-              尚無活動，請先建立一場活動。
-            </p>
-          ) : (
-            <ul className="space-y-4">
-              {sessionsQuery.data?.map((session) => (
-                <SessionCard
-                  key={session.id}
-                  session={session}
-                  onGoLive={() =>
-                    statusMutation.mutate({ sessionId: session.id, status: "live" })
-                  }
-                  onEnd={() =>
-                    statusMutation.mutate({ sessionId: session.id, status: "ended" })
-                  }
-                  statusPending={statusMutation.isPending}
-                />
-              ))}
-            </ul>
-          )}
-        </section>
+          <section className="min-w-0 w-full lg:w-[60%] lg:flex-1">
+            <h2 className="mb-4 font-display text-lg font-semibold text-foreground">我的活動</h2>
+            {sessionsQuery.isLoading ? (
+              <p className="text-sm text-muted">載入中…</p>
+            ) : sessionsQuery.error ? (
+              <p className="text-sm text-danger">
+                {(sessionsQuery.error as Error).message}
+              </p>
+            ) : sessionsQuery.data?.length === 0 ? (
+              <p className="le-card border-dashed p-8 text-center text-sm text-muted">
+                尚無活動，請先建立一場活動。
+              </p>
+            ) : (
+              <ul className="space-y-4">
+                {sessionsQuery.data?.map((session) => (
+                  <SessionCard
+                    key={session.id}
+                    session={session}
+                    onGoLive={() =>
+                      statusMutation.mutate({ sessionId: session.id, status: "live" })
+                    }
+                    onEnd={() =>
+                      statusMutation.mutate({ sessionId: session.id, status: "ended" })
+                    }
+                    statusPending={statusMutation.isPending}
+                  />
+                ))}
+              </ul>
+            )}
+          </section>
+        </div>
       </div>
     </main>
   );
@@ -162,8 +166,8 @@ function SessionCard(props: {
               <>
                 {" "}
                 · room{" "}
-                <span className="font-mono text-muted/80">
-                  {roomId.slice(0, 8)}…
+                <span className="font-mono text-muted/80 break-all">
+                  {roomId}
                 </span>
               </>
             ) : null}
@@ -200,6 +204,9 @@ function SessionCard(props: {
           </a>
           <a href={`#/rooms/${roomId}/moderation`} className="le-nav-link !text-xs">
             Q&amp;A 審核
+          </a>
+          <a href={`#/rooms/${roomId}/polls`} className="le-nav-link !text-xs">
+            Poll 管理
           </a>
           <a href={`#/rooms/${roomId}/sprint9`} className="le-nav-link !text-xs">
             Quiz 管理

@@ -11,6 +11,8 @@ interface NavItem {
 
 interface Props {
   brand: string;
+  /** 設定後 brand 可點擊導覽（例如 Host 回到活動儀表板） */
+  brandHref?: string;
   tagline?: string;
   meta?: React.ReactNode;
   /** 標題右側附加控制（如「重新整理」） */
@@ -18,6 +20,8 @@ interface Props {
   navItems?: NavItem[];
   actions?: React.ReactNode;
   onLogout?: () => void;
+  /** 登出列下方（例如 Host 投影／分享） */
+  chromeFooterActions?: React.ReactNode;
   /** 登出按鈕文字（Participant 可用「離開」） */
   logoutLabel?: string;
   maxWidth?: "2xl" | "4xl" | "6xl" | "7xl" | "full";
@@ -38,30 +42,52 @@ export const APP_HEADER_PADDING = "px-4 py-3 sm:px-6";
 export function AppHeaderChrome({
   onLogout,
   logoutLabel = "登出",
+  footerActions,
 }: {
   onLogout?: () => void;
   logoutLabel?: string;
+  footerActions?: React.ReactNode;
 }): React.JSX.Element {
   return (
-    <div className="flex shrink-0 items-center gap-2" aria-label="顯示設定與帳號">
-      <ThemeSwitcher compact />
-      {onLogout ? (
-        <button type="button" onClick={onLogout} className="le-btn-ghost !min-h-[40px]">
-          {logoutLabel}
-        </button>
-      ) : null}
+    <div className="flex shrink-0 flex-col items-end gap-1.5" aria-label="顯示設定與帳號">
+      <div className="flex items-center gap-2">
+        <ThemeSwitcher compact />
+        {onLogout ? (
+          <button type="button" onClick={onLogout} className="le-btn-ghost !min-h-[40px]">
+            {logoutLabel}
+          </button>
+        ) : null}
+      </div>
+      {footerActions ? <div className="flex items-center">{footerActions}</div> : null}
     </div>
   );
 }
 
+function BrandText({ brand, href }: { brand: string; href?: string }): React.JSX.Element {
+  if (href) {
+    return (
+      <a
+        href={href}
+        className="rounded-sm transition-colors hover:text-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40"
+        title="回到活動儀表板"
+      >
+        {brand}
+      </a>
+    );
+  }
+  return <span>{brand}</span>;
+}
+
 export function AppHeader({
   brand,
+  brandHref,
   tagline,
   meta,
   brandAddon,
   navItems,
   actions,
   onLogout,
+  chromeFooterActions,
   logoutLabel = "登出",
   maxWidth = "7xl",
 }: Props): React.JSX.Element {
@@ -77,7 +103,7 @@ export function AppHeader({
         >
           <div className="min-w-0">
             <h1 className="flex flex-wrap items-center gap-x-2 font-display text-lg font-bold tracking-tight text-foreground">
-              <span>{brand}</span>
+              <BrandText brand={brand} {...(brandHref ? { href: brandHref } : {})} />
               {brandAddon}
             </h1>
             {tagline ? (
@@ -102,7 +128,10 @@ export function AppHeader({
           ) : null}
         </div>
 
-        <AppHeaderChrome {...(onLogout ? { onLogout, logoutLabel } : { logoutLabel })} />
+        <AppHeaderChrome
+          {...(onLogout ? { onLogout, logoutLabel } : { logoutLabel })}
+          {...(chromeFooterActions ? { footerActions: chromeFooterActions } : {})}
+        />
       </div>
     </header>
   );

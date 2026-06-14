@@ -28,13 +28,12 @@ import {
 } from "../lib/pollTypes";
 import {
   listSessions,
-  participantJoinUrl,
   type SessionHost,
   type SessionVisibility,
 } from "../lib/sessionApi";
-import { JoinShareCard } from "../components/JoinShareCard";
+import { HOST_DASHBOARD_HASH } from "../components/HostShell";
+import { HostRoomHeaderActions } from "../components/HostRoomHeaderActions";
 import { PollControlBar, isPollRunning } from "../components/PollControlBar";
-import { presentAppUrl } from "../lib/presentUrl";
 
 interface Props {
   roomId: string;
@@ -59,7 +58,6 @@ const STATUS_LABEL: Record<SessionHost["status"], string> = {
 
 export function SessionWorkbenchPage({ roomId, pollId, onLogout }: Props): React.JSX.Element {
   const qc = useQueryClient();
-  const [showShare, setShowShare] = useState(false);
   const [newType, setNewType] = useState<PollInteractionType>("multiple_choice");
   const [newTitle, setNewTitle] = useState("");
 
@@ -174,6 +172,7 @@ export function SessionWorkbenchPage({ roomId, pollId, onLogout }: Props): React
       toolbar={
         <SessionToolbar
           title={session?.title ?? "Session 工作台"}
+          titleHref={HOST_DASHBOARD_HASH}
           dateLabel={dateLabel}
           code={session?.code ?? "—"}
           visibilityLabel={session ? VISIBILITY_LABEL[session.visibility] : "—"}
@@ -187,7 +186,7 @@ export function SessionWorkbenchPage({ roomId, pollId, onLogout }: Props): React
                 type="button"
                 disabled={!selectedPollId || !poll || !isPollRunning(poll.status)}
                 onClick={() => runAction("stop")}
-                className="rounded-full border border-danger/50 px-3 py-1 text-xs font-medium text-danger hover:bg-danger/5 disabled:opacity-40"
+                className="rounded-full border border-danger/50 px-2 py-0.5 text-[10px] font-medium text-danger hover:bg-danger/5 disabled:opacity-40"
               >
                 Stop
               </button>
@@ -195,7 +194,7 @@ export function SessionWorkbenchPage({ roomId, pollId, onLogout }: Props): React
                 type="button"
                 disabled={selectedIndex <= 0}
                 onClick={goPrev}
-                className="le-btn-secondary !min-h-[32px] !px-2.5 !text-xs"
+                className="le-btn-secondary !min-h-[24px] !px-2 !py-0.5 !text-[10px]"
               >
                 Prev
               </button>
@@ -203,34 +202,33 @@ export function SessionWorkbenchPage({ roomId, pollId, onLogout }: Props): React
                 type="button"
                 disabled={selectedIndex < 0 || selectedIndex >= polls.length - 1}
                 onClick={goNext}
-                className="le-btn-secondary !min-h-[32px] !px-2.5 !text-xs"
+                className="le-btn-secondary !min-h-[24px] !px-2 !py-0.5 !text-[10px]"
               >
                 Next
               </button>
-              <span className="pl-1 text-xs tabular-nums text-muted">
+              <span className="pl-0.5 text-[10px] tabular-nums text-muted">
                 {polls.length > 0 && selectedIndex >= 0
                   ? `${selectedIndex + 1}/${polls.length}`
                   : "—"}
               </span>
             </>
           }
-          {...(session ? { onShare: () => setShowShare((v) => !v) } : {})}
-          {...(selectedPollId
-            ? {
-                onPresent: () =>
-                  window.open(presentAppUrl(roomId, selectedPollId), "_blank", "noopener"),
+          chromeFooterActions={
+            <HostRoomHeaderActions
+              roomId={roomId}
+              {...(selectedPollId ? { presentPollId: selectedPollId } : {})}
+              presentMenu={
+                selectedPollId ? (
+                  <a
+                    href={`#/rooms/${roomId}/polls/${selectedPollId}/present`}
+                    className="inline-flex min-h-[28px] items-center px-1.5 text-[10px] text-accent-fg hover:bg-accent/90"
+                    title="內嵌投影"
+                  >
+                    ···
+                  </a>
+                ) : null
               }
-            : {})}
-          presentMenu={
-            selectedPollId ? (
-              <a
-                href={`#/rooms/${roomId}/polls/${selectedPollId}/present`}
-                className="inline-flex min-h-[36px] items-center px-2 text-accent-fg hover:bg-accent/90"
-                title="內嵌投影"
-              >
-                ···
-              </a>
-            ) : null
+            />
           }
           onLogout={onLogout}
           extra={
@@ -257,10 +255,6 @@ export function SessionWorkbenchPage({ roomId, pollId, onLogout }: Props): React
       }
       main={
         <div className="space-y-4">
-          {showShare && session ? (
-            <JoinShareCard code={session.code} joinUrl={participantJoinUrl(session.code)} />
-          ) : null}
-
           {!selectedPollId ? (
             <EmptyMain message="請從左側建立或選擇一個 Poll。" />
           ) : pollQuery.isLoading ? (
@@ -306,12 +300,11 @@ export function SessionWorkbenchPage({ roomId, pollId, onLogout }: Props): React
       }
       preview={
         <ParticipantPreviewFrame
-          subtitle="All votes are live and saved"
           stats={
             poll ? (
-              <p className="text-sm font-semibold tabular-nums text-foreground">
+              <p className="text-[10px] font-semibold tabular-nums leading-tight text-foreground">
                 回應數{" "}
-                <span className="font-display text-lg text-accent">
+                <span className="font-display text-xs text-accent">
                   {results?.response_count ?? 0}
                 </span>
               </p>
@@ -355,20 +348,25 @@ function InteractionSidebar(props: {
 }): React.JSX.Element {
   return (
     <div className="flex h-full min-h-0 flex-col">
-      <div className="shrink-0 border-b border-border p-4">
+      <div className="shrink-0 border-b border-border p-3">
         <div className="flex items-center justify-between">
-          <h2 className="text-sm font-semibold text-foreground">My interactions</h2>
+          <h2 className="text-xs font-semibold text-foreground">互動項目</h2>
         </div>
-        <div className="mt-3 flex gap-2">
-          <button type="button" className="le-btn-primary flex-1 !min-h-[36px] !py-2 !text-xs" onClick={props.onCreate} disabled={props.creating}>
+        <div className="mt-2 flex gap-1.5">
+          <button
+            type="button"
+            className="le-btn-primary w-full !min-h-[32px] !py-1.5 !text-[11px]"
+            onClick={props.onCreate}
+            disabled={props.creating}
+          >
             {props.creating ? "…" : "+ Add"}
           </button>
         </div>
-        <div className="mt-3 space-y-2">
+        <div className="mt-2 space-y-1.5">
           <select
             value={props.newType}
             onChange={(e) => props.onNewType(e.target.value as PollInteractionType)}
-            className="le-input !py-1.5 !text-xs"
+            className="le-input w-full !py-1 !text-[11px]"
           >
             {POLL_TYPES.map((t) => (
               <option key={t.value} value={t.value}>
@@ -381,37 +379,37 @@ function InteractionSidebar(props: {
             value={props.newTitle}
             onChange={(e) => props.onNewTitle(e.target.value)}
             placeholder="題目標題（選填）"
-            className="le-input !py-1.5 !text-xs"
+            className="le-input w-full !py-1 !text-[11px]"
           />
         </div>
       </div>
       <ul
-        className={`min-h-0 flex-1 p-2 ${
+        className={`min-h-0 flex-1 p-1.5 ${
           props.polls.length >= 6 ? "overflow-y-auto" : "overflow-y-visible"
         }`}
       >
         {props.loading ? (
-          <li className="p-4 text-center text-xs text-muted">載入中…</li>
+          <li className="p-3 text-center text-[11px] text-muted">載入中…</li>
         ) : props.polls.length === 0 ? (
-          <li className="p-4 text-center text-xs text-muted">尚無 Poll</li>
+          <li className="p-3 text-center text-[11px] text-muted">尚無 Poll</li>
         ) : (
           props.polls.map((item) => {
             const active = item.id === props.selectedId;
             return (
-              <li key={item.id} className="mb-2">
+              <li key={item.id} className="mb-1.5">
                 <button
                   type="button"
                   onClick={() => props.onSelect(item.id)}
-                  className={`w-full rounded-xl border px-3 py-2.5 text-left transition-colors ${
+                  className={`w-full rounded-lg border px-2 py-2 text-left transition-colors ${
                     active
                       ? "border-accent bg-accent-muted shadow-sm"
                       : "border-border bg-surface hover:border-accent/40"
                   }`}
                 >
-                  <p className="truncate text-sm font-medium text-foreground">
+                  <p className="truncate text-xs font-medium text-foreground">
                     {item.title ?? "未命名題目"}
                   </p>
-                  <p className="mt-0.5 text-[11px] text-muted">
+                  <p className="mt-0.5 text-[10px] text-muted">
                     {pollTypeLabel(item.type)} · {interactionStatusLabel(item.status)}
                   </p>
                 </button>

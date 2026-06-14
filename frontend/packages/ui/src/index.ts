@@ -1,3 +1,5 @@
+export { Modal } from "./Modal";
+export type { ModalProps } from "./Modal";
 export { AuthCard } from "./AuthCard";
 export { AppHeader, APP_HEADER_PADDING, AppHeaderChrome } from "./AppHeader";
 export { AdminSidebarShell } from "./AdminSidebarShell";

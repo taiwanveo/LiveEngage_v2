@@ -1,4 +1,4 @@
-/** 參與者模式預覽框（手機外框 + 內容，適合窄欄 20% 寬）。 */
+/** 參與者模式預覽框（手機外框 + 內容，適合工作台右欄）。 */
 
 import * as React from "react";
 
@@ -12,7 +12,7 @@ export interface ParticipantPreviewFrameProps {
 }
 
 export function ParticipantPreviewFrame({
-  title = "Participant mode",
+  title = "預覽參與者畫面",
   subtitle,
   stats,
   children,
@@ -20,19 +20,21 @@ export function ParticipantPreviewFrame({
 }: ParticipantPreviewFrameProps): React.JSX.Element {
   return (
     <div className="flex h-full min-h-0 flex-col p-2 sm:p-3">
-      <div className="mb-2 shrink-0">
-        <p className="text-[10px] font-semibold uppercase tracking-wide text-muted">{title}</p>
+      <div className="mb-2 shrink-0 text-center">
+        <p className="text-[10px] font-semibold text-foreground">{title}</p>
         {subtitle ? <p className="mt-0.5 text-[10px] leading-snug text-muted">{subtitle}</p> : null}
       </div>
 
       {stats ? (
-        <div className="mb-3 shrink-0 rounded-lg border border-border bg-surface-elevated px-3 py-2 text-center">
-          {stats}
+        <div className="mb-2 flex shrink-0 justify-center">
+          <div className="w-2/3 rounded-lg border border-border bg-surface-elevated px-2 py-1 text-center">
+            {stats}
+          </div>
         </div>
       ) : null}
 
       <div className="flex min-h-0 flex-1 items-start justify-center">
-        <div className="relative w-full max-w-[12rem]">
+        <div className="relative w-full max-w-[17rem]">
           {/* 手機外框 */}
           <div className="relative rounded-[1.6rem] bg-neutral-950 p-[5px] shadow-elevated ring-1 ring-neutral-800">
             {/* 動態島 / 瀏海 */}
@@ -51,8 +53,8 @@ export function ParticipantPreviewFrame({
                   <BatteryIcon />
                 </div>
               </div>
-              {/* 內容（縮放以適應窄螢幕） */}
-              <div className="max-h-[min(52vh,22rem)] overflow-y-auto overscroll-contain px-1.5 pb-1 [&_*]:text-[11px] [&_h2]:text-sm [&_button]:text-[10px] [&_button]:py-1.5">
+              {/* 內容：縮小字級並拉寬元件 */}
+              <div className="max-h-[min(52vh,22rem)] overflow-y-auto overscroll-contain px-1 pb-1 [&_*]:max-w-[90%] [&_*]:text-[6px] [&_button]:mx-auto [&_button]:block [&_button]:w-[90%] [&_button]:py-0.5 [&_button]:text-[5px] [&_h2]:mx-auto [&_h2]:w-[90%] [&_h2]:text-[7px] [&_label]:mx-auto [&_label]:block [&_label]:w-[90%] [&_p]:mx-auto [&_p]:w-[90%]">
                 {children}
               </div>
               {/* Home indicator */}

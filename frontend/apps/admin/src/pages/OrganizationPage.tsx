@@ -1,8 +1,9 @@
-/** BE-008 組織設定與成員管理頁面。 */
+/** 組織設定：組織資料與品牌外觀。 */
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
+  AdminFieldHint,
   AdminFormField,
   AdminPageHeader,
   AdminPanel,
@@ -10,25 +11,15 @@ import {
   adminBtnPrimary,
   adminBtnSecondary,
   adminInputClass,
-  adminTableHeadClass,
+  adminPageStackClass,
 } from "../components/AdminLayout";
 import { AdminShell } from "../components/AdminShell";
 import {
-  type MemberData,
+  getBranding,
   getOrganization,
-  inviteMember,
-  listMembers,
-  removeMember,
-  updateMemberRole,
+  updateBranding,
   updateOrganization,
 } from "../lib/adminApi";
-
-const ROLE_LABELS: Record<string, string> = {
-  owner: "擁有者",
-  admin: "管理員",
-  member: "成員",
-  guest: "訪客",
-};
 
 function OrgSettings() {
   const qc = useQueryClient();
@@ -100,6 +91,9 @@ function OrgSettings() {
             </div>
           )}
           {error ? <p className="mt-1 text-sm text-danger">{error}</p> : null}
+          <AdminFieldHint>
+            參與者端公開顯示名稱亦使用此組織名稱（若未另外設定品牌顯示名）。
+          </AdminFieldHint>
         </AdminFormField>
 
         <AdminFormField label="方案">
@@ -118,207 +112,109 @@ function OrgSettings() {
   );
 }
 
-function InviteForm({ onDone }: { onDone: () => void }) {
-  const [email, setEmail] = useState("");
-  const [name, setName] = useState("");
-  const [role, setRole] = useState("member");
-  const [password, setPassword] = useState("");
+function BrandingSettings() {
+  const qc = useQueryClient();
+  const { data, isLoading } = useQuery({ queryKey: ["admin-branding"], queryFn: getBranding });
+
+  const [logoUrl, setLogoUrl] = useState("");
+  const [faviconUrl, setFaviconUrl] = useState("");
+  const [primaryColor, setPrimaryColor] = useState("#2563eb");
+  const [customDomain, setCustomDomain] = useState("");
   const [error, setError] = useState("");
 
+  useEffect(() => {
+    if (data?.branding) {
+      setLogoUrl(data.branding.logo_url ?? "");
+      setFaviconUrl(data.branding.favicon_url ?? "");
+      setPrimaryColor(data.branding.primary_color);
+      setCustomDomain(data.branding.custom_domain ?? "");
+    }
+  }, [data]);
+
   const mutation = useMutation({
-    mutationFn: () => {
-      const payload: Parameters<typeof inviteMember>[0] = { email, role, password };
-      if (name) payload.name = name;
-      return inviteMember(payload);
-    },
+    mutationFn: () =>
+      updateBranding({
+        logo_url: logoUrl || null,
+        favicon_url: faviconUrl || null,
+        primary_color: primaryColor,
+        custom_domain: customDomain || null,
+        display_name: null,
+      }),
     onSuccess: () => {
-      onDone();
-      setEmail("");
-      setName("");
-      setPassword("");
+      qc.invalidateQueries({ queryKey: ["admin-branding"] });
       setError("");
     },
     onError: (e: Error) => setError(e.message),
   });
 
-  return (
-    <div className="space-y-3 rounded-xl border border-dashed border-border bg-surface-elevated/30 p-4">
-      <AdminSectionTitle>邀請新成員</AdminSectionTitle>
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-        <AdminFormField label="Email">
-          <input
-            className={adminInputClass}
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            placeholder="member@example.com"
-          />
-        </AdminFormField>
-        <AdminFormField label="姓名（選填）">
-          <input
-            className={adminInputClass}
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder="姓名"
-          />
-        </AdminFormField>
-        <AdminFormField label="密碼">
-          <input
-            className={adminInputClass}
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            placeholder="至少 8 碼"
-          />
-        </AdminFormField>
-        <AdminFormField label="角色">
-          <select
-            className={adminInputClass}
-            value={role}
-            onChange={(e) => setRole(e.target.value)}
-          >
-            <option value="member">成員</option>
-            <option value="admin">管理員</option>
-            <option value="guest">訪客</option>
-          </select>
-        </AdminFormField>
-      </div>
-      {error ? <p className="text-sm text-danger">{error}</p> : null}
-      <div className="flex justify-end gap-2">
-        <button
-          className={adminBtnPrimary}
-          disabled={mutation.isPending || !email || !password}
-          onClick={() => mutation.mutate()}
-        >
-          {mutation.isPending ? "邀請中..." : "邀請"}
-        </button>
-      </div>
-    </div>
-  );
-}
-
-function MemberRow({ member, currentUserId }: { member: MemberData; currentUserId?: string }) {
-  const qc = useQueryClient();
-  const [selectedRole, setSelectedRole] = useState(member.role);
-  const [saving, setSaving] = useState(false);
-
-  const onRoleChange = async (newRole: string) => {
-    setSaving(true);
-    setSelectedRole(newRole as MemberData["role"]);
-    await updateMemberRole(member.id, newRole);
-    qc.invalidateQueries({ queryKey: ["admin-members"] });
-    setSaving(false);
-  };
-
-  const onRemove = async () => {
-    if (!confirm(`確定移除成員 ${member.email}？`)) return;
-    await removeMember(member.id);
-    qc.invalidateQueries({ queryKey: ["admin-members"] });
-  };
-
-  const isMe = member.id === currentUserId;
+  if (isLoading) {
+    return <div className="le-card h-48 animate-pulse" />;
+  }
 
   return (
-    <tr className="border-b border-border hover:bg-surface-elevated/30">
-      <td className="px-4 py-3">
-        <div>
-          <div className="text-sm font-medium text-foreground">{member.name ?? "—"}</div>
-          <div className="text-xs text-muted">{member.email}</div>
+    <AdminPanel className="space-y-4 p-6">
+      <AdminSectionTitle className="mb-2">品牌外觀</AdminSectionTitle>
+      <p className="mb-4 text-xs text-muted">
+        Logo、主色等設定將透過公開 API 套用在參與者加入頁（依活動代碼載入）。
+      </p>
+
+      <AdminFormField label="Logo URL">
+        <input
+          className={adminInputClass}
+          value={logoUrl}
+          onChange={(e) => setLogoUrl(e.target.value)}
+          placeholder="https://..."
+        />
+      </AdminFormField>
+      <AdminFormField label="Favicon URL">
+        <input
+          className={adminInputClass}
+          value={faviconUrl}
+          onChange={(e) => setFaviconUrl(e.target.value)}
+          placeholder="https://..."
+        />
+      </AdminFormField>
+      <AdminFormField label="主色">
+        <div className="flex items-center gap-3">
+          <input
+            type="color"
+            value={primaryColor}
+            onChange={(e) => setPrimaryColor(e.target.value)}
+            className="h-10 w-14 rounded border border-border bg-surface"
+          />
+          <input
+            className={`${adminInputClass} font-mono`}
+            value={primaryColor}
+            onChange={(e) => setPrimaryColor(e.target.value)}
+          />
         </div>
-      </td>
-      <td className="px-4 py-3">
-        {member.role === "owner" ? (
-          <span className="inline-block rounded-full bg-yellow-500/10 px-2.5 py-0.5 text-xs font-medium text-yellow-600 dark:text-yellow-400">
-            {ROLE_LABELS[member.role]}
-          </span>
-        ) : (
-          <select
-            className="rounded border border-border bg-surface px-2 py-1 text-sm text-foreground disabled:opacity-50"
-            value={selectedRole}
-            onChange={(e) => onRoleChange(e.target.value)}
-            disabled={saving || isMe}
-          >
-            {Object.entries(ROLE_LABELS)
-              .filter(([r]) => r !== "owner")
-              .map(([r, l]) => (
-                <option key={r} value={r}>
-                  {l}
-                </option>
-              ))}
-          </select>
-        )}
-      </td>
-      <td className="px-4 py-3 text-xs text-muted">
-        {new Date(member.created_at).toLocaleDateString("zh-TW")}
-      </td>
-      <td className="px-4 py-3">
-        {!isMe && member.role !== "owner" ? (
-          <button
-            className="text-xs text-danger hover:underline"
-            onClick={onRemove}
-          >
-            移除
-          </button>
-        ) : null}
-      </td>
-    </tr>
-  );
-}
+      </AdminFormField>
+      <AdminFormField label="自訂網域">
+        <input
+          className={adminInputClass}
+          value={customDomain}
+          onChange={(e) => setCustomDomain(e.target.value)}
+          placeholder="events.example.com"
+        />
+        <AdminFieldHint>DNS 設定請於 Zeabur 網域管理完成。</AdminFieldHint>
+      </AdminFormField>
 
-function MembersTable() {
-  const qc = useQueryClient();
-  const { data: members = [], isLoading } = useQuery({
-    queryKey: ["admin-members"],
-    queryFn: listMembers,
-  });
-  const [showInvite, setShowInvite] = useState(false);
-
-  return (
-    <AdminPanel className="overflow-hidden">
-      <div className="flex items-center justify-between border-b border-border px-6 py-4">
-        <AdminSectionTitle>組織成員</AdminSectionTitle>
-        <button
-          className={adminBtnPrimary}
-          onClick={() => setShowInvite(!showInvite)}
-        >
-          {showInvite ? "取消" : "+ 邀請成員"}
-        </button>
-      </div>
-
-      {showInvite ? (
-        <div className="px-6 pb-2 pt-4">
-          <InviteForm
-            onDone={() => {
-              setShowInvite(false);
-              qc.invalidateQueries({ queryKey: ["admin-members"] });
-            }}
-          />
+      {logoUrl ? (
+        <div className="border-t border-border pt-4">
+          <p className="mb-2 text-sm font-medium text-muted">Logo 預覽</p>
+          <img src={logoUrl} alt="Logo 預覽" className="max-h-16 object-contain" />
         </div>
       ) : null}
 
-      {isLoading ? (
-        <div className="animate-pulse space-y-3 p-6">
-          {[1, 2, 3].map((i) => (
-            <div key={i} className="h-10 rounded bg-surface-elevated" />
-          ))}
-        </div>
-      ) : (
-        <table className="w-full">
-          <thead>
-            <tr className={adminTableHeadClass}>
-              <th className="px-4 py-3">成員</th>
-              <th className="px-4 py-3">角色</th>
-              <th className="px-4 py-3">加入時間</th>
-              <th className="px-4 py-3"></th>
-            </tr>
-          </thead>
-          <tbody>
-            {members.map((m) => (
-              <MemberRow key={m.id} member={m} />
-            ))}
-          </tbody>
-        </table>
-      )}
+      {error ? <p className="text-sm text-danger">{error}</p> : null}
+
+      <button
+        className={adminBtnPrimary}
+        disabled={mutation.isPending}
+        onClick={() => mutation.mutate()}
+      >
+        {mutation.isPending ? "儲存中..." : "儲存品牌設定"}
+      </button>
     </AdminPanel>
   );
 }
@@ -330,13 +226,10 @@ interface Props {
 export function OrganizationPage({ onLogout }: Props): React.JSX.Element {
   return (
     <AdminShell active="organization" onLogout={onLogout}>
-      <div className="mx-auto max-w-4xl space-y-6">
-        <AdminPageHeader
-          title="組織設定"
-          description="管理組織資料與成員。"
-        />
+      <div className={`mx-auto max-w-2xl ${adminPageStackClass}`}>
+        <AdminPageHeader title="組織設定" description="管理組織資料。" />
         <OrgSettings />
-        <MembersTable />
+        <BrandingSettings />
       </div>
     </AdminShell>
   );

@@ -6,9 +6,9 @@ import { hasValidSession, clearAccessToken } from "./lib/auth";
 import { LoginPage } from "./pages/LoginPage";
 import { DashboardPage } from "./pages/DashboardPage";
 import { OrganizationPage } from "./pages/OrganizationPage";
+import { AccountsPage } from "./pages/AccountsPage";
 import { SessionsPage } from "./pages/SessionsPage";
 import { AuditPage } from "./pages/AuditPage";
-import { BrandingPage } from "./pages/BrandingPage";
 import { ExportsPage } from "./pages/ExportsPage";
 import { SsoCallbackPage, parseSsoCallbackHash } from "./pages/SsoCallbackPage";
 import type { AdminRoute } from "./lib/nav";
@@ -23,13 +23,14 @@ function parseHash(): Route {
     case "":
       return { name: "dashboard" };
     case "organization":
+    case "branding":
       return { name: "organization" };
+    case "accounts":
+      return { name: "accounts" };
     case "sessions":
       return { name: "sessions" };
     case "audit":
       return { name: "audit" };
-    case "branding":
-      return { name: "branding" };
     case "exports":
       return { name: "exports" };
     default:
@@ -42,7 +43,15 @@ export function App(): React.JSX.Element {
   const [authed, setAuthed] = useState<boolean>(hasValidSession());
 
   useEffect(() => {
-    const onHashChange = (): void => setRoute(parseHash());
+    const onHashChange = (): void => {
+      const seg = window.location.hash.replace(/^#\/?/, "").split("/")[0];
+      if (seg === "branding") {
+        window.location.replace("#/organization");
+        return;
+      }
+      setRoute(parseHash());
+    };
+    onHashChange();
     window.addEventListener("hashchange", onHashChange);
     return () => window.removeEventListener("hashchange", onHashChange);
   }, []);
@@ -78,12 +87,12 @@ export function App(): React.JSX.Element {
   switch (route.name) {
     case "organization":
       return <OrganizationPage onLogout={logout} />;
+    case "accounts":
+      return <AccountsPage onLogout={logout} />;
     case "sessions":
       return <SessionsPage onLogout={logout} />;
     case "audit":
       return <AuditPage onLogout={logout} />;
-    case "branding":
-      return <BrandingPage onLogout={logout} />;
     case "exports":
       return <ExportsPage onLogout={logout} />;
     case "dashboard":

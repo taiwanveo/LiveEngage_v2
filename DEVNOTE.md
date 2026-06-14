@@ -7,8 +7,8 @@
 ## SNAPSHOT（2026-06-14）
 
 - **Repo**：https://github.com/ColdRighter/LiveEngage.git（master）
-- **最新 commit**：`cbd1cfb` — Quiz 開放修復、Admin 版型、Host 導覽統一
-- **pytest**：含 `test_activate_quiz_stops_existing_active_poll`；全 suite 建議 CI 再跑
+- **最新 commit**：見下方 HISTORY 本輪條目
+- **pytest**：全 suite 建議 CI 再跑（本輪以 Host/Admin 前端為主）
 - **Zeabur**：**六服務** — api / host / participant / present / admin / worker（push `master` 自動 redeploy）
 
 ### 已上線服務
@@ -26,11 +26,10 @@
 
 | 區塊 | 內容 |
 |------|------|
-| **Quiz 開放 BUG** | `interaction_service` activate 前先 stop 同 room 其他 active；Sprint9 前端 `onError` |
-| **Admin 後台** | 移除總覽「快捷入口」；`AdminLayout` 統一頁標題／欄位標籤 typography |
-| **Host 導覽** | 三項選單：**Q&A 審核**、**Poll 管理**、**Quiz 管理**（`le-nav-link` 一致） |
-| **Q&A 審核** | 改用 `HostShell`；「重新整理」移至標題旁（移除 refresh 英文） |
-| **工作台 / Poll** | `PollControlBar` 共用 toggle；投影預設 `le-present.zeabur.app`；三欄 25/55/20 |
+| **Admin 後台** | 選單重排（總覽→活動→稽核→帳號→組織→匯出）；`AccountsPage`；品牌併入組織設定；Analytics 繁中；頁首留白縮半 |
+| **Host 儀表板** | 左 40% 建立表單／右 60% 活動列表；標題「活動儀表板」；左上 brand 回 `#/dashboard` |
+| **Host 跨頁** | `HostRoomHeaderActions`：右上角「投影／分享」（分享改 Modal）；`AppHeader` `brandHref` |
+| **工作台** | 左欄「互動項目」寬 2/3（約 17%）；右欄手機預覽約 28%；頂欄導覽第二列；Participant 預覽字級縮小 |
 
 ### 生產環境新增/可選 env（api）
 
@@ -51,6 +50,10 @@
 ---
 
 ## HISTORY
+
+### 2026-06-14 — Admin 重組 + Host 儀表板／工作台 UI（本輪）
+
+Admin 帳號管理獨立、組織與品牌合併、Analytics 中文化；Host 活動儀表板左右分欄、分享 Modal、投影／分享固定於登出下方、工作台三欄比例與參與者預覽優化。
 
 ### 2026-06-14 — Quiz 開放 + Admin 版型 + Host 導覽（cbd1cfb）
 

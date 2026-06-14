@@ -10,6 +10,7 @@ import {
   adminBtnPrimary,
   adminInputClass,
   adminMetaBarClass,
+  adminPageStackClass,
   adminTableHeadClass,
 } from "../components/AdminLayout";
 import { AdminShell } from "../components/AdminShell";
@@ -101,7 +102,7 @@ export function ExportsPage({ onLogout }: Props): React.JSX.Element {
 
   return (
     <AdminShell active="exports" onLogout={onLogout}>
-      <div className="mx-auto max-w-5xl space-y-6">
+      <div className={`mx-auto max-w-5xl ${adminPageStackClass}`}>
         <AdminPageHeader
           title="資料匯出"
           description="XLSX/CSV 匯出與 72 小時簽名下載連結。"

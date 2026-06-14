@@ -11,6 +11,7 @@ import * as React from "react";
 import { useMemo, useState } from "react";
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { HostShell } from "../components/HostShell";
+import { HostTitleButton } from "../components/HostTitleActions";
 import { listModeration, moderate, reply } from "../lib/qaApi";
 import type {
   ModerateAction,
@@ -80,13 +81,9 @@ export function ModerationPage({ roomId, onLogout }: Props): React.JSX.Element {
       onLogout={onLogout}
       activeNav="moderation"
       titleAddon={
-        <button
-          type="button"
-          onClick={() => void refetch()}
-          className="le-btn-secondary !min-h-[32px] px-3 py-1 text-xs font-normal"
-        >
+        <HostTitleButton type="button" onClick={() => void refetch()}>
           重新整理
-        </button>
+        </HostTitleButton>
       }
     >
       {error ? (

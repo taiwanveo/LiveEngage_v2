@@ -3,7 +3,7 @@
 import * as React from "react";
 import { useQuery } from "@tanstack/react-query";
 import { AnalyticsMetricCard } from "@liveengage/ui";
-import { AdminPageHeader, AdminSectionTitle } from "../components/AdminLayout";
+import { AdminPageHeader, AdminSectionTitle, adminPageStackClass } from "../components/AdminLayout";
 import { AdminShell } from "../components/AdminShell";
 import {
   getEngagementAnalytics,
@@ -26,7 +26,7 @@ export function DashboardPage({ onLogout }: Props): React.JSX.Element {
 
   return (
     <AdminShell active="dashboard" onLogout={onLogout}>
-      <div className="mx-auto max-w-6xl animate-slide-up space-y-8">
+      <div className={`mx-auto max-w-6xl animate-slide-up ${adminPageStackClass}`}>
         <AdminPageHeader
           title="總覽"
           description="組織營運中樞 — 參與度、活動與 AI 用量。"
@@ -44,13 +44,13 @@ export function DashboardPage({ onLogout }: Props): React.JSX.Element {
         ) : null}
 
         <section>
-          <AdminSectionTitle className="mb-4">Analytics</AdminSectionTitle>
+          <AdminSectionTitle className="mb-4">參與度分析</AdminSectionTitle>
           <div className="grid gap-4 lg:grid-cols-3">
             <AnalyticsMetricCard
-              title="Engaged participants"
+              title="參與互動的參與者"
               summary={
                 engagement
-                  ? `${engagement.participants_qa + engagement.participants_poll_voters} out of ${engagement.participants_total} participants engaged with polls or Q&A.`
+                  ? `共 ${engagement.participants_total} 位參與者，其中 ${engagement.participants_qa + engagement.participants_poll_voters} 位曾使用 Poll 或 Q&A。`
                   : "載入中…"
               }
               accent="pink"
@@ -59,11 +59,11 @@ export function DashboardPage({ onLogout }: Props): React.JSX.Element {
               {engagement ? (
                 <ul className="space-y-2 text-xs text-muted">
                   <li className="flex justify-between">
-                    <span>Participants asking in Q&A</span>
+                    <span>Q&A 提問參與者</span>
                     <span>{engagement.participants_qa}</span>
                   </li>
                   <li className="flex justify-between">
-                    <span>Participants voting in polls</span>
+                    <span>Poll 投票參與者</span>
                     <span>{engagement.participants_poll_voters}</span>
                   </li>
                 </ul>
@@ -71,12 +71,12 @@ export function DashboardPage({ onLogout }: Props): React.JSX.Element {
             </AnalyticsMetricCard>
 
             <AnalyticsMetricCard
-              title="Q&A engagement"
+              title="Q&A 參與度"
               summary={
                 engagement && engagement.qa_questions_total === 0
-                  ? "Your Q&A received no questions."
+                  ? "您的 Q&A 尚未收到任何提問。"
                   : engagement
-                    ? `${engagement.qa_questions_total} questions submitted.`
+                    ? `已提交 ${engagement.qa_questions_total} 則提問。`
                     : "載入中…"
               }
               accent="yellow"
@@ -86,12 +86,12 @@ export function DashboardPage({ onLogout }: Props): React.JSX.Element {
             />
 
             <AnalyticsMetricCard
-              title="Poll engagement"
+              title="Poll 參與度"
               summary={
                 engagement && engagement.poll_votes_total === 0
-                  ? "Your session has no poll votes."
+                  ? "目前沒有任何 Poll 投票。"
                   : engagement
-                    ? `${engagement.poll_votes_total} poll responses recorded.`
+                    ? `已記錄 ${engagement.poll_votes_total} 則 Poll 回應。`
                     : "載入中…"
               }
               accent="green"

@@ -23,5 +23,5 @@ function makePage(routeId: (typeof NAV_ITEMS)[number]["id"]) {
 export const OrganizationPage = makePage("organization");
 export const SessionsPage = makePage("sessions");
 export const AuditPage = makePage("audit");
-export const BrandingPage = makePage("branding");
+export const AccountsPage = makePage("accounts");
 export const ExportsPage = makePage("exports");

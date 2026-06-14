@@ -6,9 +6,11 @@ import { useState } from "react";
 interface Props {
   code: string;
   joinUrl: string;
+  /** inline：列表卡片內嵌；modal：彈窗內容 */
+  variant?: "inline" | "modal";
 }
 
-export function JoinShareCard({ code, joinUrl }: Props): React.JSX.Element {
+export function JoinShareCard({ code, joinUrl, variant = "inline" }: Props): React.JSX.Element {
   const [copied, setCopied] = useState<"link" | "code" | null>(null);
   const qrSrc = `https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${encodeURIComponent(joinUrl)}`;
 
@@ -19,7 +21,13 @@ export function JoinShareCard({ code, joinUrl }: Props): React.JSX.Element {
   }
 
   return (
-    <div className="mt-4 flex flex-wrap items-start gap-6 border-t border-border pt-4">
+    <div
+      className={
+        variant === "modal"
+          ? "flex flex-wrap items-start justify-center gap-6"
+          : "mt-4 flex flex-wrap items-start gap-6 border-t border-border pt-4"
+      }
+    >
       <div className="flex flex-col items-center gap-2">
         <img
           src={qrSrc}

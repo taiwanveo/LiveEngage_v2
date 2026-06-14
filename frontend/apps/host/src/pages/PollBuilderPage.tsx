@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { PollRenderer } from "@liveengage/renderers";
 import { HostShell } from "../components/HostShell";
+import { HostTitleLink } from "../components/HostTitleActions";
 import { updateInteraction } from "../lib/interactionApi";
 import { getPoll, updatePollOptions } from "../lib/pollApi";
 import type { PollOptionInput } from "../lib/pollTypes";
@@ -90,15 +91,13 @@ export function PollBuilderPage({
       title="Poll Builder"
       subtitle={poll?.type ?? ""}
       roomId={roomId}
+      presentPollId={pollId}
       onLogout={onLogout}
       activeNav="polls"
-      actions={
-        <a
-          href={`#/rooms/${roomId}/polls/${pollId}/console`}
-          className="rounded-md bg-primary-600 px-3 py-1.5 text-sm text-white hover:bg-primary-700"
-        >
+      titleAddon={
+        <HostTitleLink href={`#/rooms/${roomId}/polls/${pollId}/console`} variant="primary">
           前往控制台
-        </a>
+        </HostTitleLink>
       }
     >
       {error ? (

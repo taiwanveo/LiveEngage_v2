@@ -10,6 +10,7 @@ import {
   adminBtnSecondary,
   adminInputClass,
   adminMetaBarClass,
+  adminPageStackClass,
   adminTableHeadClass,
 } from "../components/AdminLayout";
 import { AdminShell } from "../components/AdminShell";
@@ -115,7 +116,7 @@ export function SessionsPage({ onLogout }: Props): React.JSX.Element {
 
   return (
     <AdminShell active="sessions" onLogout={onLogout}>
-      <div className="mx-auto max-w-5xl space-y-6">
+      <div className={`mx-auto max-w-5xl ${adminPageStackClass}`}>
         <AdminPageHeader
           title="活動管理"
           description="查看並管理組織所有活動。"

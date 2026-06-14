@@ -1,11 +1,11 @@
-/** 管理後台導覽項目（S7-1 骨架；後續 Sprint 7-2+ 接 API）。 */
+/** 管理後台導覽項目。 */
 
 export type AdminRoute =
   | "dashboard"
-  | "organization"
   | "sessions"
   | "audit"
-  | "branding"
+  | "accounts"
+  | "organization"
   | "exports";
 
 export interface NavItem {
@@ -16,6 +16,7 @@ export interface NavItem {
   sprint: string;
 }
 
+/** 側欄顯示順序（不含 dashboard 時用於子頁）。 */
 export const NAV_ITEMS: NavItem[] = [
   {
     id: "dashboard",
@@ -23,13 +24,6 @@ export const NAV_ITEMS: NavItem[] = [
     hash: "#/dashboard",
     description: "組織活動概況與參與度分析",
     sprint: "S7-1",
-  },
-  {
-    id: "organization",
-    label: "組織設定",
-    hash: "#/organization",
-    description: "管理組織資料、成員與角色",
-    sprint: "S7-2",
   },
   {
     id: "sessions",
@@ -40,17 +34,24 @@ export const NAV_ITEMS: NavItem[] = [
   },
   {
     id: "audit",
-    label: "稽核紀錄",
+    label: "稽核記錄",
     hash: "#/audit",
     description: "查詢敏感操作的稽核軌跡",
     sprint: "S7-3",
   },
   {
-    id: "branding",
-    label: "品牌設定",
-    hash: "#/branding",
-    description: "Logo、主色與自訂網域",
-    sprint: "S7-4",
+    id: "accounts",
+    label: "帳號管理",
+    hash: "#/accounts",
+    description: "邀請成員與管理角色",
+    sprint: "S7-2",
+  },
+  {
+    id: "organization",
+    label: "組織設定",
+    hash: "#/organization",
+    description: "管理組織資料與品牌外觀",
+    sprint: "S7-2",
   },
   {
     id: "exports",

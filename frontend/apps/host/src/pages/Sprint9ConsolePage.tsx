@@ -4,6 +4,7 @@ import * as React from "react";
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { HostShell } from "../components/HostShell";
+import { HostTitleLink } from "../components/HostTitleActions";
 import { listInteractions } from "../lib/interactionApi";
 import {
   addQuizQuestion,
@@ -20,6 +21,16 @@ interface Props {
   roomId: string;
   interactionId: string;
   onLogout: () => void;
+}
+
+const S9_TYPE_LABELS: Record<string, string> = {
+  quiz: "Quiz 快問快答",
+  ideas: "Ideas 點子牆",
+  survey: "Survey 問卷",
+};
+
+function sprint9TypeLabel(type: string): string {
+  return S9_TYPE_LABELS[type] ?? type;
 }
 
 export function Sprint9ConsolePage({
@@ -108,9 +119,22 @@ export function Sprint9ConsolePage({
       void qc.invalidateQueries({ queryKey: ["survey-results", interactionId] }),
   });
 
+  const backToList = (
+    <HostTitleLink href={`#/rooms/${roomId}/sprint9`} variant="secondary">
+      返回列表
+    </HostTitleLink>
+  );
+
   if (!item) {
     return (
-      <HostShell title="Sprint 9 控制台" roomId={roomId} onLogout={onLogout} activeNav="sprint9">
+      <HostShell
+        title="控制台"
+        {...(metaQuery.isLoading ? { subtitle: "載入中…" } : {})}
+        roomId={roomId}
+        onLogout={onLogout}
+        activeNav="sprint9"
+        titleAddon={backToList}
+      >
         <p className="text-sm text-muted">載入中…</p>
       </HostShell>
     );
@@ -118,19 +142,12 @@ export function Sprint9ConsolePage({
 
   return (
     <HostShell
-      title={`${item.title ?? item.type} 控制台`}
-      subtitle={item.type}
+      title={`${item.title ?? sprint9TypeLabel(item.type)} 控制台`}
+      subtitle={sprint9TypeLabel(item.type)}
       roomId={roomId}
       onLogout={onLogout}
       activeNav="sprint9"
-      actions={
-        <a
-          href={`#/rooms/${roomId}/sprint9`}
-          className="le-btn-secondary !min-h-0 px-3 py-1.5 text-sm"
-        >
-          返回列表
-        </a>
-      }
+      titleAddon={backToList}
     >
       {item.type === "quiz" ? (
         <div className="space-y-6">

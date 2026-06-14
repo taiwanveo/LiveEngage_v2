@@ -59,7 +59,7 @@ export function AdminSidebarShell({
         </aside>
 
         <div className="relative z-10 flex min-w-0 flex-1 flex-col">
-          <main className="flex-1 overflow-y-auto p-6 md:p-8">{children}</main>
+          <main className="flex-1 overflow-y-auto p-3 md:p-4">{children}</main>
         </div>
       </div>
     </div>

@@ -10,6 +10,7 @@ import {
   adminBtnSecondary,
   adminInputClass,
   adminMetaBarClass,
+  adminPageStackClass,
   adminTableHeadClass,
 } from "../components/AdminLayout";
 import { AdminShell } from "../components/AdminShell";
@@ -115,9 +116,9 @@ export function AuditPage({ onLogout }: Props): React.JSX.Element {
 
   return (
     <AdminShell active="audit" onLogout={onLogout}>
-      <div className="mx-auto max-w-6xl space-y-6">
+      <div className={`mx-auto max-w-6xl ${adminPageStackClass}`}>
         <AdminPageHeader
-          title="稽核紀錄"
+          title="稽核記錄"
           description="查詢敏感操作的稽核軌跡。"
         />
 
