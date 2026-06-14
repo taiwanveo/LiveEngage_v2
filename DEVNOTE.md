@@ -7,7 +7,7 @@
 ## SNAPSHOT（2026-06-14）
 
 - **Repo**：https://github.com/ColdRighter/LiveEngage.git（master）
-- **最新 commit**：見下方 HISTORY 本輪條目
+- **最新 commit**：`ae6af17` — Admin 重組、Host 儀表板／工作台 UI
 - **pytest**：全 suite 建議 CI 再跑（本輪以 Host/Admin 前端為主）
 - **Zeabur**：**六服務** — api / host / participant / present / admin / worker（push `master` 自動 redeploy）
 
@@ -51,7 +51,7 @@
 
 ## HISTORY
 
-### 2026-06-14 — Admin 重組 + Host 儀表板／工作台 UI（本輪）
+### 2026-06-14 — Admin 重組 + Host 儀表板／工作台 UI（ae6af17）
 
 Admin 帳號管理獨立、組織與品牌合併、Analytics 中文化；Host 活動儀表板左右分欄、分享 Modal、投影／分享固定於登出下方、工作台三欄比例與參與者預覽優化。
 
