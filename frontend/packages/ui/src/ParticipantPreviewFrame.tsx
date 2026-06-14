@@ -1,6 +1,7 @@
 /** 參與者模式預覽框（手機外框 + 內容，適合工作台右欄）。 */
 
 import * as React from "react";
+import { useEffect, useState } from "react";
 
 export interface ParticipantPreviewFrameProps {
   title?: string;
@@ -10,6 +11,53 @@ export interface ParticipantPreviewFrameProps {
   children: React.ReactNode;
   footer?: React.ReactNode;
 }
+
+/** 狀態列即時時鐘；冒號每秒閃爍一次。 */
+function PreviewStatusClock(): React.JSX.Element {
+  const [parts, setParts] = useState(() => formatClockParts(new Date()));
+  const [colonVisible, setColonVisible] = useState(true);
+
+  useEffect(() => {
+    const tick = (): void => {
+      setParts(formatClockParts(new Date()));
+      setColonVisible((v) => !v);
+    };
+    tick();
+    const id = window.setInterval(tick, 1000);
+    return () => window.clearInterval(id);
+  }, []);
+
+  return (
+    <span className="tabular-nums tracking-tight">
+      {parts.hour}
+      <span
+        className="inline-block w-[0.35em] text-center transition-opacity duration-150"
+        style={{ opacity: colonVisible ? 1 : 0.2 }}
+        aria-hidden
+      >
+        :
+      </span>
+      {parts.minute}
+    </span>
+  );
+}
+
+function formatClockParts(date: Date): { hour: string; minute: string } {
+  return {
+    hour: String(date.getHours()),
+    minute: date.getMinutes().toString().padStart(2, "0"),
+  };
+}
+
+const PHONE_SCROLL_CLASS =
+  "min-h-0 flex-1 overflow-y-auto overscroll-contain px-1 pb-1 " +
+  "[scrollbar-width:thin] [scrollbar-color:rgb(64_64_64)_transparent] " +
+  "[&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-track]:bg-transparent " +
+  "[&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-neutral-600 " +
+  "[&::-webkit-scrollbar-thumb]:hover:bg-neutral-500 " +
+  "[&_*]:max-w-[90%] [&_*]:text-[6px] [&_button]:mx-auto [&_button]:block [&_button]:w-[90%] " +
+  "[&_button]:py-0.5 [&_button]:text-[5px] [&_h2]:mx-auto [&_h2]:w-[90%] [&_h2]:text-[7px] " +
+  "[&_label]:mx-auto [&_label]:block [&_label]:w-[90%] [&_p]:mx-auto [&_p]:w-[90%]";
 
 export function ParticipantPreviewFrame({
   title = "預覽參與者畫面",
@@ -22,7 +70,9 @@ export function ParticipantPreviewFrame({
     <div className="flex h-full min-h-0 flex-col p-2 sm:p-3">
       <div className="mb-2 shrink-0 text-center">
         <p className="text-[10px] font-semibold text-foreground">{title}</p>
-        {subtitle ? <p className="mt-0.5 text-[10px] leading-snug text-muted">{subtitle}</p> : null}
+        {subtitle ? (
+          <p className="mt-0.5 text-[10px] leading-snug text-muted">{subtitle}</p>
+        ) : null}
       </div>
 
       {stats ? (
@@ -33,32 +83,25 @@ export function ParticipantPreviewFrame({
         </div>
       ) : null}
 
-      <div className="flex min-h-0 flex-1 items-start justify-center">
-        <div className="relative w-full max-w-[17rem]">
-          {/* 手機外框 */}
-          <div className="relative rounded-[1.6rem] bg-neutral-950 p-[5px] shadow-elevated ring-1 ring-neutral-800">
-            {/* 動態島 / 瀏海 */}
+      <div className="flex min-h-0 flex-1 items-start justify-center overflow-y-auto">
+        {/* 長形手機外框（約 9:19.5） */}
+        <div className="relative w-[10.5rem] shrink-0 sm:w-[11.25rem]">
+          <div className="relative flex aspect-[9/19.5] flex-col rounded-[2rem] bg-neutral-950 p-[6px] shadow-elevated ring-1 ring-neutral-800">
             <div
-              className="pointer-events-none absolute left-1/2 top-[7px] z-20 h-[10px] w-[38%] max-w-[3.5rem] -translate-x-1/2 rounded-full bg-neutral-950"
+              className="pointer-events-none absolute left-1/2 top-[9px] z-20 h-[11px] w-[36%] max-w-[3.75rem] -translate-x-1/2 rounded-full bg-neutral-950"
               aria-hidden
             />
-            {/* 螢幕 */}
-            <div className="relative overflow-hidden rounded-[1.35rem] bg-surface">
-              {/* 狀態列 */}
-              <div className="flex items-center justify-between bg-surface px-2.5 pb-0.5 pt-1.5 text-[7px] font-medium text-muted">
-                <span>9:41</span>
+            <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-[1.65rem] bg-surface">
+              <div className="flex shrink-0 items-center justify-between bg-surface px-2.5 pb-0.5 pt-2 text-[7px] font-medium text-muted">
+                <PreviewStatusClock />
                 <div className="flex items-center gap-0.5" aria-hidden>
                   <SignalIcon />
                   <WifiIcon />
                   <BatteryIcon />
                 </div>
               </div>
-              {/* 內容：縮小字級並拉寬元件 */}
-              <div className="max-h-[min(52vh,22rem)] overflow-y-auto overscroll-contain px-1 pb-1 [&_*]:max-w-[90%] [&_*]:text-[6px] [&_button]:mx-auto [&_button]:block [&_button]:w-[90%] [&_button]:py-0.5 [&_button]:text-[5px] [&_h2]:mx-auto [&_h2]:w-[90%] [&_h2]:text-[7px] [&_label]:mx-auto [&_label]:block [&_label]:w-[90%] [&_p]:mx-auto [&_p]:w-[90%]">
-                {children}
-              </div>
-              {/* Home indicator */}
-              <div className="flex justify-center bg-surface pb-1.5 pt-0.5" aria-hidden>
+              <div className={PHONE_SCROLL_CLASS}>{children}</div>
+              <div className="flex shrink-0 justify-center bg-surface pb-1.5 pt-0.5" aria-hidden>
                 <div className="h-[3px] w-[28%] rounded-full bg-muted/40" />
               </div>
             </div>
@@ -86,7 +129,15 @@ function SignalIcon(): React.JSX.Element {
 
 function WifiIcon(): React.JSX.Element {
   return (
-    <svg width="10" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" aria-hidden>
+    <svg
+      width="10"
+      height="8"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2.5"
+      aria-hidden
+    >
       <path d="M5 12.55a11 11 0 0 1 14.08 0" />
       <path d="M8.53 16.11a6 6 0 0 1 6.95 0" />
       <circle cx="12" cy="20" r="1" fill="currentColor" stroke="none" />
@@ -96,7 +147,15 @@ function WifiIcon(): React.JSX.Element {
 
 function BatteryIcon(): React.JSX.Element {
   return (
-    <svg width="14" height="8" viewBox="0 0 24 12" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden>
+    <svg
+      width="14"
+      height="8"
+      viewBox="0 0 24 12"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      aria-hidden
+    >
       <rect x="0.5" y="0.5" width="20" height="11" rx="2" />
       <rect x="2" y="2" width="14" height="8" rx="1" fill="currentColor" stroke="none" />
       <path d="M22 4v4" strokeLinecap="round" />
