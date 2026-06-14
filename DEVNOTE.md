@@ -7,8 +7,8 @@
 ## SNAPSHOT（2026-06-14）
 
 - **Repo**：https://github.com/ColdRighter/LiveEngage.git（master）
-- **最新 commit**：`86813b5` — 工作台控場、投票編輯與手機預覽體驗強化
-- **typecheck**：`host` 通過（本輪變更範圍）
+- **最新 commit**：`edc9f56` — Poll 控場延遲優化與 Neon Pooler 部署指引
+- **測試**：`test_poll_sprint5.py` 12 passed（本輪後端變更）
 - **Zeabur**：**六服務** — api / host / participant / present / admin / worker（push `master` 自動 redeploy）
 
 ### 已上線服務
@@ -22,41 +22,43 @@
 | admin | https://le-admin.zeabur.app |
 | worker | Celery（無公開 URL） |
 
-### 本輪重點（86813b5）
+### 本輪重點（edc9f56）
 
 | 區塊 | 內容 |
 |------|------|
-| **工作台控場** | 頂欄合併為單一排：回到活動列表、開始／結束、上一題／下一題、鎖定、揭曉答案；狀態徽章改跟 Poll 即時狀態 |
-| **參與者預覽** | `hostWorkbenchPreview`：揭曉／鎖定／結束等控場狀態同步右欄手機預覽；滿寬排版、去除巢狀卡片留白 |
-| **投票編輯** | 選項自動儲存（700ms debounce）；雙「儲存題目」+ 至少一選項驗證 |
-| **側欄 UX** | 「新增題目」按鈕移至標題輸入下方；與題目列表留距 |
+| **後端控場** | `poll_service` 改為 DB 單一 commit；Redis / WS 在 commit 後執行（`PostCommitHook`） |
+| **reveal 快照** | `PollActionResponse.results`：reveal / reset 附 `PollResults`，Host 免再打 GET /results |
+| **Host 快取** | 新增 `pollActionCache.ts`：mutation 後 `setQueryData`、2.5s WS 自我動作去重 |
+| **套用頁面** | `SessionWorkbenchPage`、`PollConsolePage`、`PresentPage` |
+| **部署文件** | `.env.example`、`Zeabur_部署指引`、`RUNBOOK`：Neon **Pooler**（`-pooler` 主機名）與區域建議 |
 
-### 先前已上線（db1a4bc 一帶）
+### 生產 DB 連線（待手動）
+
+| 項目 | 現況 | 建議 |
+|------|------|------|
+| Neon 區域 | 新加坡 `ap-southeast-1` | 遷東京需新建專案；短期先換 **Pooler** 效益較大 |
+| Zeabur api/worker | 目前 **direct** 連線 | 改 `LE_DATABASE_URL*` 主機名為 `ep-xxx-**pooler**.c-2...` |
+
+Neon Console → Connection details → **Pooled connection** → 更新 Zeabur **api** / **worker** env → redeploy → `GET /ready` 驗證。
+
+### 先前已上線（86813b5）
 
 | 區塊 | 內容 |
 |------|------|
-| **麵包屑** | Poll／Quiz 管理頁「活動儀表板 / {活動名} / 目前頁」 |
-| **手機預覽** | 9:19.5 長形外框；即時時鐘、暗色捲軸 |
-| **活動／互動通知** | `SESSION_STARTED`／`INTERACTION_STARTED`；`useSystemNotice` Modal |
+| **工作台控場** | 頂欄單排控場列；Poll 狀態徽章；開始／結束 toggle |
+| **參與者預覽** | `hostWorkbenchPreview`；滿寬手機預覽 |
+| **投票編輯** | 選項 700ms 自動儲存；雙「儲存題目」 |
 
 ### Host 導覽速查
 
-1. **儀表板** → 建立／進行中活動 → **工作台**（三欄）  
-2. 頂欄控場列：開始／結束、題目切換、鎖定、揭曉答案  
-3. 右欄手機預覽：即時反映參與者畫面  
-4. **投票編輯**：選項自動儲存；可「回到工作台」  
-
-### 生產環境 env（api）
-
-| 變數 | 用途 |
-|------|------|
-| `LE_SSO_ENABLED` / `LE_SSO_OIDC_*` | SSO |
-| `LE_API_PUBLIC_URL` | `https://le-api.zeabur.app` |
-| `LE_SSO_*_FRONTEND_URL` | 各前端 Zeabur 網域 |
-| `LE_AI_ENABLED` / `LE_AI_API_KEY` | 真實 LLM（可選） |
+1. **儀表板** → 建立／進行中活動 → **工作台**（三欄）
+2. 頂欄控場列：開始／結束、題目切換、鎖定、揭曉答案
+3. 右欄手機預覽：即時反映參與者畫面
+4. **投票編輯**：選項自動儲存；可「回到工作台」
 
 ### 仍可做（非阻塞）
 
+- Zeabur api/worker 改用 Neon Pooler URL
 - Webhook outbound 派送（Celery）
 - Playwright join→poll→Q&A E2E
 - Q&A 審核頁麵包屑（與 Poll/Quiz 對齊）
@@ -65,6 +67,10 @@
 ---
 
 ## HISTORY
+
+### 2026-06-14 — Poll 控場延遲優化與 Neon Pooler 指引（edc9f56）
+
+後端單一 commit + reveal results 快照；`pollActionCache` 樂觀更新與 WS 去重；部署文件補 Pooler 與區域建議。
 
 ### 2026-06-14 — 工作台控場、投票編輯與手機預覽（86813b5）
 
@@ -81,7 +87,3 @@
 ### 2026-06-14 — 活動開始通知 + Sprint9 開放修復 + Modal 統一（f531f6e）
 
 `session_started`／`interaction_started` 廣播；Sprint9 開放房間鎖修復；`useSystemNotice` 全系統 Modal。
-
-### 2026-06-14 — 結束活動通知 + Quiz 編輯 + Poll/Quiz 刪除（c9b53f1）
-
-`session_ended` 廣播；參與者結束 Modal；Quiz 子題 PATCH/DELETE 與編輯頁；互動 DELETE。
