@@ -7,9 +7,9 @@
 ## SNAPSHOT（2026-06-14）
 
 - **Repo**：https://github.com/ColdRighter/LiveEngage.git（master）
-- **最新 commit**：`01009f7` — Q&A/Quiz 投影、審核麵包屑與活動封存
-- **typecheck**：`host` 通過
-- **Zeabur**：push `master` 自動 redeploy（**host**、**api** 有變更）
+- **最新 commit**：`f82edc6` — Survey 參與者作答、Quiz 重載還原與全站按鈕缺口修復
+- **typecheck**：`host`、`participant` 通過
+- **Zeabur**：push `master` 觸發自動 redeploy（**api**、**host**、**participant** 有變更）
 
 ### 已上線服務
 
@@ -19,15 +19,15 @@
 | host | https://le-host.zeabur.app |
 | participant | https://le-participant.zeabur.app |
 
-### 本輪重點（01009f7）
+### 本輪重點（f82edc6）
 
 | 區塊 | 內容 |
 |------|------|
-| **Q&A 投影** | `QaPresentPage`：`#/rooms/.../moderation/present`；唯讀熱門已核准問題 + WS |
-| **Quiz 投影** | `QuizPresentPage`：`#/rooms/.../sprint9/{quizId}/present`；當前子題 + 排行榜 |
-| **投影入口** | Q&A 審核、Quiz 列表／控制台右上角「投影」；`presentHref` 統一 Host 同源 JWT |
-| **Q&A 麵包屑** | 活動儀表板 → 活動 → Q&A 審核 |
-| **活動封存** | 儀表板 `ended`/`draft` 可封存；列表隱藏 `archived` |
+| **Survey 參與者作答** | `GET /surveys/{id}/participant-questions`；`RoomSurveyPanel`（選擇／評分／開放題） |
+| **Quiz 重載還原** | `GET /quizzes/{id}/active-question`；`RoomPage` 依 session state 還原進行中子題 |
+| **Ideas / Survey 投影** | `IdeasPresentPage`、`SurveyPresentPage`、`Sprint9PresentRouter` |
+| **Host 麵包屑** | Poll Builder／Console／Answer、Quiz 子題編輯、Sprint9 控制台 |
+| **按鈕缺口修復** | Q&A 審核觸控可及性；各頁 mutation `onError`；Join SSO 邊界；分享 tooltip |
 
 ### 投影路由速查
 
@@ -35,21 +35,28 @@
 |------|------|
 | Poll | `#/rooms/{roomId}/polls/{pollId}/present` |
 | Q&A | `#/rooms/{roomId}/moderation/present` |
-| Quiz | `#/rooms/{roomId}/sprint9/{quizId}/present` |
+| Quiz / Ideas / Survey | `#/rooms/{roomId}/sprint9/{interactionId}/present` |
 
-### 先前已上線（84d992d）
+### 參與者 API 新增
 
-參與者作答 WS 即時更新；投影按鈕同源 JWT 修復（a416d99）。
+| 端點 | 用途 |
+|------|------|
+| `GET /surveys/{id}/participant-questions` | 問卷題目（含選項） |
+| `GET /quizzes/{id}/active-question` | 可作答 Quiz 子題（reconnect fallback） |
 
 ### 仍可做（非阻塞）
 
 - Neon Pooler 環境變數
-- Ideas / Survey 投影（若需要）
+- 獨立 Present App 支援 Sprint9 投影（目前 Host 同源已足夠）
 - Playwright E2E
 
 ---
 
 ## HISTORY
+
+### 2026-06-14 — Survey 作答、Quiz 重載與按鈕缺口修復（f82edc6）
+
+Participant Survey 完整流程；Quiz active-question API；Ideas/Survey 投影；Host 麵包屑與 mutation 錯誤回饋。
 
 ### 2026-06-14 — Q&A/Quiz 投影、麵包屑與活動封存（01009f7）
 
