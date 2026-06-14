@@ -16,21 +16,12 @@ import {
   quizAction,
   addSurveyQuestion,
 } from "../lib/sprint9Api";
+import { interactionTypeLabel, quizQuestionStateLabel } from "../lib/pollTypes";
 
 interface Props {
   roomId: string;
   interactionId: string;
   onLogout: () => void;
-}
-
-const S9_TYPE_LABELS: Record<string, string> = {
-  quiz: "Quiz 快問快答",
-  ideas: "Ideas 點子牆",
-  survey: "Survey 問卷",
-};
-
-function sprint9TypeLabel(type: string): string {
-  return S9_TYPE_LABELS[type] ?? type;
 }
 
 export function Sprint9ConsolePage({
@@ -142,8 +133,8 @@ export function Sprint9ConsolePage({
 
   return (
     <HostShell
-      title={`${item.title ?? sprint9TypeLabel(item.type)} 控制台`}
-      subtitle={sprint9TypeLabel(item.type)}
+      title={`${item.title ?? interactionTypeLabel(item.type)} 控制台`}
+      subtitle={interactionTypeLabel(item.type)}
       roomId={roomId}
       onLogout={onLogout}
       activeNav="sprint9"
@@ -177,7 +168,9 @@ export function Sprint9ConsolePage({
                 <li key={q.id} className="flex flex-wrap items-center justify-between gap-2 border-b border-border pb-2">
                   <div>
                     <p className="font-medium text-foreground">{q.title}</p>
-                    <p className="text-xs text-muted">狀態：{q.state}</p>
+                    <p className="text-xs text-muted">
+                      狀態：{quizQuestionStateLabel(q.state)}
+                    </p>
                   </div>
                   <div className="flex gap-2">
                     <button

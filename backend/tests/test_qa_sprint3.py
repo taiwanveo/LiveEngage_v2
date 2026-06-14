@@ -146,6 +146,45 @@ def test_fe004_ac3_pending_not_in_public_list(
     assert "待審問題" in [q["content"] for q in public2.json()["items"]]
 
 
+def test_unapprove_returns_to_pending_and_hides_from_public(
+    client: TestClient, host_token: tuple[str, str]
+) -> None:
+    """取消核准：approved → pending，並從參與者公開列表移除。"""
+    headers = _auth(host_token[0])
+    session = _live_session(client, headers)
+    ptoken, room_id = _join(client, session["id"])
+    _open_qa(client, headers, room_id, settings={"moderation_enabled": True})
+
+    qid = client.post(
+        f"/api/v1/rooms/{room_id}/questions",
+        headers=_auth(ptoken),
+        json={"content": "可退回待審"},
+    ).json()["id"]
+    client.post(
+        f"/api/v1/questions/{qid}/moderate",
+        headers=headers,
+        json={"action": "approve"},
+    )
+
+    unapprove = client.post(
+        f"/api/v1/questions/{qid}/moderate",
+        headers=headers,
+        json={"action": "unapprove"},
+    )
+    assert unapprove.status_code == 200, unapprove.text
+    assert unapprove.json()["status"] == "pending"
+
+    public = client.get(f"/api/v1/rooms/{room_id}/questions")
+    assert "可退回待審" not in [q["content"] for q in public.json()["items"]]
+
+    pending = client.get(
+        f"/api/v1/rooms/{room_id}/questions/moderation",
+        headers=headers,
+        params={"status": "pending"},
+    )
+    assert qid in [q["id"] for q in pending.json()]
+
+
 def test_fe004_qa_closed_rejects_submit(
     client: TestClient, host_token: tuple[str, str]
 ) -> None:

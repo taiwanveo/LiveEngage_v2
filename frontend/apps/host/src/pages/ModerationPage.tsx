@@ -8,11 +8,12 @@
  */
 
 import * as React from "react";
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
+import { QA_EVENT_TYPES, useRoomWebSocket, type WsEvent } from "@liveengage/realtime";
 import { HostShell } from "../components/HostShell";
-import { HostTitleButton } from "../components/HostTitleActions";
 import { QaControlBar } from "../components/QaControlBar";
+import { getAccessToken } from "../lib/auth";
 import { listModeration, moderate, reply } from "../lib/qaApi";
 import type {
   ModerateAction,
@@ -26,7 +27,7 @@ interface Props {
   onLogout: () => void;
 }
 
-const REFRESH_INTERVAL_MS = 4_000;
+const WS_BACKUP_REFETCH_MS = 30_000;
 
 export function ModerationPage({ roomId, onLogout }: Props): React.JSX.Element {
   const queryClient = useQueryClient();
@@ -36,12 +37,27 @@ export function ModerationPage({ roomId, onLogout }: Props): React.JSX.Element {
     data: items,
     isLoading,
     error,
-    refetch,
   } = useQuery<QuestionPublic[]>({
     queryKey: ["moderation", roomId],
     queryFn: () => listModeration(roomId),
     enabled: validRoom,
-    refetchInterval: REFRESH_INTERVAL_MS,
+    refetchInterval: WS_BACKUP_REFETCH_MS,
+  });
+
+  const handleWsEvent = useCallback(
+    (event: WsEvent) => {
+      if (!QA_EVENT_TYPES.has(event.type)) return;
+      void queryClient.invalidateQueries({ queryKey: ["moderation", roomId] });
+    },
+    [queryClient, roomId]
+  );
+
+  useRoomWebSocket({
+    roomId: validRoom ? roomId : null,
+    token: getAccessToken(),
+    mode: "host",
+    enabled: validRoom,
+    onEvent: handleWsEvent,
   });
 
   const moderateMutation = useMutation({
@@ -81,11 +97,6 @@ export function ModerationPage({ roomId, onLogout }: Props): React.JSX.Element {
       roomId={roomId}
       onLogout={onLogout}
       activeNav="moderation"
-      titleAddon={
-        <HostTitleButton type="button" onClick={() => void refetch()}>
-          重新整理
-        </HostTitleButton>
-      }
     >
       {error ? (
         <div className="mb-4 rounded-lg border border-danger/30 bg-danger/10 px-4 py-3 text-sm text-danger">
@@ -97,7 +108,7 @@ export function ModerationPage({ roomId, onLogout }: Props): React.JSX.Element {
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
         <Column
-          title="待審（pending）"
+          title="待審"
           accent="amber"
           questions={grouped.pending}
           loading={isLoading}
@@ -110,7 +121,7 @@ export function ModerationPage({ roomId, onLogout }: Props): React.JSX.Element {
                 }
                 disabled={moderateMutation.isPending}
               >
-                核准（approve）
+                核准
               </ActionButton>
               <ActionButton
                 variant="ghost"
@@ -119,14 +130,14 @@ export function ModerationPage({ roomId, onLogout }: Props): React.JSX.Element {
                 }
                 disabled={moderateMutation.isPending}
               >
-                駁回（dismiss）
+                駁回
               </ActionButton>
             </>
           )}
         />
 
         <Column
-          title="已核准（approved）"
+          title="已核准"
           accent="blue"
           questions={grouped.approved}
           loading={isLoading}
@@ -134,13 +145,22 @@ export function ModerationPage({ roomId, onLogout }: Props): React.JSX.Element {
             <>
               <ReplyForm questionId={q.id} existing={q.replies} roomId={roomId} />
               <ActionButton
+                variant="ghost"
+                onClick={() =>
+                  moderateMutation.mutate({ questionId: q.id, action: "unapprove" })
+                }
+                disabled={moderateMutation.isPending}
+              >
+                取消核准
+              </ActionButton>
+              <ActionButton
                 variant="primary"
                 onClick={() =>
                   moderateMutation.mutate({ questionId: q.id, action: "answer" })
                 }
                 disabled={moderateMutation.isPending}
               >
-                標為已答（answer）
+                標為已答
               </ActionButton>
               <ActionButton
                 variant="ghost"
@@ -152,7 +172,7 @@ export function ModerationPage({ roomId, onLogout }: Props): React.JSX.Element {
                 }
                 disabled={moderateMutation.isPending}
               >
-                {q.highlighted ? "取消標記（unhighlight）" : "標記（highlight）"}
+                {q.highlighted ? "取消標記" : "標記"}
               </ActionButton>
               <ActionButton
                 variant="ghost"
@@ -161,14 +181,14 @@ export function ModerationPage({ roomId, onLogout }: Props): React.JSX.Element {
                 }
                 disabled={moderateMutation.isPending}
               >
-                封存（archive）
+                封存
               </ActionButton>
             </>
           )}
         />
 
         <Column
-          title="已回答（answered）"
+          title="已回答"
           accent="emerald"
           questions={grouped.answered}
           loading={isLoading}
@@ -182,7 +202,7 @@ export function ModerationPage({ roomId, onLogout }: Props): React.JSX.Element {
                 }
                 disabled={moderateMutation.isPending}
               >
-                取消已答（unanswer）
+                取消已答
               </ActionButton>
               <ActionButton
                 variant="ghost"
@@ -191,7 +211,7 @@ export function ModerationPage({ roomId, onLogout }: Props): React.JSX.Element {
                 }
                 disabled={moderateMutation.isPending}
               >
-                封存（archive）
+                封存
               </ActionButton>
             </>
           )}
@@ -227,9 +247,7 @@ function Column(props: {
 
       <div className="flex-1 overflow-y-auto p-3 space-y-3">
         {props.loading ? (
-          <p className="text-sm text-slate-400 text-center py-8">
-            載入中…（loading）
-          </p>
+          <p className="text-sm text-slate-400 text-center py-8">載入中…</p>
         ) : props.questions.length === 0 ? (
           <p className="text-sm text-slate-400 text-center py-8">尚無問題</p>
         ) : (
@@ -308,7 +326,7 @@ function ReplyForm(props: {
   if (!open) {
     return (
       <ActionButton variant="ghost" onClick={() => setOpen(true)}>
-        回覆（reply）
+        回覆
       </ActionButton>
     );
   }
@@ -400,7 +418,7 @@ function RoomPicker(props: { onLogout: () => void }): React.JSX.Element {
           onClick={props.onLogout}
           className="text-sm text-slate-500 hover:text-slate-900"
         >
-          登出（sign out）
+          登出
         </button>
       </div>
     </main>

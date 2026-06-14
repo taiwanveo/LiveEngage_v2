@@ -42,11 +42,11 @@ interface Props {
 }
 
 const VISIBILITY_LABEL: Record<SessionVisibility, string> = {
-  public: "Public（公開）",
-  hidden: "Hidden（隱藏）",
-  passcode: "Passcode",
-  sso: "SSO",
-  restricted: "Restricted（限制）",
+  public: "公開",
+  hidden: "隱藏",
+  passcode: "密碼加入",
+  sso: "SSO 登入",
+  restricted: "限制加入",
 };
 
 const STATUS_LABEL: Record<SessionHost["status"], string> = {

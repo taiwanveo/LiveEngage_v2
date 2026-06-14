@@ -33,18 +33,24 @@ export const POLL_EVENT_TYPES = new Set([
 ]);
 
 /** Q&A 相關事件（與後端 events.py 同步）。 */
+export const QUESTION_SUBMITTED = "question_submitted";
 export const QUESTION_APPROVED = "question_approved";
-export const QUESTION_ANSWERED = "question_answered";
-export const QUESTION_REPLIED = "question_replied";
+export const QUESTION_DISMISSED = "question_dismissed";
 export const QUESTION_UPVOTED = "question_upvoted";
 export const QUESTION_DOWNVOTED = "question_downvoted";
+export const QUESTION_HIGHLIGHTED = "question_highlighted";
+export const QUESTION_ANSWERED = "question_answered";
+export const QUESTION_REPLIED = "question_replied";
 
 export const QA_EVENT_TYPES = new Set([
+  QUESTION_SUBMITTED,
   QUESTION_APPROVED,
-  QUESTION_ANSWERED,
-  QUESTION_REPLIED,
+  QUESTION_DISMISSED,
   QUESTION_UPVOTED,
   QUESTION_DOWNVOTED,
+  QUESTION_HIGHLIGHTED,
+  QUESTION_ANSWERED,
+  QUESTION_REPLIED,
 ]);
 
 /** Quiz 事件（Sprint 9；BE-007 / FE-011） */

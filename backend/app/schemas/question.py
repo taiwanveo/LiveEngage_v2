@@ -34,6 +34,7 @@ class ModerateAction(StrEnum):
     RESTORE = "restore"
     ANSWER = "answer"
     UNANSWER = "unanswer"
+    UNAPPROVE = "unapprove"
     HIGHLIGHT = "highlight"
     UNHIGHLIGHT = "unhighlight"
 

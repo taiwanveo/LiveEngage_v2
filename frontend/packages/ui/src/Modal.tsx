@@ -64,7 +64,7 @@ export function Modal({
         onClick={onClose}
       />
       <div
-        className={`relative z-[1] max-h-[min(90vh,640px)] w-full overflow-y-auto ${SIZE_CLASS[size]} animate-slide-up rounded-xl border border-border bg-surface p-5 shadow-elevated`}
+        className={`relative z-[1] w-full overflow-visible ${SIZE_CLASS[size]} animate-slide-up rounded-xl border border-border bg-surface p-5 shadow-elevated`}
       >
         <div className="mb-4 flex items-start justify-between gap-3">
           <h2 id="le-modal-title" className="font-display text-base font-semibold text-foreground">

@@ -21,10 +21,10 @@ interface Props {
 }
 
 const STATUS_LABEL: Record<SessionStatus, string> = {
-  draft: "草稿（draft）",
-  live: "進行中（live）",
-  ended: "已結束（ended）",
-  archived: "已封存（archived）",
+  draft: "草稿",
+  live: "進行中",
+  ended: "已結束",
+  archived: "已封存",
 };
 
 export function SessionsDashboardPage({ onLogout }: Props): React.JSX.Element {

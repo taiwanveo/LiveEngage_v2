@@ -15,6 +15,7 @@ import { PollControlBar } from "../components/PollControlBar";
 import { HostTitleActions, HostTitleLink } from "../components/HostTitleActions";
 import { getPoll, getPollResults, pollAction } from "../lib/pollApi";
 import type { PollAction } from "../lib/pollTypes";
+import { interactionMetaLine } from "../lib/pollTypes";
 import { presentAppUrl } from "../lib/presentUrl";
 
 interface Props {
@@ -85,7 +86,7 @@ export function PollConsolePage({
   return (
     <HostShell
       title="Poll 控制台"
-      subtitle={poll ? `${poll.type} · ${poll.status}` : ""}
+      subtitle={poll ? interactionMetaLine(poll.type, poll.status) : ""}
       roomId={roomId}
       presentPollId={pollId}
       onLogout={onLogout}

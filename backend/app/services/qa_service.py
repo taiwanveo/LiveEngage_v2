@@ -479,6 +479,7 @@ _TRANSITIONS: dict[ModerateAction, tuple[set[QuestionStatus], QuestionStatus]] =
         QuestionStatus.ARCHIVED,
     ),
     ModerateAction.RESTORE: ({QuestionStatus.DISMISSED}, QuestionStatus.PENDING),
+    ModerateAction.UNAPPROVE: ({QuestionStatus.APPROVED}, QuestionStatus.PENDING),
     ModerateAction.ANSWER: ({QuestionStatus.APPROVED}, QuestionStatus.ANSWERED),
     ModerateAction.UNANSWER: ({QuestionStatus.ANSWERED}, QuestionStatus.APPROVED),
 }
@@ -560,6 +561,13 @@ async def _broadcast_moderation(action: ModerateAction, public: QuestionPublic) 
             public.room_id,
             events.QUESTION_APPROVED,
             {"question": payload_obj},
+            target_modes=events.MODE_ALL,
+        )
+    elif action == ModerateAction.UNAPPROVE:
+        await events.publish(
+            public.room_id,
+            events.QUESTION_DISMISSED,
+            {"question_id": str(public.id)},
             target_modes=events.MODE_ALL,
         )
     elif action in (ModerateAction.DISMISS, ModerateAction.ARCHIVE):

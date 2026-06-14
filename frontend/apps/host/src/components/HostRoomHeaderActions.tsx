@@ -70,11 +70,17 @@ export function HostRoomHeaderActions({
       </div>
 
       {session ? (
-        <Modal open={shareOpen} onClose={() => setShareOpen(false)} title="分享加入資訊">
+        <Modal
+          open={shareOpen}
+          onClose={() => setShareOpen(false)}
+          title="分享加入資訊"
+          showCloseButton={false}
+        >
           <JoinShareCard
             variant="modal"
             code={session.code}
             joinUrl={participantJoinUrl(session.code)}
+            onClose={() => setShareOpen(false)}
           />
         </Modal>
       ) : null}

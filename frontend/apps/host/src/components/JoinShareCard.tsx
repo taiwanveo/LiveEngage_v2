@@ -8,9 +8,11 @@ interface Props {
   joinUrl: string;
   /** inline：列表卡片內嵌；modal：彈窗內容 */
   variant?: "inline" | "modal";
+  /** modal 時與「複製參與連結」並列的關閉按鈕 */
+  onClose?: () => void;
 }
 
-export function JoinShareCard({ code, joinUrl, variant = "inline" }: Props): React.JSX.Element {
+export function JoinShareCard({ code, joinUrl, variant = "inline", onClose }: Props): React.JSX.Element {
   const [copied, setCopied] = useState<"link" | "code" | null>(null);
   const qrSrc = `https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${encodeURIComponent(joinUrl)}`;
 
@@ -60,13 +62,28 @@ export function JoinShareCard({ code, joinUrl, variant = "inline" }: Props): Rea
         <div>
           <p className="text-xs font-medium text-muted">參與連結</p>
           <p className="mt-1 break-all text-xs text-muted">{joinUrl}</p>
-          <button
-            type="button"
-            onClick={() => void copy(joinUrl, "link")}
-            className="mt-2 rounded-md bg-primary-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-primary-700"
-          >
-            {copied === "link" ? "已複製連結" : "複製參與連結"}
-          </button>
+          <div className="mt-2 flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={() => void copy(joinUrl, "link")}
+              className={
+                variant === "modal"
+                  ? "le-btn-primary !min-h-[36px] !px-3 !text-xs"
+                  : "rounded-md bg-primary-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-primary-700"
+              }
+            >
+              {copied === "link" ? "已複製連結" : "複製參與連結"}
+            </button>
+            {variant === "modal" && onClose ? (
+              <button
+                type="button"
+                onClick={onClose}
+                className="le-btn-secondary !min-h-[36px] !px-3 !text-xs"
+              >
+                關閉
+              </button>
+            ) : null}
+          </div>
         </div>
       </div>
     </div>

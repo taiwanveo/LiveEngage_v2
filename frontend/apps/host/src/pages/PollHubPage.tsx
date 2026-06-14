@@ -6,6 +6,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { HostShell } from "../components/HostShell";
 import { createInteraction, listInteractions } from "../lib/interactionApi";
 import {
+  interactionMetaLine,
   isPollType,
   POLL_TYPES,
   type PollInteractionType,
@@ -102,8 +103,11 @@ export function PollHubPage({ roomId, onLogout }: Props): React.JSX.Element {
                     {poll.title ?? "未命名題目"}
                   </p>
                   <p className="text-xs text-muted">
-                    {poll.type} · {poll.status}
-                    {poll.result_visible ? " · 結果已揭示" : ""}
+                    {interactionMetaLine(
+                      poll.type,
+                      poll.status,
+                      poll.result_visible ? "結果已揭示" : undefined
+                    )}
                   </p>
                 </div>
                 <div className="flex flex-wrap gap-2">

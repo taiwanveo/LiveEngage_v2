@@ -62,6 +62,15 @@ const POLL_TYPE_LABEL_MAP = Object.fromEntries(
   POLL_TYPES.map((t) => [t.value, t.label])
 ) as Record<PollInteractionType, string>;
 
+/** 所有互動題型（含 Q&A、Sprint 9） */
+export const INTERACTION_TYPE_LABEL: Record<string, string> = {
+  ...POLL_TYPE_LABEL_MAP,
+  qa: "Q&A 問答",
+  quiz: "快問快答",
+  ideas: "點子牆",
+  survey: "問卷",
+};
+
 export const INTERACTION_STATUS_LABEL: Record<InteractionStatus, string> = {
   idle: "閒置",
   active: "進行中",
@@ -69,13 +78,40 @@ export const INTERACTION_STATUS_LABEL: Record<InteractionStatus, string> = {
   stopped: "已結束",
 };
 
+/** Quiz 子題狀態 */
+export const QUIZ_QUESTION_STATE_LABEL: Record<string, string> = {
+  pending: "待開始",
+  active: "進行中",
+  revealed: "已揭曉",
+  closed: "已結束",
+};
+
 /** 題型顯示名稱（中文） */
 export function pollTypeLabel(type: string): string {
-  if (isPollType(type)) return POLL_TYPE_LABEL_MAP[type];
-  return type;
+  return interactionTypeLabel(type);
+}
+
+/** 互動題型顯示名稱（中文） */
+export function interactionTypeLabel(type: string): string {
+  return INTERACTION_TYPE_LABEL[type] ?? type;
 }
 
 /** 互動狀態顯示名稱（中文） */
-export function interactionStatusLabel(status: InteractionStatus): string {
-  return INTERACTION_STATUS_LABEL[status] ?? status;
+export function interactionStatusLabel(status: InteractionStatus | string): string {
+  return INTERACTION_STATUS_LABEL[status as InteractionStatus] ?? status;
+}
+
+/** Quiz 子題狀態顯示名稱（中文） */
+export function quizQuestionStateLabel(state: string): string {
+  return QUIZ_QUESTION_STATE_LABEL[state] ?? state;
+}
+
+/** 「題型 · 狀態」摘要列 */
+export function interactionMetaLine(
+  type: string,
+  status: InteractionStatus | string,
+  extra?: string
+): string {
+  const base = `${interactionTypeLabel(type)} · ${interactionStatusLabel(status)}`;
+  return extra ? `${base} · ${extra}` : base;
 }

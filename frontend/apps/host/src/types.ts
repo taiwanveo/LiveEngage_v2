@@ -14,6 +14,7 @@ export type ModerateAction =
   | "restore"
   | "answer"
   | "unanswer"
+  | "unapprove"
   | "highlight"
   | "unhighlight";
 

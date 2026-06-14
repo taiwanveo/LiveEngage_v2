@@ -10,6 +10,10 @@ import {
   listInteractions,
   updateInteractionStatus,
 } from "../lib/interactionApi";
+import {
+  interactionStatusLabel,
+  interactionTypeLabel,
+} from "../lib/pollTypes";
 
 interface Props {
   roomId: string;
@@ -17,9 +21,9 @@ interface Props {
 }
 
 const S9_TYPES = [
-  { value: "quiz" as const, label: "Quiz 快問快答" },
-  { value: "ideas" as const, label: "Ideas 點子牆" },
-  { value: "survey" as const, label: "Survey 問卷" },
+  { value: "quiz" as const, label: "快問快答" },
+  { value: "ideas" as const, label: "點子牆" },
+  { value: "survey" as const, label: "問卷" },
 ];
 
 export function Sprint9HubPage({ roomId, onLogout }: Props): React.JSX.Element {
@@ -114,10 +118,12 @@ export function Sprint9HubPage({ roomId, onLogout }: Props): React.JSX.Element {
               <li key={item.id} className="flex flex-wrap items-center justify-between gap-3 px-6 py-3">
                 <div>
                   <p className="font-medium text-foreground">
-                    {item.title ?? item.type}
-                    <span className="ml-2 text-xs text-muted">{item.type}</span>
+                    {item.title ?? interactionTypeLabel(item.type)}
                   </p>
-                  <p className="text-xs text-muted">狀態：{item.status}</p>
+                  <p className="text-xs text-muted">
+                    題型：{interactionTypeLabel(item.type)} · 狀態：
+                    {interactionStatusLabel(item.status)}
+                  </p>
                 </div>
                 <div className="flex flex-wrap gap-2">
                   {item.status !== "active" ? (

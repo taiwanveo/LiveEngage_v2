@@ -111,9 +111,21 @@ export function RoomQaPanel({ roomId }: Props): React.JSX.Element {
           <ul className="space-y-3">
             {items.map((q) => (
               <li key={q.id} className="le-card p-4">
-                <p className="whitespace-pre-wrap text-sm text-foreground">
-                  {q.content}
-                </p>
+                <div className="flex items-start gap-2">
+                  {q.highlighted ? (
+                    <span
+                      className="mt-0.5 shrink-0 text-base leading-none text-amber-500"
+                      title="這個問題已被活動主持人標記"
+                      aria-label="這個問題已被活動主持人標記"
+                      role="img"
+                    >
+                      ★
+                    </span>
+                  ) : null}
+                  <p className="min-w-0 flex-1 whitespace-pre-wrap text-sm text-foreground">
+                    {q.content}
+                  </p>
+                </div>
                 {q.status === "answered" ? (
                   <span className="mt-1 inline-block rounded bg-success/15 px-2 py-0.5 text-xs text-success">
                     已回答

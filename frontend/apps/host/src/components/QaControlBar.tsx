@@ -8,12 +8,17 @@ import {
   createInteraction,
   findLatestQaInteraction,
   listInteractions,
+  updateInteraction,
   updateInteractionStatus,
 } from "../lib/interactionApi";
 import { interactionStatusLabel } from "../lib/pollTypes";
 
 interface Props {
   roomId: string;
+}
+
+function isModerationEnabled(settings: Record<string, unknown> | undefined): boolean {
+  return settings?.moderation_enabled === true;
 }
 
 export function QaControlBar({ roomId }: Props): React.JSX.Element {
@@ -27,6 +32,7 @@ export function QaControlBar({ roomId }: Props): React.JSX.Element {
 
   const qa = findLatestQaInteraction(interactionsQuery.data ?? []);
   const isOpen = qa?.status === "active";
+  const moderationEnabled = isModerationEnabled(qa?.settings);
 
   const openMutation = useMutation({
     mutationFn: async () => {
@@ -61,45 +67,87 @@ export function QaControlBar({ roomId }: Props): React.JSX.Element {
     },
   });
 
-  const pending = openMutation.isPending || closeMutation.isPending;
+  const moderationMutation = useMutation({
+    mutationFn: (enabled: boolean) =>
+      updateInteraction(qa!.id, {
+        settings: { ...qa!.settings, moderation_enabled: enabled },
+      }),
+    onMutate: () => setActionError(null),
+    onSuccess: () => void qc.invalidateQueries({ queryKey: ["interactions", roomId] }),
+    onError: (err: unknown) => {
+      setActionError(
+        err instanceof ApiException ? err.error.message : "切換審核失敗，請稍後再試"
+      );
+    },
+  });
+
+  const pending =
+    openMutation.isPending ||
+    closeMutation.isPending ||
+    moderationMutation.isPending;
 
   return (
-    <section className="le-card mb-6 p-5">
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div className="min-w-0 flex-1 space-y-1">
+    <section className="le-card mb-4 px-4 py-2.5">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="min-w-0 flex-1 space-y-0.5">
           <div className="flex flex-wrap items-center gap-2">
-            <h2 className="text-sm font-semibold text-foreground">Q&A 提問</h2>
+            <h2 className="text-sm font-semibold leading-tight text-foreground">Q&A 提問</h2>
             {interactionsQuery.isLoading ? (
               <span className="text-xs text-muted">載入中…</span>
             ) : isOpen ? (
-              <span className="le-badge le-badge-live">已開啟</span>
+              <span className="le-badge le-badge-live !py-0.5 !text-[10px]">已開啟</span>
             ) : (
-              <span className="le-badge bg-muted/20 text-muted">已關閉</span>
+              <span className="le-badge bg-muted/20 !py-0.5 !text-[10px] text-muted">已關閉</span>
             )}
+            {qa && !interactionsQuery.isLoading ? (
+              moderationEnabled ? (
+                <span className="le-badge bg-accent/15 !py-0.5 !text-[10px] text-accent">
+                  審核已開啟
+                </span>
+              ) : (
+                <span className="le-badge bg-muted/20 !py-0.5 !text-[10px] text-muted">
+                  審核已關閉
+                </span>
+              )
+            ) : null}
           </div>
-          <p className="text-xs text-muted">
+          <p className="text-[11px] leading-snug text-muted">
             {isOpen
-              ? "參與者可以送出問題；新問題會出現在下方「待審」欄（已啟用審核）。"
+              ? moderationEnabled
+                ? "參與者可以送出問題；新問題會出現在下方「待審」欄。"
+                : "參與者可以送出問題；新問題會直接進入「已核准」並顯示給所有人。"
               : "參與者目前無法提問。請先開啟 Q&A，觀眾才能在參與者 App 的 Q&A 分頁送出問題。"}
+            {!isOpen && !interactionsQuery.isLoading ? (
+              <span className="text-warning"> 開啟 Q&A 會結束同室其他進行中的 Poll／Quiz。</span>
+            ) : null}
           </p>
           {qa && !isOpen ? (
-            <p className="text-[11px] text-muted">
+            <p className="text-[10px] leading-snug text-muted">
               上次狀態：{interactionStatusLabel(qa.status)}
-            </p>
-          ) : null}
-          {!isOpen && !interactionsQuery.isLoading ? (
-            <p className="text-[11px] text-warning">
-              開啟 Q&A 會結束同活動室內其他進行中的 Poll／Quiz 互動。
             </p>
           ) : null}
         </div>
         <div className="flex shrink-0 flex-wrap gap-2">
+          {qa ? (
+            <button
+              type="button"
+              disabled={pending || interactionsQuery.isLoading}
+              onClick={() => moderationMutation.mutate(!moderationEnabled)}
+              className="le-btn-secondary !min-h-[30px] !px-3 !py-1 !text-xs"
+            >
+              {moderationMutation.isPending
+                ? "更新中…"
+                : moderationEnabled
+                  ? "關閉審核"
+                  : "開啟審核"}
+            </button>
+          ) : null}
           {isOpen ? (
             <button
               type="button"
               disabled={pending || !qa}
               onClick={() => closeMutation.mutate()}
-              className="le-btn-secondary !min-h-[36px] !text-xs"
+              className="le-btn-secondary !min-h-[30px] !px-3 !py-1 !text-xs"
             >
               {closeMutation.isPending ? "關閉中…" : "關閉 Q&A"}
             </button>
@@ -108,7 +156,7 @@ export function QaControlBar({ roomId }: Props): React.JSX.Element {
               type="button"
               disabled={pending || interactionsQuery.isLoading}
               onClick={() => openMutation.mutate()}
-              className="le-btn-primary !min-h-[36px] !text-xs"
+              className="le-btn-primary !min-h-[30px] !px-3 !py-1 !text-xs"
             >
               {openMutation.isPending ? "開啟中…" : "開啟 Q&A"}
             </button>
@@ -116,7 +164,7 @@ export function QaControlBar({ roomId }: Props): React.JSX.Element {
         </div>
       </div>
       {actionError ? (
-        <p className="mt-3 text-sm text-danger" role="alert">
+        <p className="mt-2 text-xs text-danger" role="alert">
           {actionError}
         </p>
       ) : null}

@@ -9,6 +9,7 @@ import { HostTitleLink } from "../components/HostTitleActions";
 import { updateInteraction } from "../lib/interactionApi";
 import { getPoll, updatePollOptions } from "../lib/pollApi";
 import type { PollOptionInput } from "../lib/pollTypes";
+import { interactionTypeLabel } from "../lib/pollTypes";
 
 interface Props {
   roomId: string;
@@ -88,8 +89,8 @@ export function PollBuilderPage({
 
   return (
     <HostShell
-      title="Poll Builder"
-      subtitle={poll?.type ?? ""}
+      title="投票編輯"
+      subtitle={poll ? interactionTypeLabel(poll.type) : ""}
       roomId={roomId}
       presentPollId={pollId}
       onLogout={onLogout}
