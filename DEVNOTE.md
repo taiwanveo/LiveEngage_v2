@@ -7,7 +7,7 @@
 ## SNAPSHOT（2026-06-14）
 
 - **Repo**：https://github.com/ColdRighter/LiveEngage.git（master）
-- **最新 commit**：`f531f6e` — 活動開始通知、Sprint9 開放修復、全系統 Modal 提示
+- **最新 commit**：`f9211a9` — 工作台手機預覽長形外框、即時時鐘與暗色捲軸
 - **typecheck**：`realtime` / `host` / `participant` / `admin` / `present` 通過
 - **Zeabur**：**六服務** — api / host / participant / present / admin / worker（push `master` 自動 redeploy）
 
@@ -22,18 +22,18 @@
 | admin | https://le-admin.zeabur.app |
 | worker | Celery（無公開 URL） |
 
-### 本輪重點（f531f6e）
+### 本輪重點（f9211a9）
 
 | 區塊 | 內容 |
 |------|------|
-| **活動開始通知** | `SESSION_STARTED` WS 廣播（`session_service`／`admin_service`）；參與者 `RoomPage` Modal「活動已開始」 |
-| **互動開放通知** | `INTERACTION_STARTED` 廣播（Quiz／點子牆／問卷／Q&A 按「開放」）；參與者 Modal + 自動切換分頁 |
-| **Poll／Quiz 開始** | 既有 `poll_started`／`quiz_question_started` 亦改 Modal 提示 |
-| **Sprint9 開放修復** | `interaction_service` 房間鎖、狀態驗證、`IntegrityError` 中文錯誤；成功後 WS 廣播 |
-| **全系統 Modal** | `@liveengage/ui` 新增 `useSystemNotice`；24 檔遷移（Host／Admin／Present／Participant 錯誤／成功訊息） |
-| **共用標籤** | `interactionLabels.ts` 題型中文標籤 |
+| **手機預覽** | `ParticipantPreviewFrame` 9:19.5 長形外框；狀態列本機即時時間、冒號每秒閃爍；內容區暗色捲軸 |
 
-### 先前已上線（c9b53f1 一帶）
+### 先前已上線（f531f6e 一帶）
+
+| 區塊 | 內容 |
+|------|------|
+| **活動開始通知** | `SESSION_STARTED` WS 廣播；參與者 Modal「活動已開始」 |
+| **互動開放通知** | `INTERACTION_STARTED`；Sprint9 開放修復；全系統 `useSystemNotice` Modal |
 
 | 區塊 | 內容 |
 |------|------|
@@ -69,6 +69,10 @@
 ---
 
 ## HISTORY
+
+### 2026-06-14 — 工作台手機預覽 UX（f9211a9）
+
+長形 9:19.5 外框；即時時鐘與閃爍冒號；暗色捲軸。
 
 ### 2026-06-14 — 活動開始通知 + Sprint9 開放修復 + Modal 統一（f531f6e）
 
