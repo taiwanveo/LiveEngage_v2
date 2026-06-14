@@ -4,6 +4,7 @@ import type { QueryClient } from "@tanstack/react-query";
 import type { PollDetail, PollResults } from "@liveengage/renderers";
 import {
   POLL_LOCKED,
+  POLL_RESPONSE_SUBMITTED,
   POLL_RESULT_HIDDEN,
   POLL_RESULT_REVEALED,
   POLL_STARTED,
@@ -14,6 +15,18 @@ import {
 import type { InteractionStatus, PollAction, PollActionResponse } from "./pollTypes";
 
 const SELF_ACTION_MS = 2500;
+
+/** WS 斷線時 poll-results 備援輪詢間隔（毫秒）。 */
+export const POLL_RESULTS_BACKUP_REFETCH_MS = 10_000;
+
+const HOST_CONTROL_POLL_EVENTS = new Set([
+  POLL_STARTED,
+  POLL_STOPPED,
+  POLL_LOCKED,
+  POLL_UNLOCKED,
+  POLL_RESULT_REVEALED,
+  POLL_RESULT_HIDDEN,
+]);
 
 export function createSelfPollActionGuard(): {
   mark: (pollId: string) => void;
@@ -100,6 +113,86 @@ function wsStatusFromPayload(payload: Record<string, unknown>): InteractionStatu
   return null;
 }
 
+/** 套用 poll_response_submitted WS payload（絕對值聚合，鐵律 2）。 */
+function applyPollResponseSubmitted(
+  qc: QueryClient,
+  pollId: string,
+  payload: Record<string, unknown>
+): void {
+  const rawCount = payload.response_count;
+  const responseCount =
+    typeof rawCount === "number"
+      ? rawCount
+      : typeof rawCount === "string" && /^\d+$/.test(rawCount)
+        ? Number(rawCount)
+        : undefined;
+
+  const pollType =
+    qc.getQueryData<PollDetail>(["poll", pollId])?.type ??
+    qc.getQueryData<PollResults>(["poll-results", pollId])?.type;
+
+  if (pollType === "open_text") {
+    if (responseCount !== undefined) {
+      qc.setQueryData(["poll-results", pollId], (prev: PollResults | undefined) =>
+        prev ? { ...prev, response_count: responseCount } : prev
+      );
+    }
+    void qc.invalidateQueries({ queryKey: ["poll-results", pollId] });
+    return;
+  }
+
+  const aggregates = payload.aggregates as Record<string, unknown> | undefined;
+  if (!pollType && !aggregates) {
+    void qc.invalidateQueries({ queryKey: ["poll-results", pollId] });
+    return;
+  }
+
+  qc.setQueryData(["poll-results", pollId], (prev: PollResults | undefined) => {
+    const base: PollResults =
+      prev ??
+      ({
+        interaction_id: pollId,
+        type: pollType ?? "multiple_choice",
+        status: "active",
+        response_count: responseCount ?? 0,
+      } as PollResults);
+
+    const next: PollResults = { ...base };
+    if (responseCount !== undefined) next.response_count = responseCount;
+
+    const optionCounts = aggregates?.option_counts;
+    if (Array.isArray(optionCounts)) {
+      next.option_counts = optionCounts.map((row) => {
+        const r = row as Record<string, unknown>;
+        return {
+          option_id: String(r.option_id ?? ""),
+          count: Number(r.count ?? 0),
+        };
+      });
+    }
+
+    const wordCounts = aggregates?.word_counts;
+    if (Array.isArray(wordCounts)) {
+      next.word_counts = wordCounts.map((row) => {
+        const r = row as Record<string, unknown>;
+        return {
+          word: String(r.word ?? ""),
+          count: Number(r.count ?? 0),
+        };
+      });
+    }
+
+    if (aggregates?.average !== undefined && aggregates.average !== null) {
+      next.average = Number(aggregates.average);
+    }
+    if (aggregates?.distribution && typeof aggregates.distribution === "object") {
+      next.distribution = aggregates.distribution as Record<string, number>;
+    }
+
+    return next;
+  });
+}
+
 /** 非本人觸發的 WS 事件才更新快取（協同主持人／其他分頁）。 */
 export function handleHostPollWsEvent(
   qc: QueryClient,
@@ -113,7 +206,13 @@ export function handleHostPollWsEvent(
   const { event, pollId, roomId, guard } = opts;
   const eventPollId = String(event.payload.poll_id ?? "");
   if (!eventPollId || eventPollId !== pollId) return;
-  if (guard.shouldSkip(eventPollId)) return;
+
+  if (event.type === POLL_RESPONSE_SUBMITTED) {
+    applyPollResponseSubmitted(qc, pollId, event.payload);
+    return;
+  }
+
+  if (HOST_CONTROL_POLL_EVENTS.has(event.type) && guard.shouldSkip(eventPollId)) return;
 
   if (event.type === POLL_RESULT_REVEALED) {
     patchPollDetail(qc, pollId, { result_visible: true });

@@ -16,6 +16,7 @@ import {
   applyHostPollActionSuccess,
   createSelfPollActionGuard,
   handleHostPollWsEvent,
+  POLL_RESULTS_BACKUP_REFETCH_MS,
 } from "../lib/pollActionCache";
 
 interface Props {
@@ -31,14 +32,14 @@ export function PresentPage({ roomId, pollId }: Props): React.JSX.Element {
   const pollQuery = useQuery({
     queryKey: ["poll", pollId],
     queryFn: () => getPoll(pollId),
-    refetchInterval: 30_000,
+    refetchInterval: POLL_RESULTS_BACKUP_REFETCH_MS,
   });
 
   const resultsQuery = useQuery({
     queryKey: ["poll-results", pollId],
     queryFn: () => getPollResults(pollId),
     enabled: Boolean(pollQuery.data),
-    refetchInterval: 30_000,
+    refetchInterval: POLL_RESULTS_BACKUP_REFETCH_MS,
   });
 
   const actionMutation = useMutation({

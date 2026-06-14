@@ -38,6 +38,7 @@ import {
   applyHostPollActionSuccess,
   createSelfPollActionGuard,
   handleHostPollWsEvent,
+  POLL_RESULTS_BACKUP_REFETCH_MS,
 } from "../lib/pollActionCache";
 
 interface Props {
@@ -108,14 +109,14 @@ export function SessionWorkbenchPage({ roomId, pollId, onLogout }: Props): React
     queryKey: ["poll", selectedPollId],
     queryFn: () => getPoll(selectedPollId!),
     enabled: Boolean(selectedPollId),
-    refetchInterval: 30_000,
+    refetchInterval: POLL_RESULTS_BACKUP_REFETCH_MS,
   });
 
   const resultsQuery = useQuery({
     queryKey: ["poll-results", selectedPollId],
     queryFn: () => getPollResults(selectedPollId!),
     enabled: Boolean(selectedPollId),
-    refetchInterval: 30_000,
+    refetchInterval: POLL_RESULTS_BACKUP_REFETCH_MS,
   });
 
   const createMutation = useMutation({
