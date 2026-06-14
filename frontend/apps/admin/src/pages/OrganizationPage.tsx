@@ -2,6 +2,16 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
+import {
+  AdminFormField,
+  AdminPageHeader,
+  AdminPanel,
+  AdminSectionTitle,
+  adminBtnPrimary,
+  adminBtnSecondary,
+  adminInputClass,
+  adminTableHeadClass,
+} from "../components/AdminLayout";
 import { AdminShell } from "../components/AdminShell";
 import {
   type MemberData,
@@ -42,62 +52,69 @@ function OrgSettings() {
   });
 
   if (isLoading || !org) {
-    return <div className="animate-pulse h-24 bg-gray-100 rounded-lg" />;
+    return <div className="le-card h-24 animate-pulse p-6" />;
   }
 
   return (
-    <div className="bg-white rounded-xl border border-gray-200 p-6">
-      <h2 className="text-lg font-semibold text-gray-900 mb-4">組織資料</h2>
+    <AdminPanel className="p-6">
+      <AdminSectionTitle className="mb-4">組織資料</AdminSectionTitle>
       <div className="space-y-4">
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">組織名稱</label>
+        <AdminFormField label="組織名稱">
           {editing ? (
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2">
               <input
-                className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className={`${adminInputClass} min-w-[200px] flex-1`}
                 value={nameInput}
                 onChange={(e) => setNameInput(e.target.value)}
                 placeholder={org.name}
               />
               <button
-                className="px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 disabled:opacity-50"
+                className={adminBtnPrimary}
                 disabled={mutation.isPending}
                 onClick={() => mutation.mutate(nameInput)}
               >
                 儲存
               </button>
               <button
-                className="px-4 py-2 bg-gray-100 text-gray-700 text-sm rounded-lg hover:bg-gray-200"
-                onClick={() => { setEditing(false); setError(""); }}
+                className={adminBtnSecondary}
+                onClick={() => {
+                  setEditing(false);
+                  setError("");
+                }}
               >
                 取消
               </button>
             </div>
           ) : (
             <div className="flex items-center gap-3">
-              <span className="text-gray-900">{org.name}</span>
+              <span className="text-sm text-foreground">{org.name}</span>
               <button
-                className="text-sm text-blue-600 hover:underline"
-                onClick={() => { setNameInput(org.name); setEditing(true); }}
+                className="text-sm text-accent hover:underline"
+                onClick={() => {
+                  setNameInput(org.name);
+                  setEditing(true);
+                }}
               >
                 編輯
               </button>
             </div>
           )}
-          {error && <p className="text-red-500 text-sm mt-1">{error}</p>}
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">方案</label>
-          <span className="inline-block px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-50 text-blue-700 uppercase">
+          {error ? <p className="mt-1 text-sm text-danger">{error}</p> : null}
+        </AdminFormField>
+
+        <AdminFormField label="方案">
+          <span className="inline-block rounded-full bg-accent/10 px-2.5 py-0.5 text-xs font-medium uppercase text-accent">
             {org.plan ?? "free"}
           </span>
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">組織 ID</label>
-          <code className="text-xs text-gray-500 bg-gray-50 px-2 py-1 rounded">{org.id}</code>
-        </div>
+        </AdminFormField>
+
+        <AdminFormField label="組織 ID">
+          <code className="rounded bg-surface-elevated px-2 py-1 text-xs text-muted">
+            {org.id}
+          </code>
+        </AdminFormField>
       </div>
-    </div>
+    </AdminPanel>
   );
 }
 
@@ -114,54 +131,62 @@ function InviteForm({ onDone }: { onDone: () => void }) {
       if (name) payload.name = name;
       return inviteMember(payload);
     },
-    onSuccess: () => { onDone(); setEmail(""); setName(""); setPassword(""); setError(""); },
+    onSuccess: () => {
+      onDone();
+      setEmail("");
+      setName("");
+      setPassword("");
+      setError("");
+    },
     onError: (e: Error) => setError(e.message),
   });
 
   return (
-    <div className="bg-gray-50 border border-dashed border-gray-300 rounded-xl p-4 space-y-3">
-      <h3 className="text-sm font-semibold text-gray-700">邀請新成員</h3>
-      <div className="grid grid-cols-2 gap-3">
-        <div>
-          <label className="block text-xs font-medium text-gray-600 mb-1">Email</label>
+    <div className="space-y-3 rounded-xl border border-dashed border-border bg-surface-elevated/30 p-4">
+      <AdminSectionTitle>邀請新成員</AdminSectionTitle>
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        <AdminFormField label="Email">
           <input
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-            type="email" value={email} onChange={(e) => setEmail(e.target.value)}
+            className={adminInputClass}
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
             placeholder="member@example.com"
           />
-        </div>
-        <div>
-          <label className="block text-xs font-medium text-gray-600 mb-1">姓名（選填）</label>
+        </AdminFormField>
+        <AdminFormField label="姓名（選填）">
           <input
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-            value={name} onChange={(e) => setName(e.target.value)}
+            className={adminInputClass}
+            value={name}
+            onChange={(e) => setName(e.target.value)}
             placeholder="姓名"
           />
-        </div>
-        <div>
-          <label className="block text-xs font-medium text-gray-600 mb-1">密碼</label>
+        </AdminFormField>
+        <AdminFormField label="密碼">
           <input
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-            type="password" value={password} onChange={(e) => setPassword(e.target.value)}
+            className={adminInputClass}
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
             placeholder="至少 8 碼"
           />
-        </div>
-        <div>
-          <label className="block text-xs font-medium text-gray-600 mb-1">角色</label>
+        </AdminFormField>
+        <AdminFormField label="角色">
           <select
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-            value={role} onChange={(e) => setRole(e.target.value)}
+            className={adminInputClass}
+            value={role}
+            onChange={(e) => setRole(e.target.value)}
           >
             <option value="member">成員</option>
             <option value="admin">管理員</option>
             <option value="guest">訪客</option>
           </select>
-        </div>
+        </AdminFormField>
       </div>
-      {error && <p className="text-red-500 text-sm">{error}</p>}
-      <div className="flex gap-2 justify-end">
+      {error ? <p className="text-sm text-danger">{error}</p> : null}
+      <div className="flex justify-end gap-2">
         <button
-          className="px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 disabled:opacity-50"
+          className={adminBtnPrimary}
           disabled={mutation.isPending || !email || !password}
           onClick={() => mutation.mutate()}
         >
@@ -194,43 +219,47 @@ function MemberRow({ member, currentUserId }: { member: MemberData; currentUserI
   const isMe = member.id === currentUserId;
 
   return (
-    <tr className="border-b border-gray-100 hover:bg-gray-50">
-      <td className="py-3 px-4">
+    <tr className="border-b border-border hover:bg-surface-elevated/30">
+      <td className="px-4 py-3">
         <div>
-          <div className="text-sm font-medium text-gray-900">{member.name ?? "—"}</div>
-          <div className="text-xs text-gray-500">{member.email}</div>
+          <div className="text-sm font-medium text-foreground">{member.name ?? "—"}</div>
+          <div className="text-xs text-muted">{member.email}</div>
         </div>
       </td>
-      <td className="py-3 px-4">
+      <td className="px-4 py-3">
         {member.role === "owner" ? (
-          <span className="inline-block px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-50 text-yellow-700">
+          <span className="inline-block rounded-full bg-yellow-500/10 px-2.5 py-0.5 text-xs font-medium text-yellow-600 dark:text-yellow-400">
             {ROLE_LABELS[member.role]}
           </span>
         ) : (
           <select
-            className="text-sm border border-gray-200 rounded px-2 py-1 disabled:opacity-50"
+            className="rounded border border-border bg-surface px-2 py-1 text-sm text-foreground disabled:opacity-50"
             value={selectedRole}
             onChange={(e) => onRoleChange(e.target.value)}
             disabled={saving || isMe}
           >
-            {Object.entries(ROLE_LABELS).filter(([r]) => r !== "owner").map(([r, l]) => (
-              <option key={r} value={r}>{l}</option>
-            ))}
+            {Object.entries(ROLE_LABELS)
+              .filter(([r]) => r !== "owner")
+              .map(([r, l]) => (
+                <option key={r} value={r}>
+                  {l}
+                </option>
+              ))}
           </select>
         )}
       </td>
-      <td className="py-3 px-4 text-xs text-gray-500">
+      <td className="px-4 py-3 text-xs text-muted">
         {new Date(member.created_at).toLocaleDateString("zh-TW")}
       </td>
-      <td className="py-3 px-4">
-        {!isMe && member.role !== "owner" && (
+      <td className="px-4 py-3">
+        {!isMe && member.role !== "owner" ? (
           <button
-            className="text-xs text-red-500 hover:text-red-700 hover:underline"
+            className="text-xs text-danger hover:underline"
             onClick={onRemove}
           >
             移除
           </button>
-        )}
+        ) : null}
       </td>
     </tr>
   );
@@ -245,38 +274,42 @@ function MembersTable() {
   const [showInvite, setShowInvite] = useState(false);
 
   return (
-    <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-      <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
-        <h2 className="text-lg font-semibold text-gray-900">組織成員</h2>
+    <AdminPanel className="overflow-hidden">
+      <div className="flex items-center justify-between border-b border-border px-6 py-4">
+        <AdminSectionTitle>組織成員</AdminSectionTitle>
         <button
-          className="px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700"
+          className={adminBtnPrimary}
           onClick={() => setShowInvite(!showInvite)}
         >
           {showInvite ? "取消" : "+ 邀請成員"}
         </button>
       </div>
 
-      {showInvite && (
-        <div className="px-6 pt-4 pb-2">
-          <InviteForm onDone={() => {
-            setShowInvite(false);
-            qc.invalidateQueries({ queryKey: ["admin-members"] });
-          }} />
+      {showInvite ? (
+        <div className="px-6 pb-2 pt-4">
+          <InviteForm
+            onDone={() => {
+              setShowInvite(false);
+              qc.invalidateQueries({ queryKey: ["admin-members"] });
+            }}
+          />
         </div>
-      )}
+      ) : null}
 
       {isLoading ? (
-        <div className="p-6 animate-pulse space-y-3">
-          {[1, 2, 3].map(i => <div key={i} className="h-10 bg-gray-100 rounded" />)}
+        <div className="animate-pulse space-y-3 p-6">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="h-10 rounded bg-surface-elevated" />
+          ))}
         </div>
       ) : (
         <table className="w-full">
           <thead>
-            <tr className="text-left text-xs font-medium text-gray-500 uppercase tracking-wide bg-gray-50">
-              <th className="py-3 px-4">成員</th>
-              <th className="py-3 px-4">角色</th>
-              <th className="py-3 px-4">加入時間</th>
-              <th className="py-3 px-4"></th>
+            <tr className={adminTableHeadClass}>
+              <th className="px-4 py-3">成員</th>
+              <th className="px-4 py-3">角色</th>
+              <th className="px-4 py-3">加入時間</th>
+              <th className="px-4 py-3"></th>
             </tr>
           </thead>
           <tbody>
@@ -286,7 +319,7 @@ function MembersTable() {
           </tbody>
         </table>
       )}
-    </div>
+    </AdminPanel>
   );
 }
 
@@ -294,14 +327,14 @@ interface Props {
   onLogout: () => void;
 }
 
-export function OrganizationPage({ onLogout }: Props) {
+export function OrganizationPage({ onLogout }: Props): React.JSX.Element {
   return (
     <AdminShell active="organization" onLogout={onLogout}>
-      <div className="max-w-4xl space-y-6">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">組織設定</h1>
-          <p className="text-gray-500 mt-1">管理組織資料與成員。</p>
-        </div>
+      <div className="mx-auto max-w-4xl space-y-6">
+        <AdminPageHeader
+          title="組織設定"
+          description="管理組織資料與成員。"
+        />
         <OrgSettings />
         <MembersTable />
       </div>

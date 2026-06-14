@@ -7,8 +7,8 @@
 ## SNAPSHOT（2026-06-14）
 
 - **Repo**：https://github.com/ColdRighter/LiveEngage.git（master）
-- **最新 commit**：`3d8edd6` — 深色主題、四端頂欄一致、Host 工作台版面
-- **pytest**：19+（SSO + admin + poll lifecycle）；全 suite 建議 CI 再跑
+- **最新 commit**：`c08e157` — Quiz 開放修復、Admin 版型、Host 導覽統一
+- **pytest**：含 `test_activate_quiz_stops_existing_active_poll`；全 suite 建議 CI 再跑
 - **Zeabur**：**六服務** — api / host / participant / present / admin / worker（push `master` 自動 redeploy）
 
 ### 已上線服務
@@ -22,16 +22,15 @@
 | admin | https://le-admin.zeabur.app |
 | worker | Celery（無公開 URL） |
 
-### 本輪重點（3d8edd6）
+### 本輪重點
 
 | 區塊 | 內容 |
 |------|------|
-| **深色主題** | `theme.css` 相容層（slate/gray → token）；`le-card` 取代硬編碼白底 |
-| **四端頂欄** | `AppHeaderChrome` 固定 viewport 右上；Admin 主題/登出移出側欄左下 |
-| **Participant** | Q&A/Ideas/Poll/Join/CodeEntry 接設計系統 |
-| **Host 工作台** | 三欄 **25% / 60% / 15%**；手機外框 Participant 預覽 |
-| **控場 UX** | Stop/Prev/Next 左上；Poll **toggle**（開始/鎖定/揭示）+ 重置 |
-| **Analytics** | 深色下 `le-analytics-accent-*` 可讀 |
+| **Quiz 開放 BUG** | `interaction_service` activate 前先 stop 同 room 其他 active；Sprint9 前端 `onError` |
+| **Admin 後台** | 移除總覽「快捷入口」；`AdminLayout` 統一頁標題／欄位標籤 typography |
+| **Host 導覽** | 三項選單：**Q&A 審核**、**Poll 管理**、**Quiz 管理**（`le-nav-link` 一致） |
+| **Q&A 審核** | 改用 `HostShell`；「重新整理」移至標題旁（移除 refresh 英文） |
+| **工作台 / Poll** | `PollControlBar` 共用 toggle；投影預設 `le-present.zeabur.app`；三欄 25/55/20 |
 
 ### 生產環境新增/可選 env（api）
 
@@ -40,9 +39,7 @@
 | `LE_SSO_ENABLED` | 啟用 SSO |
 | `LE_SSO_OIDC_*` | IdP 設定 |
 | `LE_API_PUBLIC_URL` | `https://le-api.zeabur.app` |
-| `LE_SSO_HOST_FRONTEND_URL` | `https://le-host.zeabur.app` |
-| `LE_SSO_ADMIN_FRONTEND_URL` | `https://le-admin.zeabur.app` |
-| `LE_SSO_PARTICIPANT_FRONTEND_URL` | `https://le-participant.zeabur.app` |
+| `LE_SSO_*_FRONTEND_URL` | 各前端 Zeabur 網域 |
 | `LE_AI_ENABLED` / `LE_AI_API_KEY` | 真實 LLM（可選） |
 
 ### 仍可做（非阻塞）
@@ -55,9 +52,13 @@
 
 ## HISTORY
 
+### 2026-06-14 — Quiz 開放 + Admin 版型 + Host 導覽（c08e157）
+
+後端 unique index 衝突修復；Admin 移除開發代號快捷入口與 typography 統一；Host 頂欄三選單與 Q&A 重新整理位置調整。
+
 ### 2026-06-14 — 深色主題 + 頂欄一致 + 工作台版面（3d8edd6）
 
-深色相容層與 le-card 全端接線；AppHeaderChrome 四端對齊；Host 工作台 25/60/15、手機預覽、Poll toggle 控場。
+深色相容層與 le-card 全端接線；AppHeaderChrome 四端對齊；Host 工作台三欄、手機預覽、Poll toggle 控場。
 
 ### 2026-06-14 — Slido UI + SSO + Phase D 接續（22e4015）
 

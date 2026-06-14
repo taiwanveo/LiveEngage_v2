@@ -13,6 +13,8 @@ interface Props {
   brand: string;
   tagline?: string;
   meta?: React.ReactNode;
+  /** 標題右側附加控制（如「重新整理」） */
+  brandAddon?: React.ReactNode;
   navItems?: NavItem[];
   actions?: React.ReactNode;
   onLogout?: () => void;
@@ -56,6 +58,7 @@ export function AppHeader({
   brand,
   tagline,
   meta,
+  brandAddon,
   navItems,
   actions,
   onLogout,
@@ -73,8 +76,9 @@ export function AppHeader({
           }`}
         >
           <div className="min-w-0">
-            <h1 className="font-display text-lg font-bold tracking-tight text-foreground">
-              {brand}
+            <h1 className="flex flex-wrap items-center gap-x-2 font-display text-lg font-bold tracking-tight text-foreground">
+              <span>{brand}</span>
+              {brandAddon}
             </h1>
             {tagline ? (
               <p className="truncate text-xs text-muted">{tagline}</p>

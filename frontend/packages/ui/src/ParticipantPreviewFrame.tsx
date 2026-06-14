@@ -1,10 +1,12 @@
-/** 參與者模式預覽框（手機外框 + 內容，適合窄欄 15% 寬）。 */
+/** 參與者模式預覽框（手機外框 + 內容，適合窄欄 20% 寬）。 */
 
 import * as React from "react";
 
 export interface ParticipantPreviewFrameProps {
   title?: string;
   subtitle?: string;
+  /** 顯示於手機預覽上方的摘要（例如回應數） */
+  stats?: React.ReactNode;
   children: React.ReactNode;
   footer?: React.ReactNode;
 }
@@ -12,6 +14,7 @@ export interface ParticipantPreviewFrameProps {
 export function ParticipantPreviewFrame({
   title = "Participant mode",
   subtitle,
+  stats,
   children,
   footer,
 }: ParticipantPreviewFrameProps): React.JSX.Element {
@@ -22,8 +25,14 @@ export function ParticipantPreviewFrame({
         {subtitle ? <p className="mt-0.5 text-[10px] leading-snug text-muted">{subtitle}</p> : null}
       </div>
 
+      {stats ? (
+        <div className="mb-3 shrink-0 rounded-lg border border-border bg-surface-elevated px-3 py-2 text-center">
+          {stats}
+        </div>
+      ) : null}
+
       <div className="flex min-h-0 flex-1 items-start justify-center">
-        <div className="relative w-full max-w-[11rem]">
+        <div className="relative w-full max-w-[12rem]">
           {/* 手機外框 */}
           <div className="relative rounded-[1.6rem] bg-neutral-950 p-[5px] shadow-elevated ring-1 ring-neutral-800">
             {/* 動態島 / 瀏海 */}

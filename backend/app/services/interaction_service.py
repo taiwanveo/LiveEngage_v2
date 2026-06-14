@@ -16,11 +16,14 @@ from app.models.interaction import Interaction
 from app.models.room import Room
 from app.models.session import Session
 from app.models.user import User
+from app.realtime import events
 from app.schemas.interaction import (
     InteractionCreateRequest,
     InteractionResponse,
     InteractionUpdateRequest,
 )
+from app.schemas.poll import POLL_TYPES
+from app.services.poll_redis import set_poll_agg_ttl
 
 
 async def ensure_room_access(
@@ -131,6 +134,10 @@ async def update_interaction(
     if payload.description is not None:
         interaction.description = payload.description
     if payload.status is not None:
+        if payload.status == InteractionStatus.ACTIVE:
+            await _stop_other_active_in_room(
+                db, interaction.room_id, interaction.id
+            )
         _apply_status_transition(interaction, payload.status)
     if payload.settings is not None:
         interaction.settings_jsonb = payload.settings
@@ -140,6 +147,32 @@ async def update_interaction(
     await db.commit()
     await db.refresh(interaction)
     return _to_response(interaction)
+
+
+async def _stop_other_active_in_room(
+    db: AsyncSession,
+    room_id: uuid.UUID,
+    except_id: uuid.UUID,
+) -> None:
+    """同一 room 僅允許一個 active（``uq_interactions_active_room``）；對齊 poll start。"""
+    result = await db.execute(
+        select(Interaction).where(
+            Interaction.room_id == room_id,
+            Interaction.status == InteractionStatus.ACTIVE,
+            Interaction.id != except_id,
+        )
+    )
+    now = dt.datetime.now(dt.UTC)
+    for other in result.scalars().all():
+        other.status = InteractionStatus.STOPPED
+        other.stopped_at = now
+        if other.type in POLL_TYPES:
+            await set_poll_agg_ttl(other.id)
+            await events.publish(
+                room_id,
+                events.POLL_STOPPED,
+                {"poll_id": str(other.id), "status": "stopped"},
+            )
 
 
 def _apply_status_transition(

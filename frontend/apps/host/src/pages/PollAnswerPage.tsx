@@ -51,6 +51,7 @@ export function PollAnswerPage({
       subtitle="Host token 僅供預覽；實際提交需 participant token"
       roomId={roomId}
       onLogout={onLogout}
+      activeNav="polls"
     >
       {pollQuery.error ? (
         <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">

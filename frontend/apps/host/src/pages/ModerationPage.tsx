@@ -10,6 +10,7 @@
 import * as React from "react";
 import { useMemo, useState } from "react";
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
+import { HostShell } from "../components/HostShell";
 import { listModeration, moderate, reply } from "../lib/qaApi";
 import type {
   ModerateAction,
@@ -73,22 +74,28 @@ export function ModerationPage({ roomId, onLogout }: Props): React.JSX.Element {
   }
 
   return (
-    <main className="min-h-full bg-slate-100">
-      <Topbar
-        roomId={roomId}
-        onRefresh={() => void refetch()}
-        onLogout={onLogout}
-      />
-
+    <HostShell
+      title="Q&A 審核"
+      roomId={roomId}
+      onLogout={onLogout}
+      activeNav="moderation"
+      titleAddon={
+        <button
+          type="button"
+          onClick={() => void refetch()}
+          className="le-btn-secondary !min-h-[32px] px-3 py-1 text-xs font-normal"
+        >
+          重新整理
+        </button>
+      }
+    >
       {error ? (
-        <div className="mx-auto max-w-7xl px-6 py-4">
-          <div className="rounded-lg bg-red-50 border border-red-200 text-red-700 px-4 py-3 text-sm">
-            載入失敗（load failed）：{(error as Error).message}
-          </div>
+        <div className="mb-4 rounded-lg border border-danger/30 bg-danger/10 px-4 py-3 text-sm text-danger">
+          載入失敗：{(error as Error).message}
         </div>
       ) : null}
 
-      <div className="mx-auto max-w-7xl px-6 py-6 grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
         <Column
           title="待審（pending）"
           accent="amber"
@@ -190,46 +197,7 @@ export function ModerationPage({ roomId, onLogout }: Props): React.JSX.Element {
           )}
         />
       </div>
-    </main>
-  );
-}
-
-function Topbar(props: {
-  roomId: string;
-  onRefresh: () => void;
-  onLogout: () => void;
-}): React.JSX.Element {
-  return (
-    <header className="bg-white border-b border-slate-200">
-      <div className="mx-auto max-w-7xl px-6 py-3 flex items-center justify-between">
-        <div>
-          <h1 className="text-lg font-semibold text-slate-900">
-            Q&amp;A 審核（moderation）
-          </h1>
-          <p className="text-xs text-slate-500 font-mono">room: {props.roomId}</p>
-        </div>
-        <div className="flex items-center gap-2">
-          <a
-            href={`#/rooms/${props.roomId}/polls`}
-            className="text-sm px-3 py-1.5 rounded-md bg-primary-50 hover:bg-primary-100 text-primary-700"
-          >
-            Poll 管理
-          </a>
-          <button
-            onClick={props.onRefresh}
-            className="text-sm px-3 py-1.5 rounded-md bg-slate-100 hover:bg-slate-200 text-slate-700"
-          >
-            重新整理（refresh）
-          </button>
-          <button
-            onClick={props.onLogout}
-            className="text-sm px-3 py-1.5 rounded-md text-slate-600 hover:text-slate-900"
-          >
-            登出（sign out）
-          </button>
-        </div>
-      </div>
-    </header>
+    </HostShell>
   );
 }
 

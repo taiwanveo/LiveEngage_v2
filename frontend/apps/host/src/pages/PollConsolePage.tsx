@@ -11,24 +11,16 @@ import {
 import { PollRenderer } from "@liveengage/renderers";
 import { getAccessToken } from "../lib/auth";
 import { HostShell } from "../components/HostShell";
+import { PollControlBar } from "../components/PollControlBar";
 import { getPoll, getPollResults, pollAction } from "../lib/pollApi";
 import type { PollAction } from "../lib/pollTypes";
+import { presentAppUrl } from "../lib/presentUrl";
 
 interface Props {
   roomId: string;
   pollId: string;
   onLogout: () => void;
 }
-
-const ACTIONS: { action: PollAction; label: string; needsConfirm?: boolean }[] = [
-  { action: "start", label: "開始" },
-  { action: "stop", label: "結束" },
-  { action: "lock", label: "鎖定" },
-  { action: "unlock", label: "解鎖" },
-  { action: "reveal", label: "揭示結果" },
-  { action: "hide", label: "隱藏結果" },
-  { action: "reset", label: "重置", needsConfirm: true },
-];
 
 export function PollConsolePage({
   roomId,
@@ -37,7 +29,6 @@ export function PollConsolePage({
 }: Props): React.JSX.Element {
   const queryClient = useQueryClient();
 
-  // 取得 Poll 資料：WS 觸發 invalidate，refetchInterval 30s 作安全備援
   const pollQuery = useQuery({
     queryKey: ["poll", pollId],
     queryFn: () => getPoll(pollId),
@@ -65,7 +56,6 @@ export function PollConsolePage({
     },
   });
 
-  // WS 事件處理：Poll 相關事件立即觸發 re-fetch
   const handleWsEvent = useCallback(
     (event: WsEvent) => {
       if (!POLL_EVENT_TYPES.has(event.type)) return;
@@ -97,23 +87,24 @@ export function PollConsolePage({
       subtitle={poll ? `${poll.type} · ${poll.status}` : ""}
       roomId={roomId}
       onLogout={onLogout}
+      activeNav="polls"
       actions={
         <div className="flex items-center gap-3">
           <span
-            className={`h-2 w-2 rounded-full ${connected ? "bg-emerald-400" : "bg-slate-300"}`}
+            className={`le-status-dot ${connected ? "le-status-dot-live" : "bg-muted"}`}
             title={connected ? "WS 已連線" : "WS 未連線"}
           />
           <a
-            href={`http://localhost:5175/#/rooms/${roomId}/polls/${pollId}/present`}
+            href={presentAppUrl(roomId, pollId)}
             target="_blank"
             rel="noopener noreferrer"
-            className="rounded-md bg-slate-900 px-3 py-1.5 text-sm text-white hover:bg-slate-800"
+            className="le-btn-primary !min-h-[36px] !text-sm"
           >
-            投影模式（獨立 app）
+            投影模式
           </a>
           <a
             href={`#/rooms/${roomId}/polls/${pollId}/present`}
-            className="rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm text-slate-700 hover:bg-slate-50"
+            className="le-btn-secondary !min-h-[36px] !text-sm"
           >
             內嵌投影
           </a>
@@ -121,46 +112,40 @@ export function PollConsolePage({
       }
     >
       {err ? (
-        <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+        <div className="mb-4 rounded-lg border border-danger/30 bg-danger/10 px-4 py-3 text-sm text-danger">
           {(err as Error).message}
         </div>
       ) : null}
 
-      <div className="mb-6 flex flex-wrap gap-2">
-        {ACTIONS.map(({ action, label, needsConfirm }) => (
-          <button
-            key={action}
-            type="button"
-            disabled={actionMutation.isPending}
-            onClick={() => runAction(action, needsConfirm)}
-            className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm hover:bg-slate-50 disabled:opacity-50"
-          >
-            {label}
-          </button>
-        ))}
-      </div>
-
       {poll ? (
-        <div className="grid gap-6 lg:grid-cols-2">
-          <div>
-            <h3 className="mb-2 text-sm font-semibold text-slate-700">投影預覽</h3>
-            <PollRenderer mode="present" poll={poll} results={results} />
+        <>
+          <PollControlBar
+            poll={poll}
+            pending={actionMutation.isPending}
+            onToggle={runAction}
+          />
+
+          <div className="mt-6 grid gap-6 lg:grid-cols-2">
+            <div>
+              <h3 className="mb-2 text-sm font-semibold text-foreground">投影預覽</h3>
+              <PollRenderer mode="present" poll={poll} results={results} />
+            </div>
+            <div>
+              <h3 className="mb-2 text-sm font-semibold text-foreground">參與者視角</h3>
+              <PollRenderer
+                mode="answer"
+                poll={poll}
+                results={poll.result_visible ? results : null}
+              />
+              <p className="mt-2 text-xs text-muted">
+                回應數：{results?.response_count ?? 0}
+                {poll.result_visible ? " · 結果已揭示" : " · 結果未揭示"}
+              </p>
+            </div>
           </div>
-          <div>
-            <h3 className="mb-2 text-sm font-semibold text-slate-700">參與者視角</h3>
-            <PollRenderer
-              mode="answer"
-              poll={poll}
-              results={poll.result_visible ? results : null}
-            />
-            <p className="mt-2 text-xs text-slate-500">
-              回應數：{results?.response_count ?? 0}
-              {poll.result_visible ? " · 結果已揭示" : " · 結果未揭示"}
-            </p>
-          </div>
-        </div>
+        </>
       ) : (
-        <p className="text-sm text-slate-500">載入中…</p>
+        <p className="text-sm text-muted">載入中…</p>
       )}
     </HostShell>
   );

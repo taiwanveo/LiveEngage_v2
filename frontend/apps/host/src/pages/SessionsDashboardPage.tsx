@@ -202,7 +202,7 @@ function SessionCard(props: {
             Q&amp;A 審核
           </a>
           <a href={`#/rooms/${roomId}/sprint9`} className="le-nav-link !text-xs">
-            Quiz / Ideas
+            Quiz 管理
           </a>
         </div>
       ) : (

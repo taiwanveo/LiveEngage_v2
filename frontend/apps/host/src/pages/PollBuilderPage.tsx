@@ -91,6 +91,7 @@ export function PollBuilderPage({
       subtitle={poll?.type ?? ""}
       roomId={roomId}
       onLogout={onLogout}
+      activeNav="polls"
       actions={
         <a
           href={`#/rooms/${roomId}/polls/${pollId}/console`}

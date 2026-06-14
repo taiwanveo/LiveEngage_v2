@@ -110,7 +110,7 @@ export function Sprint9ConsolePage({
 
   if (!item) {
     return (
-      <HostShell title="Sprint 9 控制台" roomId={roomId} onLogout={onLogout}>
+      <HostShell title="Sprint 9 控制台" roomId={roomId} onLogout={onLogout} activeNav="sprint9">
         <p className="text-sm text-muted">載入中…</p>
       </HostShell>
     );
@@ -122,6 +122,7 @@ export function Sprint9ConsolePage({
       subtitle={item.type}
       roomId={roomId}
       onLogout={onLogout}
+      activeNav="sprint9"
       actions={
         <a
           href={`#/rooms/${roomId}/sprint9`}

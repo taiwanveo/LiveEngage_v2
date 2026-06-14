@@ -4,6 +4,7 @@ import * as React from "react";
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { HostShell } from "../components/HostShell";
+import { ApiException } from "../lib/api";
 import {
   createInteraction,
   listInteractions,
@@ -25,6 +26,7 @@ export function Sprint9HubPage({ roomId, onLogout }: Props): React.JSX.Element {
   const qc = useQueryClient();
   const [newType, setNewType] = useState<(typeof S9_TYPES)[number]["value"]>("quiz");
   const [title, setTitle] = useState("");
+  const [activateError, setActivateError] = useState<string | null>(null);
 
   const { data: items, isLoading } = useQuery({
     queryKey: ["interactions", roomId],
@@ -45,7 +47,13 @@ export function Sprint9HubPage({ roomId, onLogout }: Props): React.JSX.Element {
 
   const activateMutation = useMutation({
     mutationFn: (id: string) => updateInteractionStatus(id, "active"),
+    onMutate: () => setActivateError(null),
     onSuccess: () => void qc.invalidateQueries({ queryKey: ["interactions", roomId] }),
+    onError: (err: unknown) => {
+      setActivateError(
+        err instanceof ApiException ? err.error.message : "開放失敗，請稍後再試"
+      );
+    },
   });
 
   const s9Items = (items ?? []).filter((i) =>
@@ -53,7 +61,7 @@ export function Sprint9HubPage({ roomId, onLogout }: Props): React.JSX.Element {
   );
 
   return (
-    <HostShell title="Quiz / Ideas / Survey" roomId={roomId} onLogout={onLogout}>
+    <HostShell title="Quiz 管理" roomId={roomId} onLogout={onLogout} activeNav="sprint9">
       <section className="le-card mb-8 p-6">
         <h2 className="mb-4 text-sm font-semibold text-foreground">建立互動</h2>
         <div className="flex flex-wrap gap-3">
@@ -86,6 +94,12 @@ export function Sprint9HubPage({ roomId, onLogout }: Props): React.JSX.Element {
         </div>
       </section>
 
+      {activateError ? (
+        <p className="mb-4 rounded-md border border-red-200 bg-red-50 px-4 py-2 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/40 dark:text-red-300">
+          {activateError}
+        </p>
+      ) : null}
+
       <section className="le-card overflow-hidden">
         <header className="border-b border-border px-6 py-4">
           <h2 className="text-sm font-semibold text-foreground">已建立項目</h2>
@@ -93,7 +107,7 @@ export function Sprint9HubPage({ roomId, onLogout }: Props): React.JSX.Element {
         {isLoading ? (
           <p className="px-6 py-8 text-sm text-muted">載入中…</p>
         ) : s9Items.length === 0 ? (
-          <p className="px-6 py-8 text-sm text-muted">尚無 Quiz / Ideas / Survey</p>
+          <p className="px-6 py-8 text-sm text-muted">尚無 Quiz 互動</p>
         ) : (
           <ul className="divide-y divide-border">
             {s9Items.map((item) => (
@@ -109,8 +123,9 @@ export function Sprint9HubPage({ roomId, onLogout }: Props): React.JSX.Element {
                   {item.status !== "active" ? (
                     <button
                       type="button"
+                      disabled={activateMutation.isPending}
                       onClick={() => activateMutation.mutate(item.id)}
-                      className="rounded-md bg-emerald-600 px-3 py-1.5 text-xs text-white hover:bg-emerald-700"
+                      className="rounded-md bg-emerald-600 px-3 py-1.5 text-xs text-white hover:bg-emerald-700 disabled:opacity-50"
                     >
                       開放
                     </button>

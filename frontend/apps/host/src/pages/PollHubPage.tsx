@@ -41,7 +41,7 @@ export function PollHubPage({ roomId, onLogout }: Props): React.JSX.Element {
   const polls = (items ?? []).filter((i) => isPollType(i.type));
 
   return (
-    <HostShell title="Poll 管理" roomId={roomId} onLogout={onLogout}>
+    <HostShell title="Poll 管理" roomId={roomId} onLogout={onLogout} activeNav="polls">
       {error ? (
         <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
           載入失敗：{(error as Error).message}

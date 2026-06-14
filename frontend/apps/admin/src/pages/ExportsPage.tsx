@@ -2,6 +2,16 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
+import {
+  AdminFormField,
+  AdminPageHeader,
+  AdminPanel,
+  AdminSectionTitle,
+  adminBtnPrimary,
+  adminInputClass,
+  adminMetaBarClass,
+  adminTableHeadClass,
+} from "../components/AdminLayout";
 import { AdminShell } from "../components/AdminShell";
 import {
   createExport,
@@ -20,51 +30,51 @@ function ExportRow({ job }: { job: ExportJobData }) {
     : "—";
 
   return (
-    <tr className="border-b border-gray-100 hover:bg-gray-50">
-      <td className="py-3 px-4 text-xs text-gray-500">
+    <tr className="border-b border-border hover:bg-surface-elevated/30">
+      <td className="px-4 py-3 text-xs text-muted">
         {new Date(job.created_at).toLocaleString("zh-TW")}
       </td>
-      <td className="py-3 px-4 text-xs font-mono text-gray-600">
+      <td className="px-4 py-3 font-mono text-xs text-muted">
         {job.session_id.slice(0, 8)}…
       </td>
-      <td className="py-3 px-4">
-        <span className="uppercase text-xs font-medium bg-gray-100 px-2 py-0.5 rounded">
+      <td className="px-4 py-3">
+        <span className="rounded bg-surface-elevated px-2 py-0.5 text-xs font-medium uppercase text-foreground">
           {job.format}
         </span>
       </td>
-      <td className="py-3 px-4">
+      <td className="px-4 py-3">
         <span
-          className={`text-xs font-medium px-2 py-0.5 rounded ${
+          className={`rounded px-2 py-0.5 text-xs font-medium ${
             job.status === "completed"
-              ? "bg-green-50 text-green-700"
+              ? "bg-green-500/10 text-green-600 dark:text-green-400"
               : job.status === "failed"
-                ? "bg-red-50 text-red-600"
-                : "bg-yellow-50 text-yellow-700"
+                ? "bg-red-500/10 text-red-600 dark:text-red-400"
+                : "bg-yellow-500/10 text-yellow-600 dark:text-yellow-400"
           }`}
         >
           {job.status}
         </span>
       </td>
-      <td className="py-3 px-4 text-xs text-gray-500">{exp}</td>
-      <td className="py-3 px-4">
+      <td className="px-4 py-3 text-xs text-muted">{exp}</td>
+      <td className="px-4 py-3">
         {job.download_url ? (
           <a
             href={job.download_url}
-            className="text-xs text-blue-600 hover:underline"
+            className="text-xs text-accent hover:underline"
             target="_blank"
             rel="noreferrer"
           >
             下載
           </a>
         ) : (
-          <span className="text-xs text-gray-300">—</span>
+          <span className="text-xs text-muted">—</span>
         )}
       </td>
     </tr>
   );
 }
 
-export function ExportsPage({ onLogout }: Props) {
+export function ExportsPage({ onLogout }: Props): React.JSX.Element {
   const qc = useQueryClient();
   const [sessionId, setSessionId] = useState("");
   const [format, setFormat] = useState<"csv" | "xlsx">("csv");
@@ -91,19 +101,18 @@ export function ExportsPage({ onLogout }: Props) {
 
   return (
     <AdminShell active="exports" onLogout={onLogout}>
-      <div className="max-w-5xl space-y-6">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">資料匯出</h1>
-          <p className="text-gray-500 mt-1">BE-012：XLSX/CSV 匯出、72h 簽名下載連結。</p>
-        </div>
+      <div className="mx-auto max-w-5xl space-y-6">
+        <AdminPageHeader
+          title="資料匯出"
+          description="XLSX/CSV 匯出與 72 小時簽名下載連結。"
+        />
 
-        <div className="bg-white rounded-xl border border-gray-200 p-6 space-y-4">
-          <h2 className="text-sm font-semibold text-gray-800">建立匯出</h2>
-          <div className="flex flex-wrap gap-3 items-end">
-            <div className="flex-1 min-w-48">
-              <label className="block text-xs font-medium text-gray-600 mb-1">活動</label>
+        <AdminPanel className="space-y-4 p-6">
+          <AdminSectionTitle>建立匯出</AdminSectionTitle>
+          <div className="flex flex-wrap items-end gap-3">
+            <AdminFormField label="活動" className="min-w-48 flex-1">
               <select
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                className={adminInputClass}
                 value={sessionId}
                 onChange={(e) => setSessionId(e.target.value)}
               >
@@ -114,47 +123,44 @@ export function ExportsPage({ onLogout }: Props) {
                   </option>
                 ))}
               </select>
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">格式</label>
+            </AdminFormField>
+            <AdminFormField label="格式">
               <select
-                className="px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                className={adminInputClass}
                 value={format}
                 onChange={(e) => setFormat(e.target.value as "csv" | "xlsx")}
               >
                 <option value="csv">CSV</option>
                 <option value="xlsx">XLSX</option>
               </select>
-            </div>
+            </AdminFormField>
             <button
-              className="px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 disabled:opacity-50"
+              className={adminBtnPrimary}
               disabled={!sessionId || mutation.isPending}
               onClick={() => mutation.mutate()}
             >
               {mutation.isPending ? "匯出中..." : "建立匯出"}
             </button>
           </div>
-          {error && <p className="text-red-500 text-sm">{error}</p>}
-        </div>
+          {error ? <p className="text-sm text-danger">{error}</p> : null}
+        </AdminPanel>
 
-        <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-          <div className="px-4 py-3 border-b border-gray-100 bg-gray-50 text-xs text-gray-500">
-            匯出紀錄（下載連結 72 小時有效）
-          </div>
+        <AdminPanel className="overflow-hidden">
+          <div className={adminMetaBarClass}>匯出紀錄（下載連結 72 小時有效）</div>
           {exportsQuery.isLoading ? (
-            <div className="p-6 animate-pulse h-32 bg-gray-50" />
+            <div className="h-32 animate-pulse bg-surface-elevated/30 p-6" />
           ) : exportsQuery.data?.items.length === 0 ? (
-            <div className="p-12 text-center text-gray-400 text-sm">尚無匯出紀錄</div>
+            <div className="p-12 text-center text-sm text-muted">尚無匯出紀錄</div>
           ) : (
             <table className="w-full">
               <thead>
-                <tr className="text-left text-xs font-medium text-gray-500 uppercase">
-                  <th className="py-3 px-4">建立時間</th>
-                  <th className="py-3 px-4">活動</th>
-                  <th className="py-3 px-4">格式</th>
-                  <th className="py-3 px-4">狀態</th>
-                  <th className="py-3 px-4">到期</th>
-                  <th className="py-3 px-4"></th>
+                <tr className={adminTableHeadClass}>
+                  <th className="px-4 py-3">建立時間</th>
+                  <th className="px-4 py-3">活動</th>
+                  <th className="px-4 py-3">格式</th>
+                  <th className="px-4 py-3">狀態</th>
+                  <th className="px-4 py-3">到期</th>
+                  <th className="px-4 py-3"></th>
                 </tr>
               </thead>
               <tbody>
@@ -164,7 +170,7 @@ export function ExportsPage({ onLogout }: Props) {
               </tbody>
             </table>
           )}
-        </div>
+        </AdminPanel>
       </div>
     </AdminShell>
   );

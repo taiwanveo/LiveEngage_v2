@@ -3,8 +3,8 @@
 import * as React from "react";
 import { useQuery } from "@tanstack/react-query";
 import { AnalyticsMetricCard } from "@liveengage/ui";
+import { AdminPageHeader, AdminSectionTitle } from "../components/AdminLayout";
 import { AdminShell } from "../components/AdminShell";
-import { NAV_ITEMS } from "../lib/nav";
 import {
   getEngagementAnalytics,
   getStatsOverview,
@@ -27,12 +27,10 @@ export function DashboardPage({ onLogout }: Props): React.JSX.Element {
   return (
     <AdminShell active="dashboard" onLogout={onLogout}>
       <div className="mx-auto max-w-6xl animate-slide-up space-y-8">
-        <header>
-          <h2 className="font-display text-3xl font-bold text-foreground">總覽</h2>
-          <p className="mt-2 text-sm text-muted">
-            組織營運中樞 — 參與度、活動與 AI 用量。
-          </p>
-        </header>
+        <AdminPageHeader
+          title="總覽"
+          description="組織營運中樞 — 參與度、活動與 AI 用量。"
+        />
 
         {stats ? (
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
@@ -46,7 +44,7 @@ export function DashboardPage({ onLogout }: Props): React.JSX.Element {
         ) : null}
 
         <section>
-          <h3 className="mb-4 font-display text-lg font-semibold text-foreground">Analytics</h3>
+          <AdminSectionTitle className="mb-4">Analytics</AdminSectionTitle>
           <div className="grid gap-4 lg:grid-cols-3">
             <AnalyticsMetricCard
               title="Engaged participants"
@@ -103,27 +101,6 @@ export function DashboardPage({ onLogout }: Props): React.JSX.Element {
             />
           </div>
         </section>
-
-        <section>
-          <h3 className="mb-4 font-display text-lg font-semibold text-foreground">快捷入口</h3>
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {NAV_ITEMS.filter((i) => i.id !== "dashboard").map((item) => (
-              <a
-                key={item.id}
-                href={item.hash}
-                className="le-card group p-5 transition-shadow hover:shadow-elevated"
-              >
-                <p className="font-mono text-[10px] uppercase tracking-wider text-accent">
-                  {item.sprint}
-                </p>
-                <h3 className="mt-2 font-display text-lg font-semibold text-foreground group-hover:text-accent">
-                  {item.label}
-                </h3>
-                <p className="mt-2 text-sm leading-relaxed text-muted">{item.description}</p>
-              </a>
-            ))}
-          </div>
-        </section>
       </div>
     </AdminShell>
   );
@@ -132,7 +109,7 @@ export function DashboardPage({ onLogout }: Props): React.JSX.Element {
 function StatCard(props: { label: string; value: number }): React.JSX.Element {
   return (
     <div className="le-card p-4">
-      <p className="text-xs text-muted">{props.label}</p>
+      <p className="text-sm font-medium text-muted">{props.label}</p>
       <p className="mt-1 font-display text-2xl font-bold text-foreground">{props.value}</p>
     </div>
   );

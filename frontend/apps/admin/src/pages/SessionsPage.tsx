@@ -2,6 +2,16 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
+import {
+  AdminFormField,
+  AdminPageHeader,
+  AdminPanel,
+  adminBtnPrimary,
+  adminBtnSecondary,
+  adminInputClass,
+  adminMetaBarClass,
+  adminTableHeadClass,
+} from "../components/AdminLayout";
 import { AdminShell } from "../components/AdminShell";
 import {
   type AdminSessionData,
@@ -18,46 +28,51 @@ const STATUS_LABELS: Record<string, string> = {
 };
 
 const STATUS_COLORS: Record<string, string> = {
-  draft: "bg-gray-100 text-gray-600",
-  live: "bg-green-50 text-green-700",
-  ended: "bg-orange-50 text-orange-700",
-  archived: "bg-red-50 text-red-600",
+  draft: "bg-surface-elevated text-muted",
+  live: "bg-green-500/10 text-green-600 dark:text-green-400",
+  ended: "bg-orange-500/10 text-orange-600 dark:text-orange-400",
+  archived: "bg-red-500/10 text-red-600 dark:text-red-400",
 };
 
-function SessionRow({ session, onArchive }: {
+function SessionRow({
+  session,
+  onArchive,
+}: {
   session: AdminSessionData;
   onArchive: (id: string) => void;
 }) {
   return (
-    <tr className="border-b border-gray-100 hover:bg-gray-50">
-      <td className="py-3 px-4">
+    <tr className="border-b border-border hover:bg-surface-elevated/30">
+      <td className="px-4 py-3">
         <div>
-          <div className="text-sm font-medium text-gray-900">{session.title}</div>
-          <code className="text-xs text-gray-400">{session.code}</code>
+          <div className="text-sm font-medium text-foreground">{session.title}</div>
+          <code className="text-xs text-muted">{session.code}</code>
         </div>
       </td>
-      <td className="py-3 px-4">
-        <span className={`inline-block px-2.5 py-0.5 rounded-full text-xs font-medium ${STATUS_COLORS[session.status] ?? "bg-gray-100 text-gray-600"}`}>
+      <td className="px-4 py-3">
+        <span
+          className={`inline-block rounded-full px-2.5 py-0.5 text-xs font-medium ${STATUS_COLORS[session.status] ?? "bg-surface-elevated text-muted"}`}
+        >
           {STATUS_LABELS[session.status] ?? session.status}
         </span>
       </td>
-      <td className="py-3 px-4 text-xs text-gray-500">
+      <td className="px-4 py-3 text-xs text-muted">
         {new Date(session.created_at).toLocaleDateString("zh-TW")}
       </td>
-      <td className="py-3 px-4 text-xs text-gray-500">
+      <td className="px-4 py-3 text-xs text-muted">
         {session.archived_at
           ? new Date(session.archived_at).toLocaleDateString("zh-TW")
           : "—"}
       </td>
-      <td className="py-3 px-4">
-        {session.status !== "archived" && (
+      <td className="px-4 py-3">
+        {session.status !== "archived" ? (
           <button
-            className="text-xs text-red-500 hover:text-red-700 hover:underline"
+            className="text-xs text-danger hover:underline"
             onClick={() => onArchive(session.id)}
           >
             封存
           </button>
-        )}
+        ) : null}
       </td>
     </tr>
   );
@@ -67,7 +82,7 @@ interface Props {
   onLogout: () => void;
 }
 
-export function SessionsPage({ onLogout }: Props) {
+export function SessionsPage({ onLogout }: Props): React.JSX.Element {
   const qc = useQueryClient();
   const [params, setParams] = useState<ListSessionsParams>({ page: 1, page_size: 20 });
   const [search, setSearch] = useState("");
@@ -100,29 +115,26 @@ export function SessionsPage({ onLogout }: Props) {
 
   return (
     <AdminShell active="sessions" onLogout={onLogout}>
-      <div className="max-w-5xl space-y-6">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">活動管理</h1>
-          <p className="text-gray-500 mt-1">查看並管理組織所有活動。</p>
-        </div>
+      <div className="mx-auto max-w-5xl space-y-6">
+        <AdminPageHeader
+          title="活動管理"
+          description="查看並管理組織所有活動。"
+        />
 
-        {/* 搜尋與篩選 */}
-        <div className="bg-white rounded-xl border border-gray-200 p-4">
-          <div className="flex flex-wrap gap-3 items-end">
-            <div className="flex-1 min-w-48">
-              <label className="block text-xs font-medium text-gray-600 mb-1">搜尋標題 / 代碼</label>
+        <AdminPanel className="p-4">
+          <div className="flex flex-wrap items-end gap-3">
+            <AdminFormField label="搜尋標題 / 代碼" className="min-w-48 flex-1">
               <input
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className={adminInputClass}
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="輸入關鍵字..."
                 onKeyDown={(e) => e.key === "Enter" && applySearch()}
               />
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">狀態</label>
+            </AdminFormField>
+            <AdminFormField label="狀態">
               <select
-                className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className={adminInputClass}
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
               >
@@ -132,40 +144,36 @@ export function SessionsPage({ onLogout }: Props) {
                 <option value="ended">已結束</option>
                 <option value="archived">已封存</option>
               </select>
-            </div>
-            <button
-              className="px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700"
-              onClick={applySearch}
-            >
+            </AdminFormField>
+            <button className={adminBtnPrimary} onClick={applySearch}>
               搜尋
             </button>
           </div>
-        </div>
+        </AdminPanel>
 
-        {/* 活動列表 */}
-        <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+        <AdminPanel className="overflow-hidden">
           {isLoading ? (
-            <div className="p-6 animate-pulse space-y-3">
-              {[1, 2, 3, 4, 5].map(i => <div key={i} className="h-12 bg-gray-100 rounded" />)}
+            <div className="animate-pulse space-y-3 p-6">
+              {[1, 2, 3, 4, 5].map((i) => (
+                <div key={i} className="h-12 rounded bg-surface-elevated" />
+              ))}
             </div>
           ) : data?.items.length === 0 ? (
-            <div className="p-12 text-center text-gray-400">
-              <div className="text-4xl mb-3">📋</div>
+            <div className="p-12 text-center text-muted">
+              <div className="mb-3 text-4xl">📋</div>
               <div className="text-sm">找不到符合條件的活動</div>
             </div>
           ) : (
             <>
-              <div className="px-4 py-3 border-b border-gray-100 bg-gray-50 text-xs text-gray-500">
-                共 {data?.total ?? 0} 筆
-              </div>
+              <div className={adminMetaBarClass}>共 {data?.total ?? 0} 筆</div>
               <table className="w-full">
                 <thead>
-                  <tr className="text-left text-xs font-medium text-gray-500 uppercase tracking-wide">
-                    <th className="py-3 px-4">活動</th>
-                    <th className="py-3 px-4">狀態</th>
-                    <th className="py-3 px-4">建立時間</th>
-                    <th className="py-3 px-4">封存時間</th>
-                    <th className="py-3 px-4"></th>
+                  <tr className={adminTableHeadClass}>
+                    <th className="px-4 py-3">活動</th>
+                    <th className="px-4 py-3">狀態</th>
+                    <th className="px-4 py-3">建立時間</th>
+                    <th className="px-4 py-3">封存時間</th>
+                    <th className="px-4 py-3"></th>
                   </tr>
                 </thead>
                 <tbody>
@@ -175,33 +183,32 @@ export function SessionsPage({ onLogout }: Props) {
                 </tbody>
               </table>
 
-              {/* 分頁 */}
-              {totalPages > 1 && (
-                <div className="flex items-center justify-between px-4 py-3 border-t border-gray-100">
-                  <span className="text-xs text-gray-500">
+              {totalPages > 1 ? (
+                <div className="flex items-center justify-between border-t border-border px-4 py-3">
+                  <span className="text-xs text-muted">
                     第 {params.page} / {totalPages} 頁
                   </span>
                   <div className="flex gap-2">
                     <button
-                      className="px-3 py-1.5 text-xs border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-40"
+                      className={`${adminBtnSecondary} !min-h-0 px-3 py-1.5 text-xs`}
                       disabled={(params.page ?? 1) <= 1}
-                      onClick={() => setParams(p => ({ ...p, page: (p.page ?? 1) - 1 }))}
+                      onClick={() => setParams((p) => ({ ...p, page: (p.page ?? 1) - 1 }))}
                     >
                       上一頁
                     </button>
                     <button
-                      className="px-3 py-1.5 text-xs border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-40"
+                      className={`${adminBtnSecondary} !min-h-0 px-3 py-1.5 text-xs`}
                       disabled={(params.page ?? 1) >= totalPages}
-                      onClick={() => setParams(p => ({ ...p, page: (p.page ?? 1) + 1 }))}
+                      onClick={() => setParams((p) => ({ ...p, page: (p.page ?? 1) + 1 }))}
                     >
                       下一頁
                     </button>
                   </div>
                 </div>
-              )}
+              ) : null}
             </>
           )}
-        </div>
+        </AdminPanel>
       </div>
     </AdminShell>
   );

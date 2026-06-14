@@ -20,8 +20,9 @@ import { getPoll, getPollResults, pollAction } from "../lib/pollApi";
 import {
   isPollType,
   POLL_TYPES,
+  pollTypeLabel,
+  interactionStatusLabel,
   type InteractionSummary,
-  type InteractionStatus,
   type PollAction,
   type PollInteractionType,
 } from "../lib/pollTypes";
@@ -32,6 +33,8 @@ import {
   type SessionVisibility,
 } from "../lib/sessionApi";
 import { JoinShareCard } from "../components/JoinShareCard";
+import { PollControlBar, isPollRunning } from "../components/PollControlBar";
+import { presentAppUrl } from "../lib/presentUrl";
 
 interface Props {
   roomId: string;
@@ -53,16 +56,6 @@ const STATUS_LABEL: Record<SessionHost["status"], string> = {
   ended: "已結束",
   archived: "已封存",
 };
-
-function isPollRunning(status: InteractionStatus): boolean {
-  return status === "active" || status === "locked";
-}
-
-function presentAppUrl(roomId: string, pollId: string): string {
-  const meta = import.meta as ImportMeta & { env?: { VITE_PRESENT_BASE?: string } };
-  const base = (meta.env?.VITE_PRESENT_BASE ?? "https://le-present.zeabur.app").replace(/\/$/, "");
-  return `${base}/#/rooms/${roomId}/polls/${pollId}/present`;
-}
 
 export function SessionWorkbenchPage({ roomId, pollId, onLogout }: Props): React.JSX.Element {
   const qc = useQueryClient();
@@ -282,17 +275,15 @@ export function SessionWorkbenchPage({ roomId, pollId, onLogout }: Props): React
 
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <div>
-                  <p className="text-xs font-medium uppercase tracking-wide text-muted">
-                    {poll.type.replace(/_/g, " ")}
+                  <p className="text-xs font-medium text-muted">
+                    {pollTypeLabel(poll.type)}
                   </p>
                   <h2 className="font-display text-xl font-semibold text-foreground">
                     {poll.title ?? "未命名題目"}
                   </h2>
                   <p className="mt-1 text-sm text-muted">
-                    狀態：{poll.status}
+                    狀態：{interactionStatusLabel(poll.status)}
                     {poll.result_visible ? " · 結果已揭示" : ""}
-                    {" · "}
-                    回應：{results?.response_count ?? 0}
                   </p>
                 </div>
                 <a
@@ -316,7 +307,16 @@ export function SessionWorkbenchPage({ roomId, pollId, onLogout }: Props): React
       preview={
         <ParticipantPreviewFrame
           subtitle="All votes are live and saved"
-          footer={poll ? `回應數 ${results?.response_count ?? 0}` : undefined}
+          stats={
+            poll ? (
+              <p className="text-sm font-semibold tabular-nums text-foreground">
+                回應數{" "}
+                <span className="font-display text-lg text-accent">
+                  {results?.response_count ?? 0}
+                </span>
+              </p>
+            ) : undefined
+          }
         >
           {poll ? (
             <PollRenderer
@@ -330,91 +330,6 @@ export function SessionWorkbenchPage({ roomId, pollId, onLogout }: Props): React
         </ParticipantPreviewFrame>
       }
     />
-  );
-}
-
-function PollControlBar(props: {
-  poll: {
-    status: InteractionStatus;
-    result_visible: boolean;
-  };
-  pending: boolean;
-  onToggle: (action: PollAction, needsConfirm?: boolean) => void;
-}): React.JSX.Element {
-  const { poll, pending, onToggle } = props;
-  const running = isPollRunning(poll.status);
-  const locked = poll.status === "locked";
-
-  return (
-    <div className="flex flex-wrap items-center gap-2 rounded-xl border border-border bg-surface p-2">
-      <ControlToggle
-        active={running}
-        activeLabel="進行中"
-        inactiveLabel="開始"
-        disabled={pending}
-        accent={running ? "success" : "default"}
-        onClick={() => onToggle(running ? "stop" : "start")}
-      />
-      <ControlToggle
-        active={locked}
-        activeLabel="已鎖定"
-        inactiveLabel="鎖定"
-        disabled={pending || !running}
-        onClick={() => onToggle(locked ? "unlock" : "lock")}
-      />
-      <ControlToggle
-        active={poll.result_visible}
-        activeLabel="結果顯示"
-        inactiveLabel="隱藏結果"
-        disabled={pending}
-        onClick={() => onToggle(poll.result_visible ? "hide" : "reveal")}
-      />
-      <button
-        type="button"
-        disabled={pending}
-        onClick={() => onToggle("reset", true)}
-        className="rounded-full border border-border px-3 py-1 text-xs text-muted hover:bg-surface-elevated hover:text-foreground disabled:opacity-50"
-      >
-        重置
-      </button>
-    </div>
-  );
-}
-
-function ControlToggle(props: {
-  active: boolean;
-  activeLabel: string;
-  inactiveLabel: string;
-  disabled?: boolean;
-  accent?: "default" | "success";
-  onClick: () => void;
-}): React.JSX.Element {
-  const label = props.active ? props.activeLabel : props.inactiveLabel;
-  return (
-    <button
-      type="button"
-      disabled={props.disabled}
-      onClick={props.onClick}
-      aria-pressed={props.active}
-      className={`inline-flex min-h-[32px] items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-medium transition disabled:opacity-50 ${
-        props.active
-          ? props.accent === "success"
-            ? "border-success/40 bg-success/10 text-success"
-            : "border-accent/40 bg-accent-muted text-accent"
-          : "border-border bg-background text-muted hover:border-accent/30 hover:text-foreground"
-      }`}
-    >
-      <span
-        className={`h-1.5 w-1.5 shrink-0 rounded-full ${
-          props.active
-            ? props.accent === "success"
-              ? "bg-success"
-              : "bg-accent"
-            : "bg-muted"
-        }`}
-      />
-      {label}
-    </button>
   );
 }
 
@@ -439,8 +354,8 @@ function InteractionSidebar(props: {
   onSelect: (id: string) => void;
 }): React.JSX.Element {
   return (
-    <div className="flex h-full max-h-[calc(100vh-4.5rem)] flex-col">
-      <div className="border-b border-border p-4">
+    <div className="flex h-full min-h-0 flex-col">
+      <div className="shrink-0 border-b border-border p-4">
         <div className="flex items-center justify-between">
           <h2 className="text-sm font-semibold text-foreground">My interactions</h2>
         </div>
@@ -470,7 +385,11 @@ function InteractionSidebar(props: {
           />
         </div>
       </div>
-      <ul className="flex-1 overflow-y-auto p-2">
+      <ul
+        className={`min-h-0 flex-1 p-2 ${
+          props.polls.length >= 6 ? "overflow-y-auto" : "overflow-y-visible"
+        }`}
+      >
         {props.loading ? (
           <li className="p-4 text-center text-xs text-muted">載入中…</li>
         ) : props.polls.length === 0 ? (
@@ -493,7 +412,7 @@ function InteractionSidebar(props: {
                     {item.title ?? "未命名題目"}
                   </p>
                   <p className="mt-0.5 text-[11px] text-muted">
-                    {item.type} · {item.status}
+                    {pollTypeLabel(item.type)} · {interactionStatusLabel(item.status)}
                   </p>
                 </button>
               </li>

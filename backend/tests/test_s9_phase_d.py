@@ -201,6 +201,57 @@ def test_fe012_survey_submit(
     assert results.status_code == 200, results.text
 
 
+def test_activate_quiz_stops_existing_active_poll(
+    client: TestClient, host_token: tuple[str, str]
+) -> None:
+    """開放 Quiz 時應先 stop 同 room 既有 active Poll（unique index）。"""
+    token, _ = host_token
+    headers = _auth(token)
+    session = _live_session(client, headers)
+    room_id = str(session["default_room_id"])
+
+    poll = client.post(
+        f"/api/v1/rooms/{room_id}/interactions",
+        headers=headers,
+        json={"type": "open_text", "title": "進行中 Poll"},
+    )
+    assert poll.status_code == 201, poll.text
+    poll_id = poll.json()["id"]
+
+    start = client.post(
+        f"/api/v1/polls/{poll_id}/actions",
+        headers=headers,
+        json={"action": "start"},
+    )
+    assert start.status_code == 200, start.text
+    assert start.json()["status"] == "active"
+
+    quiz = client.post(
+        f"/api/v1/rooms/{room_id}/interactions",
+        headers=headers,
+        json={"type": "quiz", "title": "快問快答"},
+    )
+    assert quiz.status_code == 201, quiz.text
+    quiz_id = quiz.json()["id"]
+
+    active = client.patch(
+        f"/api/v1/interactions/{quiz_id}",
+        headers=headers,
+        json={"status": "active"},
+    )
+    assert active.status_code == 200, active.text
+    assert active.json()["status"] == "active"
+
+    listed = client.get(
+        f"/api/v1/rooms/{room_id}/interactions",
+        headers=headers,
+    )
+    assert listed.status_code == 200, listed.text
+    by_id = {item["id"]: item for item in listed.json()}
+    assert by_id[poll_id]["status"] == "stopped"
+    assert by_id[quiz_id]["status"] == "active"
+
+
 def test_ai001_unavailable_without_key(
     client: TestClient, host_token: tuple[str, str], monkeypatch: pytest.MonkeyPatch
 ) -> None:

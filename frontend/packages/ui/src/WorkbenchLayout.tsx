@@ -1,4 +1,4 @@
-/** 三欄 Session 工作台：25% 互動清單｜60% 控場｜15% Participant 預覽。 */
+/** 三欄 Session 工作台：25% 互動清單｜55% 控場｜20% Participant 預覽。 */
 
 import * as React from "react";
 
@@ -18,14 +18,14 @@ export function WorkbenchLayout({
   return (
     <div className="le-page-bg flex min-h-full flex-col">
       {toolbar}
-      <div className="relative z-10 grid min-h-0 flex-1 grid-cols-1 lg:grid-cols-[25%_60%_15%]">
-        <aside className="min-h-0 border-b border-border bg-surface lg:border-b-0 lg:border-r">
+      <div className="relative z-10 grid min-h-0 flex-1 grid-cols-1 lg:grid-cols-[25%_55%_20%]">
+        <aside className="flex min-h-0 flex-col border-b border-border bg-surface lg:border-b-0 lg:border-r">
           {sidebar}
         </aside>
         <section className="min-h-[320px] min-w-0 overflow-auto bg-background p-4 sm:p-5">
           {main}
         </section>
-        <aside className="min-h-0 border-t border-border bg-surface lg:border-l lg:border-t-0">
+        <aside className="flex min-h-0 flex-col border-t border-border bg-surface lg:border-l lg:border-t-0">
           {preview}
         </aside>
       </div>

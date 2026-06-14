@@ -57,3 +57,25 @@ export const POLL_TYPE_SET = new Set<string>(POLL_TYPES.map((t) => t.value));
 export function isPollType(type: string): type is PollInteractionType {
   return POLL_TYPE_SET.has(type);
 }
+
+const POLL_TYPE_LABEL_MAP = Object.fromEntries(
+  POLL_TYPES.map((t) => [t.value, t.label])
+) as Record<PollInteractionType, string>;
+
+export const INTERACTION_STATUS_LABEL: Record<InteractionStatus, string> = {
+  idle: "閒置",
+  active: "進行中",
+  locked: "已鎖定",
+  stopped: "已結束",
+};
+
+/** 題型顯示名稱（中文） */
+export function pollTypeLabel(type: string): string {
+  if (isPollType(type)) return POLL_TYPE_LABEL_MAP[type];
+  return type;
+}
+
+/** 互動狀態顯示名稱（中文） */
+export function interactionStatusLabel(status: InteractionStatus): string {
+  return INTERACTION_STATUS_LABEL[status] ?? status;
+}
