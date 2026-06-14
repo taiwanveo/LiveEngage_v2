@@ -1,11 +1,20 @@
 /** Sprint 9 現場控制台：Quiz 控場 / Ideas 列表 / Survey 結果。 */
 
 import * as React from "react";
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  QUIZ_EVENT_TYPES,
+  useRoomWebSocket,
+  type WsEvent,
+} from "@liveengage/realtime";
+import { useSystemNotice } from "@liveengage/ui";
+import { HostRoomDetailBreadcrumb } from "../components/HostBreadcrumb";
 import { HostShell } from "../components/HostShell";
 import { HostTitleLink } from "../components/HostTitleActions";
-import { quizPresentUrl } from "../lib/presentUrl";
+import { sprint9PresentUrl } from "../lib/presentUrl";
+import { ApiException } from "../lib/api";
+import { getAccessToken } from "../lib/auth";
 import { listInteractions } from "../lib/interactionApi";
 import {
   addQuizQuestion,
@@ -17,6 +26,7 @@ import {
   listQuizQuestions,
   quizAction,
   addSurveyQuestion,
+  type QuizQuestion,
 } from "../lib/sprint9Api";
 import { interactionTypeLabel, quizQuestionStateLabel } from "../lib/pollTypes";
 
@@ -26,6 +36,21 @@ interface Props {
   onLogout: () => void;
 }
 
+const QUIZ_ACTION_SUCCESS: Record<
+  "start_question" | "reveal" | "close",
+  string
+> = {
+  start_question: "子題已開始",
+  reveal: "已揭曉答案",
+  close: "子題已結束",
+};
+
+function formatMutationError(err: unknown): string {
+  if (err instanceof ApiException) return err.error.message;
+  if (err instanceof Error) return err.message;
+  return "操作失敗，請稍後再試";
+}
+
 export function Sprint9ConsolePage({
   roomId,
   interactionId,
@@ -33,6 +58,7 @@ export function Sprint9ConsolePage({
 }: Props): React.JSX.Element {
   const qc = useQueryClient();
   const [quizTitle, setQuizTitle] = useState("");
+  const { showError, showSuccess, systemNoticeModal } = useSystemNotice();
 
   const metaQuery = useQuery({
     queryKey: ["interactions", roomId],
@@ -43,6 +69,30 @@ export function Sprint9ConsolePage({
   const questionsQuery = useQuery({
     queryKey: ["quiz-questions", interactionId],
     queryFn: () => listQuizQuestions(interactionId),
+    enabled: item?.type === "quiz",
+    refetchInterval: item?.type === "quiz" ? 5_000 : false,
+  });
+
+  const refreshQuizData = useCallback(async () => {
+    await Promise.all([
+      qc.invalidateQueries({ queryKey: ["quiz-questions", interactionId] }),
+      qc.invalidateQueries({ queryKey: ["quiz-leaderboard", interactionId] }),
+    ]);
+  }, [qc, interactionId]);
+
+  const handleQuizWsEvent = useCallback(
+    (event: WsEvent) => {
+      if (!QUIZ_EVENT_TYPES.has(event.type)) return;
+      void refreshQuizData();
+    },
+    [refreshQuizData]
+  );
+
+  useRoomWebSocket({
+    roomId,
+    token: getAccessToken(),
+    mode: "host",
+    onEvent: handleQuizWsEvent,
     enabled: item?.type === "quiz",
   });
 
@@ -78,8 +128,10 @@ export function Sprint9ConsolePage({
       }),
     onSuccess: () => {
       setQuizTitle("");
+      showSuccess("子題已新增");
       void qc.invalidateQueries({ queryKey: ["quiz-questions", interactionId] });
     },
+    onError: (err: unknown) => showError(formatMutationError(err)),
   });
 
   const actionMutation = useMutation({
@@ -90,21 +142,33 @@ export function Sprint9ConsolePage({
       questionId: string;
       action: "start_question" | "reveal" | "close";
     }) => quizAction(questionId, action),
-    onSuccess: () => {
-      void qc.invalidateQueries({ queryKey: ["quiz-questions", interactionId] });
-      void qc.invalidateQueries({ queryKey: ["quiz-leaderboard", interactionId] });
+    onSuccess: (data, variables) => {
+      qc.setQueryData<QuizQuestion[]>(
+        ["quiz-questions", interactionId],
+        (old) =>
+          old?.map((q) =>
+            q.id === variables.questionId ? { ...q, state: data.state } : q
+          ) ?? old
+      );
+      showSuccess(QUIZ_ACTION_SUCCESS[variables.action]);
+      void refreshQuizData();
     },
+    onError: (err: unknown) => showError(formatMutationError(err)),
   });
 
   const deleteQuestionMutation = useMutation({
     mutationFn: deleteQuizQuestion,
-    onSuccess: () =>
-      void qc.invalidateQueries({ queryKey: ["quiz-questions", interactionId] }),
+    onSuccess: () => {
+      showSuccess("子題已刪除");
+      void qc.invalidateQueries({ queryKey: ["quiz-questions", interactionId] });
+    },
+    onError: (err: unknown) => showError(formatMutationError(err)),
   });
 
   const hideMutation = useMutation({
     mutationFn: hideIdea,
     onSuccess: () => void qc.invalidateQueries({ queryKey: ["ideas", interactionId] }),
+    onError: (err: unknown) => showError(formatMutationError(err)),
   });
 
   const addSurveyQMutation = useMutation({
@@ -116,12 +180,29 @@ export function Sprint9ConsolePage({
       }),
     onSuccess: () =>
       void qc.invalidateQueries({ queryKey: ["survey-results", interactionId] }),
+    onError: (err: unknown) => showError(formatMutationError(err)),
   });
 
   const backToList = (
     <HostTitleLink href={`#/rooms/${roomId}/sprint9`} variant="secondary">
       返回列表
     </HostTitleLink>
+  );
+
+  const interactionTitle = item?.title?.trim() || interactionTypeLabel(item?.type ?? "quiz");
+
+  const consoleBreadcrumb = (
+    <HostRoomDetailBreadcrumb
+      roomId={roomId}
+      sectionLabel="Quiz 管理"
+      sectionSegment="sprint9"
+      segments={[
+        {
+          label: metaQuery.isLoading ? "載入中…" : interactionTitle,
+        },
+        { label: "控制台" },
+      ]}
+    />
   );
 
   if (!item) {
@@ -132,6 +213,7 @@ export function Sprint9ConsolePage({
         roomId={roomId}
         onLogout={onLogout}
         activeNav="sprint9"
+        breadcrumb={consoleBreadcrumb}
         titleAddon={backToList}
       >
         <p className="text-sm text-muted">載入中…</p>
@@ -146,13 +228,14 @@ export function Sprint9ConsolePage({
       roomId={roomId}
       onLogout={onLogout}
       activeNav="sprint9"
+      breadcrumb={consoleBreadcrumb}
       titleAddon={backToList}
-      {...(item.type === "quiz"
+      {...(["quiz", "ideas", "survey"].includes(item.type)
         ? {
-            presentHref: quizPresentUrl(roomId, interactionId),
+            presentHref: sprint9PresentUrl(roomId, interactionId),
             presentMenu: (
               <a
-                href={quizPresentUrl(roomId, interactionId)}
+                href={sprint9PresentUrl(roomId, interactionId)}
                 className="inline-flex min-h-[28px] items-center px-1.5 text-[10px] text-accent-fg hover:bg-accent/90"
                 title="內嵌投影"
               >
@@ -164,6 +247,15 @@ export function Sprint9ConsolePage({
     >
       {item.type === "quiz" ? (
         <div className="space-y-6">
+          {item.status !== "active" ? (
+            <p className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-100">
+              此 Quiz 尚未開放。請先到{" "}
+              <a href={`#/rooms/${roomId}/sprint9`} className="font-medium underline">
+                Quiz 管理列表
+              </a>{" "}
+              點「開放」，參與者才能作答；主機仍可在下方控場。
+            </p>
+          ) : null}
           <section className="le-card p-4">
             <h3 className="mb-3 text-sm font-semibold text-foreground">新增子題</h3>
             <div className="flex gap-2">
@@ -186,7 +278,13 @@ export function Sprint9ConsolePage({
           <section className="le-card p-4">
             <h3 className="mb-3 text-sm font-semibold text-foreground">子題控場</h3>
             <ul className="space-y-3">
-              {(questionsQuery.data ?? []).map((q) => (
+              {(questionsQuery.data ?? []).map((q) => {
+                const canStart = q.state === "pending";
+                const canReveal = q.state === "active";
+                const canClose = q.state === "active" || q.state === "revealed";
+                const busy = actionMutation.isPending;
+
+                return (
                 <li key={q.id} className="flex flex-wrap items-center justify-between gap-2 border-b border-border pb-2">
                   <div>
                     <p className="font-medium text-foreground">{q.title}</p>
@@ -205,22 +303,38 @@ export function Sprint9ConsolePage({
                     ) : null}
                     <button
                       type="button"
+                      disabled={!canStart || busy}
+                      title={canStart ? "開始此子題" : "僅「待開始」狀態可開始"}
                       onClick={() =>
                         actionMutation.mutate({ questionId: q.id, action: "start_question" })
                       }
-                      className="rounded bg-emerald-600 px-2 py-1 text-xs text-white"
+                      className="rounded bg-emerald-600 px-2 py-1 text-xs text-white disabled:cursor-not-allowed disabled:opacity-40"
                     >
-                      開始
+                      {busy && canStart ? "處理中…" : "開始"}
                     </button>
                     <button
                       type="button"
+                      disabled={!canReveal || busy}
+                      title={canReveal ? "揭曉正確答案" : "須先「開始」後才能揭曉"}
                       onClick={() =>
                         actionMutation.mutate({ questionId: q.id, action: "reveal" })
                       }
-                      className="rounded bg-slate-700 px-2 py-1 text-xs text-white"
+                      className="rounded bg-slate-700 px-2 py-1 text-xs text-white disabled:cursor-not-allowed disabled:opacity-40"
                     >
                       揭曉
                     </button>
+                    {canClose ? (
+                      <button
+                        type="button"
+                        disabled={busy}
+                        onClick={() =>
+                          actionMutation.mutate({ questionId: q.id, action: "close" })
+                        }
+                        className="rounded border border-border px-2 py-1 text-xs text-muted hover:bg-surface-elevated disabled:opacity-40"
+                      >
+                        結束
+                      </button>
+                    ) : null}
                     {q.state === "pending" ? (
                       <button
                         type="button"
@@ -236,7 +350,8 @@ export function Sprint9ConsolePage({
                     ) : null}
                   </div>
                 </li>
-              ))}
+                );
+              })}
             </ul>
           </section>
           <section className="le-card p-4">
@@ -291,6 +406,7 @@ export function Sprint9ConsolePage({
           </section>
         </div>
       ) : null}
+      {systemNoticeModal}
     </HostShell>
   );
 }

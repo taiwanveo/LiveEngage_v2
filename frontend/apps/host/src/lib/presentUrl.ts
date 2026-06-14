@@ -22,5 +22,20 @@ export function qaPresentUrl(roomId: string): string {
 
 /** Quiz 大螢幕投影（當前子題 + 排行榜）。 */
 export function quizPresentUrl(roomId: string, quizId: string): string {
-  return hostHashUrl(`/rooms/${roomId}/sprint9/${quizId}/present`);
+  return sprint9PresentUrl(roomId, quizId);
+}
+
+/** Ideas 大螢幕投影（熱門點子牆）。 */
+export function ideasPresentUrl(roomId: string, boardId: string): string {
+  return sprint9PresentUrl(roomId, boardId);
+}
+
+/** Survey 大螢幕投影（問卷結果聚合）。 */
+export function surveyPresentUrl(roomId: string, surveyId: string): string {
+  return sprint9PresentUrl(roomId, surveyId);
+}
+
+/** Sprint 9 互動投影（Quiz / Ideas / Survey 共用路由，依 type 切換畫面）。 */
+export function sprint9PresentUrl(roomId: string, interactionId: string): string {
+  return hostHashUrl(`/rooms/${roomId}/sprint9/${interactionId}/present`);
 }

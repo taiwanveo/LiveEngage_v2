@@ -133,6 +133,10 @@ export function JoinPage({ code }: Props): React.JSX.Element {
         <div className="rounded-xl border border-warning/30 bg-warning/10 px-4 py-3 text-sm text-warning">
           活動尚未開始，請等待主持人開放後再試。
         </div>
+      ) : needsSso && !ssoEnabled ? (
+        <div className="rounded-xl border border-warning/30 bg-warning/10 px-4 py-3 text-sm text-warning">
+          此活動需 SSO 登入，但目前尚未啟用 SSO。請聯絡活動主持人。
+        </div>
       ) : needsSso && ssoEnabled ? (
         <div className="space-y-4">
           <p className="text-sm text-muted">此活動需使用組織 SSO 登入後才能加入。</p>

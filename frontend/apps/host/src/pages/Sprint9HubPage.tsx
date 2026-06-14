@@ -6,7 +6,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useSystemNotice } from "@liveengage/ui";
 import { HostRoomHubBreadcrumb } from "../components/HostBreadcrumb";
 import { HostShell } from "../components/HostShell";
-import { quizPresentUrl } from "../lib/presentUrl";
+import { sprint9PresentUrl } from "../lib/presentUrl";
 import { ApiException } from "../lib/api";
 import {
   createInteraction,
@@ -51,6 +51,9 @@ export function Sprint9HubPage({ roomId, onLogout }: Props): React.JSX.Element {
       void qc.invalidateQueries({ queryKey: ["interactions", roomId] });
       window.location.hash = `#/rooms/${roomId}/sprint9/${created.id}/console`;
     },
+    onError: (err: unknown) => {
+      showError(err instanceof ApiException ? err.error.message : "建立失敗");
+    },
   });
 
   const activateMutation = useMutation({
@@ -69,6 +72,9 @@ export function Sprint9HubPage({ roomId, onLogout }: Props): React.JSX.Element {
   const deleteMutation = useMutation({
     mutationFn: (id: string) => deleteInteraction(id),
     onSuccess: () => void qc.invalidateQueries({ queryKey: ["interactions", roomId] }),
+    onError: (err: unknown) => {
+      showError(err instanceof ApiException ? err.error.message : "刪除失敗");
+    },
   });
 
   const s9Items = (items ?? []).filter((i) =>
@@ -153,9 +159,9 @@ export function Sprint9HubPage({ roomId, onLogout }: Props): React.JSX.Element {
                   >
                     控制台
                   </a>
-                  {item.type === "quiz" ? (
+                  {["quiz", "ideas", "survey"].includes(item.type) ? (
                     <a
-                      href={quizPresentUrl(roomId, item.id)}
+                      href={sprint9PresentUrl(roomId, item.id)}
                       className="le-btn-primary !min-h-0 px-3 py-1.5 text-xs"
                     >
                       投影

@@ -32,6 +32,11 @@ export function HostRoomHeaderActions({
 
   const session = sessionsQuery.data?.find((s) => s.default_room_id === roomId) ?? null;
   const showPresent = Boolean(presentHref);
+  const shareTitle = session
+    ? "分享加入連結"
+    : sessionsQuery.isLoading
+      ? "載入活動資訊中…"
+      : "找不到此房間對應的活動";
 
   return (
     <>
@@ -59,7 +64,7 @@ export function HostRoomHeaderActions({
         <button
           type="button"
           disabled={!session}
-          title={session ? "分享加入連結" : "載入活動資訊中…"}
+          title={shareTitle}
           onClick={() => setShareOpen(true)}
           className={BTN_SECONDARY}
         >

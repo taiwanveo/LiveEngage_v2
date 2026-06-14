@@ -247,6 +247,49 @@ async def list_questions(
     return items
 
 
+async def get_active_question_for_participant(
+    db: AsyncSession,
+    *,
+    quiz_interaction_id: uuid.UUID,
+    participant_id: uuid.UUID,
+) -> QuizQuestionPublic | None:
+    """取得目前可作答的 Quiz 子題（重載／reconnect fallback）。"""
+    result = await db.execute(
+        select(Interaction).where(Interaction.id == quiz_interaction_id)
+    )
+    quiz = result.scalar_one_or_none()
+    if quiz is None or quiz.type != InteractionType.QUIZ:
+        raise AppError(ErrorCode.NOT_FOUND, "找不到 Quiz")
+    if quiz.status != InteractionStatus.ACTIVE:
+        return None
+
+    part_check = await db.execute(
+        select(Participant.id).where(
+            Participant.id == participant_id,
+            Participant.room_id == quiz.room_id,
+        )
+    )
+    if part_check.scalar_one_or_none() is None:
+        raise AppError(ErrorCode.FORBIDDEN, "您未加入此房間")
+
+    active_result = await db.execute(
+        select(QuizQuestion, Interaction)
+        .join(Interaction, QuizQuestion.child_interaction_id == Interaction.id)
+        .where(
+            QuizQuestion.quiz_interaction_id == quiz_interaction_id,
+            QuizQuestion.state == QuizQuestionState.ACTIVE,
+        )
+        .order_by(QuizQuestion.order_no)
+        .limit(1)
+    )
+    row = active_result.first()
+    if row is None:
+        return None
+    qq, child = row[0], row[1]
+    options = await _question_options(db, child.id, hide_correct=True)
+    return _to_question_public(qq, child, options)
+
+
 async def _upsert_child_options(
     db: AsyncSession,
     child_interaction_id: uuid.UUID,

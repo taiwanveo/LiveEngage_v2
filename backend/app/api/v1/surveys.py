@@ -14,6 +14,7 @@ from app.core.tokens import ParticipantTokenClaims
 from app.models.user import User
 from app.schemas.survey import (
     SurveyQuestionCreateRequest,
+    SurveyQuestionParticipantPublic,
     SurveyQuestionPublic,
     SurveyResultsResponse,
     SurveySubmitRequest,
@@ -22,6 +23,38 @@ from app.schemas.survey import (
 from app.services import survey_service
 
 router = APIRouter(tags=["surveys"])
+
+
+@router.get(
+    "/surveys/{survey_interaction_id}/questions",
+    response_model=list[SurveyQuestionPublic],
+)
+async def list_survey_questions(
+    survey_interaction_id: uuid.UUID,
+    db: Annotated[AsyncSession, Depends(get_session)],
+    host: Annotated[User, Depends(get_current_user)],
+) -> list[SurveyQuestionPublic]:
+    """列出 Survey 子題（Host）。"""
+    return await survey_service.list_questions(
+        db, survey_interaction_id=survey_interaction_id, host=host
+    )
+
+
+@router.get(
+    "/surveys/{survey_interaction_id}/participant-questions",
+    response_model=list[SurveyQuestionParticipantPublic],
+)
+async def list_survey_questions_for_participant(
+    survey_interaction_id: uuid.UUID,
+    db: Annotated[AsyncSession, Depends(get_session)],
+    claims: Annotated[ParticipantTokenClaims, Depends(get_participant_claims)],
+) -> list[SurveyQuestionParticipantPublic]:
+    """列出 Survey 子題（參與者作答）。"""
+    return await survey_service.list_questions_for_participant(
+        db,
+        survey_interaction_id=survey_interaction_id,
+        participant_id=claims.participant_id,
+    )
 
 
 @router.post(

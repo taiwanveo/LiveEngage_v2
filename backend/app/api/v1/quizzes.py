@@ -62,6 +62,23 @@ async def list_quiz_questions(
     )
 
 
+@router.get(
+    "/quizzes/{quiz_interaction_id}/active-question",
+    response_model=QuizQuestionPublic | None,
+)
+async def get_active_quiz_question(
+    quiz_interaction_id: uuid.UUID,
+    db: Annotated[AsyncSession, Depends(get_session)],
+    claims: Annotated[ParticipantTokenClaims, Depends(get_participant_claims)],
+) -> QuizQuestionPublic | None:
+    """取得目前可作答的 Quiz 子題（參與者）。"""
+    return await quiz_service.get_active_question_for_participant(
+        db,
+        quiz_interaction_id=quiz_interaction_id,
+        participant_id=claims.participant_id,
+    )
+
+
 @router.patch(
     "/quizzes/questions/{question_id}",
     response_model=QuizQuestionPublic,

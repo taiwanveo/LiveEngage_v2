@@ -11,7 +11,7 @@ import { PollHubPage } from "./pages/PollHubPage";
 import { PollRenderersDemoPage } from "./pages/PollRenderersDemoPage";
 import { PresentPage } from "./pages/PresentPage";
 import { QaPresentPage } from "./pages/QaPresentPage";
-import { QuizPresentPage } from "./pages/QuizPresentPage";
+import { Sprint9PresentRouter } from "./pages/Sprint9PresentRouter";
 import { SessionsDashboardPage } from "./pages/SessionsDashboardPage";
 import { SsoCallbackPage, parseSsoCallbackHash } from "./pages/SsoCallbackPage";
 import { SessionWorkbenchPage } from "./pages/SessionWorkbenchPage";
@@ -31,7 +31,7 @@ type Route =
   | { name: "poll-answer"; roomId: string; pollId: string }
   | { name: "poll-present"; roomId: string; pollId: string }
   | { name: "qa-present"; roomId: string }
-  | { name: "quiz-present"; roomId: string; quizId: string }
+  | { name: "sprint9-present"; roomId: string; interactionId: string }
   | { name: "sprint9"; roomId: string }
   | { name: "workbench"; roomId: string; pollId?: string | undefined }
   | { name: "sprint9-console"; roomId: string; interactionId: string }
@@ -87,7 +87,7 @@ function parseHash(): Route {
         return { name: "sprint9-console", roomId, interactionId: parts[3] };
       }
       if (parts[3] && parts[4] === "present") {
-        return { name: "quiz-present", roomId, quizId: parts[3] };
+        return { name: "sprint9-present", roomId, interactionId: parts[3] };
       }
       return { name: "sprint9", roomId };
     }
@@ -141,8 +141,13 @@ export function App(): React.JSX.Element {
     return <QaPresentPage roomId={route.roomId} />;
   }
 
-  if (route.name === "quiz-present" && authed) {
-    return <QuizPresentPage roomId={route.roomId} quizId={route.quizId} />;
+  if (route.name === "sprint9-present" && authed) {
+    return (
+      <Sprint9PresentRouter
+        roomId={route.roomId}
+        interactionId={route.interactionId}
+      />
+    );
   }
 
   if (!authed || route.name === "login") {

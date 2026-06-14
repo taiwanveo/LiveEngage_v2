@@ -9,6 +9,29 @@ export interface ActiveQuizQuestion {
   options: { id: string; text: string }[];
 }
 
+export function mapActiveQuizQuestion(raw: {
+  id: string;
+  title: string | null;
+  state: string;
+  options: { id: string; text: string }[];
+}): ActiveQuizQuestion {
+  return {
+    id: raw.id,
+    title: raw.title,
+    state: raw.state,
+    options: raw.options.map((o) => ({ id: o.id, text: o.text })),
+  };
+}
+
+export async function getActiveQuizQuestion(
+  quizId: string
+): Promise<ActiveQuizQuestion | null> {
+  const data = await api<ActiveQuizQuestion | null>(
+    `/api/v1/quizzes/${quizId}/active-question`
+  );
+  return data ? mapActiveQuizQuestion(data) : null;
+}
+
 export async function submitQuizAnswer(
   questionId: string,
   optionIds: string[]
@@ -59,6 +82,24 @@ export async function submitSurveyAnswers(
     body: { answers, completed: true },
     idempotencyKey: newIdempotencyKey(),
   });
+}
+
+export interface SurveyParticipantQuestion {
+  child_interaction_id: string;
+  title: string | null;
+  question_type: string;
+  required: boolean;
+  page_no: number;
+  order_no: number;
+  options: { id: string; text: string; order_no: number }[];
+}
+
+export async function listSurveyQuestions(
+  surveyId: string
+): Promise<SurveyParticipantQuestion[]> {
+  return api<SurveyParticipantQuestion[]>(
+    `/api/v1/surveys/${surveyId}/participant-questions`
+  );
 }
 
 export const S9_TYPES = new Set(["quiz", "ideas", "survey"]);

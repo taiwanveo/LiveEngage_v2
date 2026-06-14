@@ -4,6 +4,7 @@ import * as React from "react";
 import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useSystemNotice } from "@liveengage/ui";
+import { ApiException } from "../lib/api";
 import { HostRoomHubBreadcrumb } from "../components/HostBreadcrumb";
 import { HostShell } from "../components/HostShell";
 import { createInteraction, deleteInteraction, listInteractions } from "../lib/interactionApi";
@@ -34,6 +35,9 @@ export function PollHubPage({ roomId, onLogout }: Props): React.JSX.Element {
     mutationFn: (pollId: string) => deleteInteraction(pollId),
     onSuccess: () =>
       void queryClient.invalidateQueries({ queryKey: ["interactions", roomId] }),
+    onError: (err: unknown) => {
+      showError(err instanceof ApiException ? err.error.message : "刪除失敗");
+    },
   });
 
   const createMutation = useMutation({
@@ -45,6 +49,9 @@ export function PollHubPage({ roomId, onLogout }: Props): React.JSX.Element {
     onSuccess: (created) => {
       void queryClient.invalidateQueries({ queryKey: ["interactions", roomId] });
       window.location.hash = `#/rooms/${roomId}/polls/${created.id}/builder`;
+    },
+    onError: (err: unknown) => {
+      showError(err instanceof ApiException ? err.error.message : "建立失敗");
     },
   });
 

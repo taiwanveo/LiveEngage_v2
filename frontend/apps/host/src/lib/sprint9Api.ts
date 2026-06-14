@@ -72,6 +72,7 @@ export async function quizAction(
   return api(`/api/v1/quizzes/questions/${questionId}/actions`, {
     method: "POST",
     body: { action },
+    idempotencyKey: newIdempotencyKey(),
   });
 }
 
@@ -85,12 +86,16 @@ export interface IdeaPublic {
   id: string;
   content: string;
   author_display: string | null;
+  is_hidden?: boolean;
   reaction_total: number;
   reactions: { emoji: string; count: number; reacted_by_me: boolean }[];
 }
 
-export async function listIdeas(boardId: string): Promise<{ items: IdeaPublic[] }> {
-  return api(`/api/v1/ideas-boards/${boardId}/ideas`);
+export async function listIdeas(
+  boardId: string,
+  sort: "newest" | "top" = "newest"
+): Promise<{ items: IdeaPublic[] }> {
+  return api(`/api/v1/ideas-boards/${boardId}/ideas?sort=${sort}`);
 }
 
 export async function hideIdea(ideaId: string): Promise<IdeaPublic> {
@@ -114,9 +119,20 @@ export async function addSurveyQuestion(
   });
 }
 
+export async function listSurveyQuestions(surveyId: string): Promise<SurveyQuestion[]> {
+  return api<SurveyQuestion[]>(`/api/v1/surveys/${surveyId}/questions`);
+}
+
 export async function getSurveyResults(surveyId: string): Promise<{
   submission_count: number;
-  questions: { child_interaction_id: string; response_count: number }[];
+  questions: {
+    child_interaction_id: string;
+    title?: string | null;
+    question_type?: string | null;
+    response_count: number;
+    option_counts?: Record<string, number> | null;
+    rating_counts?: Record<string, number> | null;
+  }[];
 }> {
   return api(`/api/v1/surveys/${surveyId}/results`);
 }

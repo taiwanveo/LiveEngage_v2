@@ -11,6 +11,7 @@ import {
 import { PollRenderer } from "@liveengage/renderers";
 import { useSystemNotice } from "@liveengage/ui";
 import { getAccessToken } from "../lib/auth";
+import { HostRoomDetailBreadcrumb } from "../components/HostBreadcrumb";
 import { HostShell } from "../components/HostShell";
 import { PollControlBar } from "../components/PollControlBar";
 import { HostTitleActions, HostTitleLink } from "../components/HostTitleActions";
@@ -105,6 +106,8 @@ export function PollConsolePage({
     actionMutation.mutate({ action, confirm: needsConfirm ?? false });
   };
 
+  const pollTitle = poll?.title?.trim() || "未命名題目";
+
   return (
     <HostShell
       title="Poll 控制台"
@@ -113,6 +116,20 @@ export function PollConsolePage({
       presentHref={presentAppUrl(roomId, pollId)}
       onLogout={onLogout}
       activeNav="polls"
+      breadcrumb={
+        <HostRoomDetailBreadcrumb
+          roomId={roomId}
+          sectionLabel="Poll 管理"
+          sectionSegment="polls"
+          segments={[
+            {
+              label: pollQuery.isLoading ? "載入中…" : pollTitle,
+              href: `#/rooms/${roomId}/polls/${pollId}/builder`,
+            },
+            { label: "控制台" },
+          ]}
+        />
+      }
       titleAddon={
         <HostTitleActions>
           <span

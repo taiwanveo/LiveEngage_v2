@@ -18,9 +18,11 @@ from app.models.participant import Participant
 from app.models.poll import PollOption, PollResponse
 from app.models.sprint9 import SurveyQuestion, SurveySubmission
 from app.models.user import User
+from app.schemas.poll import PollOptionPublic
 from app.schemas.survey import (
     SurveyAnswerCount,
     SurveyQuestionCreateRequest,
+    SurveyQuestionParticipantPublic,
     SurveyQuestionPublic,
     SurveyResultsResponse,
     SurveySubmitRequest,
@@ -127,9 +129,97 @@ async def add_question(
     await db.commit()
     await db.refresh(sq)
 
+    return _to_question_public(sq, child)
+
+
+async def list_questions(
+    db: AsyncSession,
+    *,
+    survey_interaction_id: uuid.UUID,
+    host: User,
+) -> list[SurveyQuestionPublic]:
+    """列出 Survey 全部子題（Host）。"""
+    await _load_survey_for_host(db, survey_interaction_id, host)
+    rows = await db.execute(
+        select(SurveyQuestion, Interaction)
+        .join(Interaction, SurveyQuestion.child_interaction_id == Interaction.id)
+        .where(SurveyQuestion.survey_interaction_id == survey_interaction_id)
+        .order_by(SurveyQuestion.page_no, SurveyQuestion.order_no)
+    )
+    return [_to_question_public(sq, child) for sq, child in rows.all()]
+
+
+async def _question_options_public(
+    db: AsyncSession, child_interaction_id: uuid.UUID
+) -> list[PollOptionPublic]:
+    result = await db.execute(
+        select(PollOption)
+        .where(PollOption.interaction_id == child_interaction_id)
+        .order_by(PollOption.order_no)
+    )
+    return [
+        PollOptionPublic(id=o.id, text=o.text, order_no=o.order_no)
+        for o in result.scalars().all()
+    ]
+
+
+async def list_questions_for_participant(
+    db: AsyncSession,
+    *,
+    survey_interaction_id: uuid.UUID,
+    participant_id: uuid.UUID,
+) -> list[SurveyQuestionParticipantPublic]:
+    """列出 Survey 子題（參與者作答）。"""
+    result = await db.execute(
+        select(Interaction).where(Interaction.id == survey_interaction_id)
+    )
+    survey = result.scalar_one_or_none()
+    if survey is None or survey.type != InteractionType.SURVEY:
+        raise AppError(ErrorCode.NOT_FOUND, "找不到 Survey")
+    if survey.status != InteractionStatus.ACTIVE:
+        return []
+
+    part_check = await db.execute(
+        select(Participant.id).where(
+            Participant.id == participant_id,
+            Participant.room_id == survey.room_id,
+        )
+    )
+    if part_check.scalar_one_or_none() is None:
+        raise AppError(ErrorCode.FORBIDDEN, "您未加入此房間")
+
+    rows = await db.execute(
+        select(SurveyQuestion, Interaction)
+        .join(Interaction, SurveyQuestion.child_interaction_id == Interaction.id)
+        .where(SurveyQuestion.survey_interaction_id == survey_interaction_id)
+        .order_by(SurveyQuestion.page_no, SurveyQuestion.order_no)
+    )
+    items: list[SurveyQuestionParticipantPublic] = []
+    for sq, child in rows.all():
+        options: list[PollOptionPublic] = []
+        if child.type in (
+            InteractionType.MULTIPLE_CHOICE,
+            InteractionType.RANKING,
+        ):
+            options = await _question_options_public(db, child.id)
+        items.append(
+            SurveyQuestionParticipantPublic(
+                child_interaction_id=child.id,
+                title=child.title,
+                question_type=child.type,
+                required=sq.required,
+                page_no=sq.page_no,
+                order_no=sq.order_no,
+                options=options,
+            )
+        )
+    return items
+
+
+def _to_question_public(sq: SurveyQuestion, child: Interaction) -> SurveyQuestionPublic:
     return SurveyQuestionPublic(
         id=sq.id,
-        survey_interaction_id=survey_interaction_id,
+        survey_interaction_id=sq.survey_interaction_id,
         child_interaction_id=child.id,
         title=child.title,
         question_type=child.type,
@@ -276,36 +366,64 @@ async def get_results(
     )
     questions: list[SurveyAnswerCount] = []
 
-    for sq in sq_rows.scalars().all():
-        resp_count = await db.execute(
-            select(func.count())
-            .select_from(PollResponse)
-            .where(PollResponse.interaction_id == sq.child_interaction_id)
+    completed_submissions = (
+        await db.execute(
+            select(SurveySubmission.answers_jsonb).where(
+                SurveySubmission.survey_interaction_id == survey_interaction_id,
+                SurveySubmission.completed.is_(True),
+            )
         )
-        count = int(resp_count.scalar_one())
-        option_counts: dict[str, int] | None = None
+    ).all()
 
+    for sq in sq_rows.scalars().all():
         child = await db.execute(
             select(Interaction).where(Interaction.id == sq.child_interaction_id)
         )
         child_i = child.scalar_one_or_none()
-        if child_i and child_i.type == InteractionType.MULTIPLE_CHOICE:
-            responses = await db.execute(
-                select(PollResponse.answer_jsonb).where(
-                    PollResponse.interaction_id == sq.child_interaction_id
-                )
+        option_counts: dict[str, int] | None = None
+        rating_counts: dict[str, int] | None = None
+        count = 0
+
+        if child_i and child_i.type == InteractionType.RATING:
+            rating_counter: Counter[str] = Counter()
+            child_key = str(sq.child_interaction_id)
+            for (answers,) in completed_submissions:
+                if not isinstance(answers, dict):
+                    continue
+                ans = answers.get(child_key)
+                if isinstance(ans, dict) and "value" in ans:
+                    rating_counter[str(ans["value"])] += 1
+                elif isinstance(ans, (int, float)):
+                    rating_counter[str(int(ans))] += 1
+            rating_counts = dict(rating_counter) if rating_counter else None
+            count = sum(rating_counter.values())
+        else:
+            resp_count = await db.execute(
+                select(func.count())
+                .select_from(PollResponse)
+                .where(PollResponse.interaction_id == sq.child_interaction_id)
             )
-            counter: Counter[str] = Counter()
-            for (ans,) in responses.all():
-                for oid in ans.get("option_ids", []):
-                    counter[str(oid)] += 1
-            option_counts = dict(counter)
+            count = int(resp_count.scalar_one())
+            if child_i and child_i.type == InteractionType.MULTIPLE_CHOICE:
+                responses = await db.execute(
+                    select(PollResponse.answer_jsonb).where(
+                        PollResponse.interaction_id == sq.child_interaction_id
+                    )
+                )
+                counter: Counter[str] = Counter()
+                for (ans,) in responses.all():
+                    for oid in ans.get("option_ids", []):
+                        counter[str(oid)] += 1
+                option_counts = dict(counter)
 
         questions.append(
             SurveyAnswerCount(
                 child_interaction_id=sq.child_interaction_id,
+                title=child_i.title if child_i else None,
+                question_type=child_i.type.value if child_i else None,
                 response_count=count,
                 option_counts=option_counts,
+                rating_counts=rating_counts,
             )
         )
 

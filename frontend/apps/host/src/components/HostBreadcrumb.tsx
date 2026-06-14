@@ -53,14 +53,7 @@ export function HostBreadcrumb({ items }: HostBreadcrumbProps): React.JSX.Elemen
   );
 }
 
-/** Poll／Quiz 管理頁共用：儀表板 → 活動（工作台）→ 目前頁。 */
-export function HostRoomHubBreadcrumb({
-  roomId,
-  currentLabel,
-}: {
-  roomId: string;
-  currentLabel: string;
-}): React.JSX.Element {
+function useRoomBreadcrumbBase(roomId: string): HostBreadcrumbItem[] {
   const sessionsQuery = useQuery({
     queryKey: ["host-sessions"],
     queryFn: listSessions,
@@ -70,11 +63,44 @@ export function HostRoomHubBreadcrumb({
   const sessionTitle =
     session?.title ?? (sessionsQuery.isLoading ? "載入中…" : "活動");
 
-  const items: HostBreadcrumbItem[] = [
+  return [
     { label: "活動儀表板", href: HOST_DASHBOARD_HASH },
     { label: sessionTitle, href: `#/rooms/${roomId}/workbench` },
-    { label: currentLabel },
   ];
+}
 
+/** Poll／Quiz 管理頁共用：儀表板 → 活動（工作台）→ 目前頁。 */
+export function HostRoomHubBreadcrumb({
+  roomId,
+  currentLabel,
+}: {
+  roomId: string;
+  currentLabel: string;
+}): React.JSX.Element {
+  const base = useRoomBreadcrumbBase(roomId);
+  return <HostBreadcrumb items={[...base, { label: currentLabel }]} />;
+}
+
+/**
+ * Poll／Quiz 子頁麵包屑：儀表板 → 活動 → 管理列表 → …segments（最後一項為目前頁）。
+ * segments 中間層可帶 href 方便跳轉。
+ */
+export function HostRoomDetailBreadcrumb({
+  roomId,
+  sectionLabel,
+  sectionSegment,
+  segments,
+}: {
+  roomId: string;
+  sectionLabel: string;
+  sectionSegment: "polls" | "sprint9";
+  segments: HostBreadcrumbItem[];
+}): React.JSX.Element {
+  const base = useRoomBreadcrumbBase(roomId);
+  const items: HostBreadcrumbItem[] = [
+    ...base,
+    { label: sectionLabel, href: `#/rooms/${roomId}/${sectionSegment}` },
+    ...segments,
+  ];
   return <HostBreadcrumb items={items} />;
 }

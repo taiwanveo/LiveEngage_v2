@@ -5,6 +5,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { PollRenderer } from "@liveengage/renderers";
 import { useSystemNotice } from "@liveengage/ui";
+import { HostRoomDetailBreadcrumb } from "../components/HostBreadcrumb";
 import { HostShell } from "../components/HostShell";
 import { presentAppUrl } from "../lib/presentUrl";
 import { HostTitleLink, HostTitleActions } from "../components/HostTitleActions";
@@ -154,6 +155,8 @@ export function PollBuilderPage({
       }
     : null;
 
+  const pollTitle = poll?.title?.trim() || "未命名題目";
+
   return (
     <HostShell
       title="投票編輯"
@@ -162,6 +165,20 @@ export function PollBuilderPage({
       presentHref={presentAppUrl(roomId, pollId)}
       onLogout={onLogout}
       activeNav="polls"
+      breadcrumb={
+        <HostRoomDetailBreadcrumb
+          roomId={roomId}
+          sectionLabel="Poll 管理"
+          sectionSegment="polls"
+          segments={[
+            {
+              label: isLoading ? "載入中…" : pollTitle,
+              href: `#/rooms/${roomId}/polls/${pollId}/console`,
+            },
+            { label: "編輯" },
+          ]}
+        />
+      }
       titleAddon={
         <HostTitleActions>
           <HostTitleLink

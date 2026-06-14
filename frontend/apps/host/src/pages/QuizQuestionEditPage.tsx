@@ -4,7 +4,10 @@ import * as React from "react";
 import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useSystemNotice } from "@liveengage/ui";
+import { ApiException } from "../lib/api";
+import { HostRoomDetailBreadcrumb } from "../components/HostBreadcrumb";
 import { HostShell } from "../components/HostShell";
+import { listInteractions } from "../lib/interactionApi";
 import { HostTitleLink } from "../components/HostTitleActions";
 import { listQuizQuestions, updateQuizQuestion } from "../lib/sprint9Api";
 import { quizQuestionStateLabel } from "../lib/pollTypes";
@@ -82,13 +85,46 @@ export function QuizQuestionEditPage({
       showSuccess("已儲存");
       void qc.invalidateQueries({ queryKey: ["quiz-questions", quizId] });
     },
+    onError: (err: unknown) => {
+      showError(err instanceof ApiException ? err.error.message : "儲存失敗");
+    },
   });
 
   const backHref = `#/rooms/${roomId}/sprint9/${quizId}/console`;
 
+  const metaQuery = useQuery({
+    queryKey: ["interactions", roomId],
+    queryFn: () => listInteractions(roomId),
+  });
+  const quizMeta = metaQuery.data?.find((i) => i.id === quizId);
+  const quizTitle = quizMeta?.title?.trim() || "Quiz";
+
+  const editBreadcrumb = (
+    <HostRoomDetailBreadcrumb
+      roomId={roomId}
+      sectionLabel="Quiz 管理"
+      sectionSegment="sprint9"
+      segments={[
+        {
+          label: metaQuery.isLoading ? "載入中…" : quizTitle,
+          href: backHref,
+        },
+        {
+          label: question?.title?.trim() || "編輯子題",
+        },
+      ]}
+    />
+  );
+
   if (questionsQuery.isLoading) {
     return (
-      <HostShell title="編輯 Quiz 子題" roomId={roomId} onLogout={onLogout} activeNav="sprint9">
+      <HostShell
+        title="編輯 Quiz 子題"
+        roomId={roomId}
+        onLogout={onLogout}
+        activeNav="sprint9"
+        breadcrumb={editBreadcrumb}
+      >
         <p className="text-sm text-muted">載入中…</p>
       </HostShell>
     );
@@ -96,7 +132,13 @@ export function QuizQuestionEditPage({
 
   if (!question) {
     return (
-      <HostShell title="編輯 Quiz 子題" roomId={roomId} onLogout={onLogout} activeNav="sprint9">
+      <HostShell
+        title="編輯 Quiz 子題"
+        roomId={roomId}
+        onLogout={onLogout}
+        activeNav="sprint9"
+        breadcrumb={editBreadcrumb}
+      >
         {systemNoticeModal}
       </HostShell>
     );
@@ -109,6 +151,7 @@ export function QuizQuestionEditPage({
         roomId={roomId}
         onLogout={onLogout}
         activeNav="sprint9"
+        breadcrumb={editBreadcrumb}
         titleAddon={
           <HostTitleLink href={backHref} variant="secondary">
             返回控制台
@@ -128,6 +171,7 @@ export function QuizQuestionEditPage({
       roomId={roomId}
       onLogout={onLogout}
       activeNav="sprint9"
+      breadcrumb={editBreadcrumb}
       titleAddon={
         <HostTitleLink href={backHref} variant="secondary">
           返回控制台

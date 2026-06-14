@@ -24,6 +24,7 @@ import { PollRenderer } from "@liveengage/renderers";
 import { RoomIdeasPanel } from "../components/RoomIdeasPanel";
 import { ParticipantShareActions } from "../components/ParticipantShareActions";
 import { RoomQaPanel } from "../components/RoomQaPanel";
+import { RoomSurveyPanel } from "../components/RoomSurveyPanel";
 import { ApiException } from "../lib/api";
 import {
   clearParticipantSession,
@@ -31,7 +32,7 @@ import {
 } from "../lib/participantAuth";
 import { getPoll, getPollResults, isPollType, submitPollResponse } from "../lib/pollApi";
 import { getSessionState } from "../lib/sessionApi";
-import { submitQuizAnswer, type ActiveQuizQuestion } from "../lib/sprint9Api";
+import { submitQuizAnswer, getActiveQuizQuestion, type ActiveQuizQuestion } from "../lib/sprint9Api";
 import {
   AppHeader,
   Modal,
@@ -50,7 +51,7 @@ export function RoomPage(): React.JSX.Element {
   const ctx = getParticipantContext();
   const queryClient = useQueryClient();
   const { showError, showInfo, systemNoticeModal } = useSystemNotice();
-  const [tab, setTab] = useState<"poll" | "qa" | "ideas" | "quiz">("poll");
+  const [tab, setTab] = useState<"poll" | "qa" | "ideas" | "quiz" | "survey">("poll");
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [pollSubmitOk, setPollSubmitOk] = useState(false);
   const [quizSubmitOk, setQuizSubmitOk] = useState(false);
@@ -85,6 +86,22 @@ export function RoomPage(): React.JSX.Element {
     return hit?.id ?? null;
   }, [ctx, stateQuery.data]);
 
+  const activeQuizId = useMemo(() => {
+    if (!ctx || !stateQuery.data) return null;
+    const hit = stateQuery.data.active_interactions.find(
+      (i) => i.room_id === ctx.roomId && i.type === "quiz" && i.status === "active"
+    );
+    return hit?.id ?? null;
+  }, [ctx, stateQuery.data]);
+
+  const activeSurveyId = useMemo(() => {
+    if (!ctx || !stateQuery.data) return null;
+    const hit = stateQuery.data.active_interactions.find(
+      (i) => i.room_id === ctx.roomId && i.type === "survey" && i.status === "active"
+    );
+    return hit?.id ?? null;
+  }, [ctx, stateQuery.data]);
+
   const pollQuery = useQuery({
     queryKey: ["poll", activePollId],
     queryFn: () => getPoll(activePollId!),
@@ -106,6 +123,26 @@ export function RoomPage(): React.JSX.Element {
       void queryClient.removeQueries({ queryKey: ["poll-results", activePollId] });
     }
   }, [activePollId, queryClient]);
+
+  useEffect(() => {
+    if (!activeQuizId) {
+      setQuizQuestion(null);
+      return;
+    }
+    let cancelled = false;
+    void getActiveQuizQuestion(activeQuizId)
+      .then((q) => {
+        if (!cancelled) setQuizQuestion(q);
+      })
+      .catch((err: unknown) => {
+        if (!cancelled) {
+          showError(err instanceof ApiException ? err.error.message : "載入 Quiz 失敗");
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [activeQuizId, showError]);
 
   useEffect(() => {
     if (stateQuery.data?.status === "ended") {
@@ -145,6 +182,8 @@ export function RoomPage(): React.JSX.Element {
           });
           if (type === "ideas") setTab("ideas");
           else if (type === "qa") setTab("qa");
+          else if (type === "survey") setTab("survey");
+          else if (type === "quiz") setTab("quiz");
           else if (isPollType(type)) setTab("poll");
           break;
         }
@@ -311,6 +350,11 @@ export function RoomPage(): React.JSX.Element {
               點子牆（Ideas）
             </TabButton>
           ) : null}
+          {activeSurveyId ? (
+            <TabButton active={tab === "survey"} onClick={() => setTab("survey")}>
+              問卷（Survey）
+            </TabButton>
+          ) : null}
           {quizQuestion ? (
             <TabButton active={tab === "quiz"} onClick={() => setTab("quiz")} live>
               Quiz
@@ -324,6 +368,8 @@ export function RoomPage(): React.JSX.Element {
           <RoomQaPanel roomId={ctx.roomId} />
         ) : tab === "ideas" && activeIdeasBoardId ? (
           <RoomIdeasPanel boardId={activeIdeasBoardId} />
+        ) : tab === "survey" && activeSurveyId ? (
+          <RoomSurveyPanel surveyId={activeSurveyId} />
         ) : tab === "quiz" && quizQuestion ? (
           <div className="le-card p-6">
             <h2 className="font-display text-lg font-semibold text-foreground">{quizQuestion.title}</h2>

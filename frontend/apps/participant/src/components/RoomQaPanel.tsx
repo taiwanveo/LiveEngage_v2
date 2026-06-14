@@ -43,6 +43,9 @@ export function RoomQaPanel({ roomId }: Props): React.JSX.Element {
     mutationFn: (questionId: string) => voteQuestion(questionId, "up"),
     onSuccess: () =>
       void qc.invalidateQueries({ queryKey: ["qa-public", roomId] }),
+    onError: (err: unknown) => {
+      showError(err instanceof ApiException ? err.error.message : "按讚失敗");
+    },
   });
 
   const items = questionsQuery.data?.items ?? [];

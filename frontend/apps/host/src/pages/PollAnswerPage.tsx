@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { PollRenderer } from "@liveengage/renderers";
 import { useSystemNotice } from "@liveengage/ui";
+import { HostRoomDetailBreadcrumb } from "../components/HostBreadcrumb";
 import { HostShell } from "../components/HostShell";
 import { presentAppUrl } from "../lib/presentUrl";
 import { getPoll, getPollResults, submitPollResponse } from "../lib/pollApi";
@@ -56,6 +57,8 @@ export function PollAnswerPage({
     if (submitError) showError(submitError);
   }, [submitError, showError]);
 
+  const pollTitle = poll?.title?.trim() || "未命名題目";
+
   return (
     <HostShell
       title="參與者作答預覽"
@@ -64,6 +67,20 @@ export function PollAnswerPage({
       presentHref={presentAppUrl(roomId, pollId)}
       onLogout={onLogout}
       activeNav="polls"
+      breadcrumb={
+        <HostRoomDetailBreadcrumb
+          roomId={roomId}
+          sectionLabel="Poll 管理"
+          sectionSegment="polls"
+          segments={[
+            {
+              label: pollQuery.isLoading ? "載入中…" : pollTitle,
+              href: `#/rooms/${roomId}/polls/${pollId}/console`,
+            },
+            { label: "參與者預覽" },
+          ]}
+        />
+      }
     >
       {poll ? (
         <div className="max-w-xl">

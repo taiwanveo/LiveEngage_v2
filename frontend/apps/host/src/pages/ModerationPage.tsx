@@ -85,6 +85,7 @@ export function ModerationPage({ roomId, onLogout }: Props): React.JSX.Element {
     }) => moderate(questionId, action),
     onSuccess: () =>
       queryClient.invalidateQueries({ queryKey: ["moderation", roomId] }),
+    onError: (err: unknown) => showError((err as Error).message),
   });
 
   const grouped = useMemo(() => {
@@ -316,16 +317,9 @@ function QuestionCard(props: {
   renderActions: (ctx: QuestionCardActionsCtx) => React.JSX.Element;
 }): React.JSX.Element {
   const q = props.question;
-  const [hovered, setHovered] = useState(false);
-  const [replyFormOpen, setReplyFormOpen] = useState(false);
-  const showActions = hovered || replyFormOpen;
 
   return (
-    <article
-      className="rounded-lg border border-slate-200 bg-white p-3 transition-shadow hover:shadow-sm"
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
-    >
+    <article className="rounded-lg border border-slate-200 bg-white p-3 transition-shadow hover:shadow-sm">
       <p className="text-sm text-slate-900 whitespace-pre-wrap break-words">
         {q.content}
       </p>
@@ -351,11 +345,9 @@ function QuestionCard(props: {
           <span className="text-amber-600 font-medium">★ 已標記</span>
         ) : null}
       </div>
-      {showActions ? (
-        <div className="mt-3 flex flex-wrap gap-2" aria-label="問題操作">
-          {props.renderActions({ setReplyFormOpen })}
-        </div>
-      ) : null}
+      <div className="mt-3 flex flex-wrap gap-2" aria-label="問題操作">
+        {props.renderActions({ setReplyFormOpen: () => {} })}
+      </div>
     </article>
   );
 }

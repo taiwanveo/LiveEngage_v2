@@ -36,6 +36,9 @@ export function RoomIdeasPanel({ boardId }: Props): React.JSX.Element {
   const reactMutation = useMutation({
     mutationFn: (ideaId: string) => reactIdea(ideaId, "👍"),
     onSuccess: () => void qc.invalidateQueries({ queryKey: ["ideas-board", boardId] }),
+    onError: (err: unknown) => {
+      showError(err instanceof ApiException ? err.error.message : "反應失敗");
+    },
   });
 
   return (
@@ -70,8 +73,9 @@ export function RoomIdeasPanel({ boardId }: Props): React.JSX.Element {
               <span>{idea.author_display ?? "匿名"}</span>
               <button
                 type="button"
+                disabled={reactMutation.isPending}
                 onClick={() => reactMutation.mutate(idea.id)}
-                className="le-btn-secondary !min-h-0 rounded-full px-2 py-1 text-xs"
+                className="le-btn-secondary !min-h-0 rounded-full px-2 py-1 text-xs disabled:opacity-50"
               >
                 👍 {idea.reaction_total}
               </button>

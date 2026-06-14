@@ -8,7 +8,7 @@ from enum import StrEnum
 from pydantic import BaseModel, Field
 
 from app.models.enums import InteractionType
-from app.schemas.poll import PollOptionInput
+from app.schemas.poll import PollOptionInput, PollOptionPublic
 
 
 class SurveyQuestionCreateRequest(BaseModel):
@@ -33,6 +33,18 @@ class SurveyQuestionPublic(BaseModel):
     order_no: int
 
 
+class SurveyQuestionParticipantPublic(BaseModel):
+    """參與者作答用 Survey 子題（含選項，不含正確答案）。"""
+
+    child_interaction_id: uuid.UUID
+    title: str | None
+    question_type: InteractionType
+    required: bool
+    page_no: int
+    order_no: int
+    options: list[PollOptionPublic] = Field(default_factory=list)
+
+
 class SurveySubmitRequest(BaseModel):
     """answers 以 child interaction id 字串為 key。"""
 
@@ -48,8 +60,11 @@ class SurveySubmitResult(BaseModel):
 
 class SurveyAnswerCount(BaseModel):
     child_interaction_id: uuid.UUID
+    title: str | None = None
+    question_type: str | None = None
     response_count: int
     option_counts: dict[str, int] | None = None
+    rating_counts: dict[str, int] | None = None
 
 
 class SurveyResultsResponse(BaseModel):

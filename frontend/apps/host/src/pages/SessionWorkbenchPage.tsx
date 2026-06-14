@@ -13,7 +13,9 @@ import {
   ParticipantPreviewFrame,
   SessionToolbar,
   WorkbenchLayout,
+  useSystemNotice,
 } from "@liveengage/ui";
+import { ApiException } from "../lib/api";
 import { getAccessToken } from "../lib/auth";
 import { createInteraction, listInteractions } from "../lib/interactionApi";
 import { getPoll, getPollResults, pollAction } from "../lib/pollApi";
@@ -80,6 +82,7 @@ function pollToolbarStatus(poll: {
 
 export function SessionWorkbenchPage({ roomId, pollId, onLogout }: Props): React.JSX.Element {
   const qc = useQueryClient();
+  const { showError, systemNoticeModal } = useSystemNotice();
   const selfActionGuard = useRef(createSelfPollActionGuard());
   const [newType, setNewType] = useState<PollInteractionType>("multiple_choice");
   const [newTitle, setNewTitle] = useState("");
@@ -131,6 +134,9 @@ export function SessionWorkbenchPage({ roomId, pollId, onLogout }: Props): React
       setNewTitle("");
       window.location.hash = `#/rooms/${roomId}/workbench/${created.id}`;
     },
+    onError: (err: unknown) => {
+      showError(err instanceof ApiException ? err.error.message : "建立失敗");
+    },
   });
 
   const actionMutation = useMutation({
@@ -145,6 +151,9 @@ export function SessionWorkbenchPage({ roomId, pollId, onLogout }: Props): React
         action: variables.action,
         data,
       });
+    },
+    onError: (err: unknown) => {
+      showError(err instanceof ApiException ? err.error.message : "操作失敗");
     },
   });
 
@@ -211,6 +220,7 @@ export function SessionWorkbenchPage({ roomId, pollId, onLogout }: Props): React
     : "—";
 
   return (
+    <>
     <WorkbenchLayout
       toolbar={
         <SessionToolbar
@@ -394,6 +404,8 @@ export function SessionWorkbenchPage({ roomId, pollId, onLogout }: Props): React
         </ParticipantPreviewFrame>
       }
     />
+    {systemNoticeModal}
+    </>
   );
 }
 
