@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { useEffect, useState } from "react";
-import { getAccessToken } from "./lib/auth";
+import { hasValidSession, setAuthTokens } from "./lib/auth";
 import { LoginPage } from "./pages/LoginPage";
 import { PollPresentPage } from "./pages/PollPresentPage";
 import { PresentSessionPicker } from "./pages/PresentSessionPicker";
@@ -32,12 +32,31 @@ function parseHash(): Route {
 
 export function App(): React.JSX.Element {
   const [route, setRoute] = useState<Route>(parseHash());
-  const [authed, setAuthed] = useState<boolean>(Boolean(getAccessToken()));
+  const [authed, setAuthed] = useState<boolean>(hasValidSession());
 
   useEffect(() => {
     const onHashChange = (): void => setRoute(parseHash());
     window.addEventListener("hashchange", onHashChange);
     return () => window.removeEventListener("hashchange", onHashChange);
+  }, []);
+
+  useEffect(() => {
+    const onMessage = (ev: MessageEvent): void => {
+      const data = ev.data as {
+        type?: string;
+        access_token?: string;
+        refresh_token?: string;
+      } | null;
+      if (data?.type !== "LE_PRESENT_AUTH") return;
+      if (!data.access_token || !data.refresh_token) return;
+      setAuthTokens(data.access_token, data.refresh_token);
+      setAuthed(true);
+    };
+    window.addEventListener("message", onMessage);
+    if (window.opener) {
+      window.opener.postMessage({ type: "LE_PRESENT_AUTH_READY" }, "*");
+    }
+    return () => window.removeEventListener("message", onMessage);
   }, []);
 
   if (route.name === "poll-present" && authed) {
@@ -49,6 +68,7 @@ export function App(): React.JSX.Element {
       <LoginPage
         onLoggedIn={() => {
           setAuthed(true);
+          if (route.name === "poll-present") return;
           window.location.hash = "#/dashboard";
         }}
       />

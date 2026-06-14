@@ -2,7 +2,7 @@ import * as React from "react";
 import { useState } from "react";
 import { AuthCard, useSystemNotice } from "@liveengage/ui";
 import { login } from "../lib/authApi";
-import { setAccessToken } from "../lib/auth";
+import { setAuthTokens } from "../lib/auth";
 import { ApiException } from "../lib/api";
 
 interface Props {
@@ -20,7 +20,7 @@ export function LoginPage({ onLoggedIn }: Props): React.JSX.Element {
     setLoading(true);
     try {
       const res = await login(email, password);
-      setAccessToken(res.access_token);
+      setAuthTokens(res.access_token, res.refresh_token);
       onLoggedIn();
     } catch (err) {
       if (err instanceof ApiException) {
