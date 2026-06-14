@@ -13,6 +13,7 @@ import { PresentPage } from "./pages/PresentPage";
 import { SessionsDashboardPage } from "./pages/SessionsDashboardPage";
 import { SsoCallbackPage, parseSsoCallbackHash } from "./pages/SsoCallbackPage";
 import { SessionWorkbenchPage } from "./pages/SessionWorkbenchPage";
+import { QuizQuestionEditPage } from "./pages/QuizQuestionEditPage";
 import { Sprint9ConsolePage } from "./pages/Sprint9ConsolePage";
 import { Sprint9HubPage } from "./pages/Sprint9HubPage";
 import { hasValidSession, clearAccessToken } from "./lib/auth";
@@ -29,7 +30,8 @@ type Route =
   | { name: "poll-present"; roomId: string; pollId: string }
   | { name: "sprint9"; roomId: string }
   | { name: "workbench"; roomId: string; pollId?: string | undefined }
-  | { name: "sprint9-console"; roomId: string; interactionId: string };
+  | { name: "sprint9-console"; roomId: string; interactionId: string }
+  | { name: "quiz-edit"; roomId: string; quizId: string; questionId: string };
 
 function parseHash(): Route {
   const parts = window.location.hash.replace(/^#/, "").split("/").filter(Boolean);
@@ -66,6 +68,14 @@ function parseHash(): Route {
       return { name: "polls", roomId };
     }
     if (parts[2] === "sprint9") {
+      if (parts[3] && parts[4] === "questions" && parts[5] && parts[6] === "edit") {
+        return {
+          name: "quiz-edit",
+          roomId,
+          quizId: parts[3],
+          questionId: parts[5],
+        };
+      }
       if (parts[3] && parts[4] === "console") {
         return { name: "sprint9-console", roomId, interactionId: parts[3] };
       }
@@ -174,6 +184,15 @@ export function App(): React.JSX.Element {
         <Sprint9ConsolePage
           roomId={route.roomId}
           interactionId={route.interactionId}
+          onLogout={logout}
+        />
+      );
+    case "quiz-edit":
+      return (
+        <QuizQuestionEditPage
+          roomId={route.roomId}
+          quizId={route.quizId}
+          questionId={route.questionId}
           onLogout={logout}
         />
       );

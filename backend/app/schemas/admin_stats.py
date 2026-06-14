@@ -23,6 +23,7 @@ class EngagementAnalytics(BaseModel):
     participants_total: int
     participants_qa: int
     participants_poll_voters: int
+    participants_engaged: int
     engaged_score_percent: int
     poll_votes_total: int
     qa_questions_total: int

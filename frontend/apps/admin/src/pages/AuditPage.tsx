@@ -19,6 +19,12 @@ import {
   type ListAuditLogsParams,
   listAuditLogs,
 } from "../lib/adminApi";
+import {
+  AUDIT_ACTION_OPTIONS,
+  AUDIT_TARGET_TYPE_OPTIONS,
+  auditActionLabel,
+  auditTargetTypeLabel,
+} from "../lib/auditLabels";
 
 const ACTION_COLORS: Record<string, string> = {
   update_organization: "bg-blue-500/10 text-blue-600 dark:text-blue-400",
@@ -51,8 +57,9 @@ function AuditRow({ log }: { log: AuditLogData }) {
         <td className="px-4 py-3">
           <span
             className={`inline-block rounded-full px-2.5 py-0.5 text-xs font-medium ${colorClass}`}
+            title={log.action}
           >
-            {log.action}
+            {auditActionLabel(log.action)}
           </span>
         </td>
         <td className="px-4 py-3">
@@ -61,8 +68,11 @@ function AuditRow({ log }: { log: AuditLogData }) {
           </div>
         </td>
         <td className="px-4 py-3">
-          <span className="rounded bg-surface-elevated px-2 py-0.5 text-xs text-muted">
-            {log.target_type}
+          <span
+            className="rounded bg-surface-elevated px-2 py-0.5 text-xs text-muted"
+            title={log.target_type}
+          >
+            {auditTargetTypeLabel(log.target_type)}
           </span>
         </td>
         <td className="px-4 py-3 text-xs text-muted">
@@ -125,22 +135,32 @@ export function AuditPage({ onLogout }: Props): React.JSX.Element {
         <AdminPanel className="p-4">
           <div className="flex flex-wrap items-end gap-3">
             <AdminFormField label="動作">
-              <input
+              <select
                 className={adminInputClass}
-                placeholder="如 update_organization"
                 value={action}
                 onChange={(e) => setAction(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && applyFilter()}
-              />
+              >
+                <option value="">全部動作</option>
+                {AUDIT_ACTION_OPTIONS.map((opt) => (
+                  <option key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </option>
+                ))}
+              </select>
             </AdminFormField>
             <AdminFormField label="目標類型">
-              <input
+              <select
                 className={adminInputClass}
-                placeholder="如 session, user"
                 value={targetType}
                 onChange={(e) => setTargetType(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && applyFilter()}
-              />
+              >
+                <option value="">全部類型</option>
+                {AUDIT_TARGET_TYPE_OPTIONS.map((opt) => (
+                  <option key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </option>
+                ))}
+              </select>
             </AdminFormField>
             <AdminFormField label="開始日期">
               <input

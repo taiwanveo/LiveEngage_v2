@@ -1,5 +1,8 @@
 export { Modal } from "./Modal";
 export type { ModalProps } from "./Modal";
+export { JoinShareCard } from "./JoinShareCard";
+export type { JoinShareCardProps } from "./JoinShareCard";
+export { participantJoinUrl } from "./participantJoinUrl";
 export { AuthCard } from "./AuthCard";
 export { AppHeader, APP_HEADER_PADDING, AppHeaderChrome } from "./AppHeader";
 export { AdminSidebarShell } from "./AdminSidebarShell";

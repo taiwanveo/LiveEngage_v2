@@ -14,7 +14,7 @@ import datetime as dt
 import uuid
 from typing import Any
 
-from sqlalchemy import func, outerjoin, select
+from sqlalchemy import func, outerjoin, select, union
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.errors import AppError, ErrorCode
@@ -316,6 +316,13 @@ async def patch_session(
 
     await db.commit()
     await db.refresh(session)
+    if (
+        payload.status == SessionStatus.ENDED
+        and old_status != SessionStatus.ENDED
+    ):
+        from app.services.session_service import broadcast_session_ended
+
+        await broadcast_session_ended(db, session)
     return _to_session_response(session)
 
 
@@ -550,6 +557,23 @@ async def get_engagement_analytics(db: AsyncSession, actor: User) -> EngagementA
             .where(Session.org_id == org_id)
         )
     ).scalar_one()
+    qa_participant_ids = (
+        select(Question.participant_id.label("participant_id"))
+        .select_from(Question)
+        .join(Session, Question.session_id == Session.id)
+        .where(Session.org_id == org_id, Question.participant_id.is_not(None))
+    )
+    poll_participant_ids = (
+        select(PollResponseRow.participant_id.label("participant_id"))
+        .select_from(PollResponseRow)
+        .join(Participant, PollResponseRow.participant_id == Participant.id)
+        .join(Session, Participant.session_id == Session.id)
+        .where(Session.org_id == org_id)
+    )
+    engaged_ids = union(qa_participant_ids, poll_participant_ids).subquery()
+    participants_engaged = (
+        await db.execute(select(func.count()).select_from(engaged_ids))
+    ).scalar_one()
     poll_votes_total = (
         await db.execute(
             select(func.count())
@@ -568,12 +592,13 @@ async def get_engagement_analytics(db: AsyncSession, actor: User) -> EngagementA
             .where(Session.org_id == org_id)
         )
     ).scalar_one()
-    engaged = participants_qa + participants_poll_voters
+    engaged = min(participants_engaged, participants_total)
     score = int(round(engaged / participants_total * 100)) if participants_total else 0
     return EngagementAnalytics(
         participants_total=participants_total,
         participants_qa=participants_qa,
         participants_poll_voters=participants_poll_voters,
+        participants_engaged=participants_engaged,
         engaged_score_percent=min(score, 100),
         poll_votes_total=poll_votes_total,
         qa_questions_total=qa_questions_total,

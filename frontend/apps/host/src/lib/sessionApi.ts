@@ -52,12 +52,4 @@ export async function updateSession(
 }
 
 /** 參與者加入連結（生產預設 le-participant.zeabur.app）。 */
-export function participantJoinUrl(code: string): string {
-  const meta = import.meta as ImportMeta & {
-    env?: { VITE_PARTICIPANT_BASE?: string };
-  };
-  const base = (
-    meta.env?.VITE_PARTICIPANT_BASE ?? "https://le-participant.zeabur.app"
-  ).replace(/\/$/, "");
-  return `${base}/#/join/${encodeURIComponent(code)}`;
-}
+export { participantJoinUrl } from "@liveengage/ui";

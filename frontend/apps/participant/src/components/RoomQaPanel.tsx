@@ -1,6 +1,6 @@
 /** 參與者 Q&A：提問與瀏覽已核准問題。 */
 
-import * as React from "react";
+import { Modal } from "@liveengage/ui";
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ApiException } from "../lib/api";
@@ -84,11 +84,16 @@ export function RoomQaPanel({ roomId }: Props): React.JSX.Element {
               {formError}
             </p>
           ) : null}
-          {submitOk ? (
-            <p className="text-sm text-success">
-              已送出，待主持人審核後會顯示在列表中。
+          <Modal
+            open={submitOk}
+            onClose={() => setSubmitOk(false)}
+            title="已送出"
+            size="sm"
+          >
+            <p className="text-sm text-muted">
+              待主持人審核後會顯示在列表中。
             </p>
-          ) : null}
+          </Modal>
           <button
             type="submit"
             disabled={submitMutation.isPending}

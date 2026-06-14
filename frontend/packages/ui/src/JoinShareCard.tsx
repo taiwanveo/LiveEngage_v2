@@ -3,7 +3,7 @@
 import * as React from "react";
 import { useState } from "react";
 
-interface Props {
+export interface JoinShareCardProps {
   code: string;
   joinUrl: string;
   /** inline：列表卡片內嵌；modal：彈窗內容 */
@@ -12,7 +12,12 @@ interface Props {
   onClose?: () => void;
 }
 
-export function JoinShareCard({ code, joinUrl, variant = "inline", onClose }: Props): React.JSX.Element {
+export function JoinShareCard({
+  code,
+  joinUrl,
+  variant = "inline",
+  onClose,
+}: JoinShareCardProps): React.JSX.Element {
   const [copied, setCopied] = useState<"link" | "code" | null>(null);
   const qrSrc = `https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${encodeURIComponent(joinUrl)}`;
 

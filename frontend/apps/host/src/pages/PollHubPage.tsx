@@ -4,7 +4,7 @@ import * as React from "react";
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { HostShell } from "../components/HostShell";
-import { createInteraction, listInteractions } from "../lib/interactionApi";
+import { createInteraction, deleteInteraction, listInteractions } from "../lib/interactionApi";
 import {
   interactionMetaLine,
   isPollType,
@@ -25,6 +25,12 @@ export function PollHubPage({ roomId, onLogout }: Props): React.JSX.Element {
   const { data: items, isLoading, error } = useQuery({
     queryKey: ["interactions", roomId],
     queryFn: () => listInteractions(roomId),
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: (pollId: string) => deleteInteraction(pollId),
+    onSuccess: () =>
+      void queryClient.invalidateQueries({ queryKey: ["interactions", roomId] }),
   });
 
   const createMutation = useMutation({
@@ -123,6 +129,28 @@ export function PollHubPage({ roomId, onLogout }: Props): React.JSX.Element {
                   <SmallLink href={`#/rooms/${roomId}/polls/${poll.id}/answer`}>
                     參與者預覽
                   </SmallLink>
+                  <button
+                    type="button"
+                    disabled={poll.status === "active" || deleteMutation.isPending}
+                    title={
+                      poll.status === "active"
+                        ? "進行中的 Poll 須先停止後才能刪除"
+                        : "刪除此 Poll"
+                    }
+                    onClick={() => {
+                      if (
+                        !window.confirm(
+                          `確定要刪除「${poll.title ?? "未命名題目"}」？此動作無法復原。`
+                        )
+                      ) {
+                        return;
+                      }
+                      deleteMutation.mutate(poll.id);
+                    }}
+                    className="rounded-md border border-red-200 px-2.5 py-1 text-xs text-red-600 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-40 dark:border-red-900 dark:hover:bg-red-950/40"
+                  >
+                    刪除
+                  </button>
                 </div>
               </li>
             ))

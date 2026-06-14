@@ -65,3 +65,9 @@ export async function updateInteraction(
     body: payload,
   });
 }
+
+export async function deleteInteraction(interactionId: string): Promise<void> {
+  await api<void>(`/api/v1/interactions/${interactionId}`, {
+    method: "DELETE",
+  });
+}

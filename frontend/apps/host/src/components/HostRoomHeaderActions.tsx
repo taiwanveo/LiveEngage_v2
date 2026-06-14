@@ -3,10 +3,9 @@
 import * as React from "react";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Modal } from "@liveengage/ui";
-import { listSessions, participantJoinUrl } from "../lib/sessionApi";
+import { JoinShareCard, Modal, participantJoinUrl } from "@liveengage/ui";
+import { listSessions } from "../lib/sessionApi";
 import { presentAppUrl } from "../lib/presentUrl";
-import { JoinShareCard } from "./JoinShareCard";
 
 const BTN_SECONDARY =
   "inline-flex min-h-[28px] items-center gap-1 rounded-full border border-border bg-surface px-2.5 text-[11px] font-medium text-accent hover:border-accent/40";

@@ -9,8 +9,10 @@ export interface QuizQuestion {
   title: string | null;
   time_limit_s: number;
   base_points: number;
+  speed_bonus: boolean;
+  explanation: string | null;
   state: string;
-  options: { id: string; text: string; order_no: number }[];
+  options: { id: string; text: string; order_no: number; is_correct?: boolean | null }[];
 }
 
 export interface LeaderboardEntry {
@@ -36,6 +38,30 @@ export async function addQuizQuestion(
   return api<QuizQuestion>(`/api/v1/quizzes/${quizId}/questions`, {
     method: "POST",
     body: payload,
+  });
+}
+
+export async function updateQuizQuestion(
+  questionId: string,
+  payload: {
+    title?: string;
+    description?: string;
+    time_limit_s?: number;
+    base_points?: number;
+    speed_bonus?: boolean;
+    explanation?: string;
+    options?: { text: string; is_correct?: boolean; order_no?: number }[];
+  }
+): Promise<QuizQuestion> {
+  return api<QuizQuestion>(`/api/v1/quizzes/questions/${questionId}`, {
+    method: "PATCH",
+    body: payload,
+  });
+}
+
+export async function deleteQuizQuestion(questionId: string): Promise<void> {
+  await api<void>(`/api/v1/quizzes/questions/${questionId}`, {
+    method: "DELETE",
   });
 }
 

@@ -27,11 +27,12 @@ interface Props {
   onLogout: () => void;
 }
 
-const WS_BACKUP_REFETCH_MS = 30_000;
+const WS_BACKUP_REFETCH_MS = 5_000;
 
 export function ModerationPage({ roomId, onLogout }: Props): React.JSX.Element {
   const queryClient = useQueryClient();
   const validRoom = roomId !== "_" && roomId.length > 0;
+  const seenWsEventIds = React.useRef(new Set<string>());
 
   const {
     data: items,
@@ -42,17 +43,27 @@ export function ModerationPage({ roomId, onLogout }: Props): React.JSX.Element {
     queryFn: () => listModeration(roomId),
     enabled: validRoom,
     refetchInterval: WS_BACKUP_REFETCH_MS,
+    refetchIntervalInBackground: true,
+    refetchOnWindowFocus: true,
   });
 
   const handleWsEvent = useCallback(
     (event: WsEvent) => {
       if (!QA_EVENT_TYPES.has(event.type)) return;
-      void queryClient.invalidateQueries({ queryKey: ["moderation", roomId] });
+      if (event.id) {
+        if (seenWsEventIds.current.has(event.id)) return;
+        seenWsEventIds.current.add(event.id);
+        if (seenWsEventIds.current.size > 200) {
+          const oldest = seenWsEventIds.current.values().next().value;
+          if (oldest) seenWsEventIds.current.delete(oldest);
+        }
+      }
+      void queryClient.refetchQueries({ queryKey: ["moderation", roomId] });
     },
     [queryClient, roomId]
   );
 
-  useRoomWebSocket({
+  const { connected: wsConnected } = useRoomWebSocket({
     roomId: validRoom ? roomId : null,
     token: getAccessToken(),
     mode: "host",
@@ -105,6 +116,11 @@ export function ModerationPage({ roomId, onLogout }: Props): React.JSX.Element {
       ) : null}
 
       <QaControlBar roomId={roomId} />
+      {!wsConnected ? (
+        <p className="mb-3 text-xs text-amber-700">
+          即時連線中斷，每 {WS_BACKUP_REFETCH_MS / 1000} 秒自動同步審核列表。
+        </p>
+      ) : null}
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
         <Column
@@ -112,7 +128,7 @@ export function ModerationPage({ roomId, onLogout }: Props): React.JSX.Element {
           accent="amber"
           questions={grouped.pending}
           loading={isLoading}
-          renderActions={(q) => (
+          renderActions={(q, _ctx) => (
             <>
               <ActionButton
                 variant="primary"
@@ -141,9 +157,14 @@ export function ModerationPage({ roomId, onLogout }: Props): React.JSX.Element {
           accent="blue"
           questions={grouped.approved}
           loading={isLoading}
-          renderActions={(q) => (
+          renderActions={(q, ctx) => (
             <>
-              <ReplyForm questionId={q.id} existing={q.replies} roomId={roomId} />
+              <ReplyForm
+                questionId={q.id}
+                existing={q.replies}
+                roomId={roomId}
+                onOpenChange={ctx.setReplyFormOpen}
+              />
               <ActionButton
                 variant="ghost"
                 onClick={() =>
@@ -192,9 +213,14 @@ export function ModerationPage({ roomId, onLogout }: Props): React.JSX.Element {
           accent="emerald"
           questions={grouped.answered}
           loading={isLoading}
-          renderActions={(q) => (
+          renderActions={(q, ctx) => (
             <>
-              <ReplyForm questionId={q.id} existing={q.replies} roomId={roomId} />
+              <ReplyForm
+                questionId={q.id}
+                existing={q.replies}
+                roomId={roomId}
+                onOpenChange={ctx.setReplyFormOpen}
+              />
               <ActionButton
                 variant="ghost"
                 onClick={() =>
@@ -232,7 +258,10 @@ function Column(props: {
   accent: "amber" | "blue" | "emerald";
   questions: QuestionPublic[];
   loading: boolean;
-  renderActions: (q: QuestionPublic) => React.JSX.Element;
+  renderActions: (
+    q: QuestionPublic,
+    ctx: QuestionCardActionsCtx
+  ) => React.JSX.Element;
 }): React.JSX.Element {
   return (
     <section className="bg-white rounded-xl shadow-sm border border-slate-200 flex flex-col min-h-[400px]">
@@ -252,7 +281,11 @@ function Column(props: {
           <p className="text-sm text-slate-400 text-center py-8">尚無問題</p>
         ) : (
           props.questions.map((q) => (
-            <QuestionCard key={q.id} question={q} actions={props.renderActions(q)} />
+            <QuestionCard
+              key={q.id}
+              question={q}
+              renderActions={(ctx) => props.renderActions(q, ctx)}
+            />
           ))
         )}
       </div>
@@ -260,13 +293,25 @@ function Column(props: {
   );
 }
 
+interface QuestionCardActionsCtx {
+  setReplyFormOpen: (open: boolean) => void;
+}
+
 function QuestionCard(props: {
   question: QuestionPublic;
-  actions: React.JSX.Element;
+  renderActions: (ctx: QuestionCardActionsCtx) => React.JSX.Element;
 }): React.JSX.Element {
   const q = props.question;
+  const [hovered, setHovered] = useState(false);
+  const [replyFormOpen, setReplyFormOpen] = useState(false);
+  const showActions = hovered || replyFormOpen;
+
   return (
-    <article className="rounded-lg border border-slate-200 bg-white p-3 hover:shadow-sm transition-shadow">
+    <article
+      className="rounded-lg border border-slate-200 bg-white p-3 transition-shadow hover:shadow-sm"
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+    >
       <p className="text-sm text-slate-900 whitespace-pre-wrap break-words">
         {q.content}
       </p>
@@ -292,7 +337,11 @@ function QuestionCard(props: {
           <span className="text-amber-600 font-medium">★ 已標記</span>
         ) : null}
       </div>
-      <div className="mt-3 flex flex-wrap gap-2">{props.actions}</div>
+      {showActions ? (
+        <div className="mt-3 flex flex-wrap gap-2" aria-label="問題操作">
+          {props.renderActions({ setReplyFormOpen })}
+        </div>
+      ) : null}
     </article>
   );
 }
@@ -301,6 +350,7 @@ function ReplyForm(props: {
   questionId: string;
   existing: QuestionReply[];
   roomId: string;
+  onOpenChange?: (open: boolean) => void;
 }): React.JSX.Element {
   const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
@@ -308,11 +358,16 @@ function ReplyForm(props: {
   const [isPrivate, setIsPrivate] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const setReplyOpen = (next: boolean): void => {
+    setOpen(next);
+    props.onOpenChange?.(next);
+  };
+
   const replyMutation = useMutation({
     mutationFn: () => reply(props.questionId, content.trim(), isPrivate),
     onSuccess: () => {
       setContent("");
-      setOpen(false);
+      setReplyOpen(false);
       setError(null);
       void queryClient.invalidateQueries({
         queryKey: ["moderation", props.roomId],
@@ -325,7 +380,7 @@ function ReplyForm(props: {
 
   if (!open) {
     return (
-      <ActionButton variant="ghost" onClick={() => setOpen(true)}>
+      <ActionButton variant="ghost" onClick={() => setReplyOpen(true)}>
         回覆
       </ActionButton>
     );
@@ -358,7 +413,7 @@ function ReplyForm(props: {
         >
           {replyMutation.isPending ? "送出中…" : "送出回覆"}
         </ActionButton>
-        <ActionButton variant="ghost" onClick={() => setOpen(false)}>
+        <ActionButton variant="ghost" onClick={() => setReplyOpen(false)}>
           取消
         </ActionButton>
       </div>

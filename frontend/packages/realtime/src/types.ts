@@ -67,3 +67,8 @@ export const IDEA_SUBMITTED = "idea_submitted";
 export const IDEA_REACTED = "idea_reacted";
 
 export const IDEAS_EVENT_TYPES = new Set([IDEA_SUBMITTED, IDEA_REACTED]);
+
+/** Session 事件（活動生命週期） */
+export const SESSION_ENDED = "session_ended";
+
+export const SESSION_EVENT_TYPES = new Set([SESSION_ENDED]);

@@ -64,3 +64,15 @@ async def update_interaction(
     return await interaction_service.update_interaction(
         db, interaction_id=interaction_id, host=host, payload=payload
     )
+
+
+@router.delete("/interactions/{interaction_id}", status_code=204)
+async def delete_interaction(
+    interaction_id: uuid.UUID,
+    db: Annotated[AsyncSession, Depends(get_session)],
+    host: Annotated[User, Depends(get_current_user)],
+) -> None:
+    """刪除互動項目（Poll／Quiz 等；須非 active）。"""
+    await interaction_service.delete_interaction(
+        db, interaction_id=interaction_id, host=host
+    )

@@ -25,5 +25,7 @@ export {
   IDEA_SUBMITTED,
   IDEA_REACTED,
   IDEAS_EVENT_TYPES,
+  SESSION_ENDED,
+  SESSION_EVENT_TYPES,
 } from "./types";
 export type { WsEvent, WsMode } from "./types";

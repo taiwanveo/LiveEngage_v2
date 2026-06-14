@@ -21,6 +21,7 @@ from app.models.participant import Participant
 from app.models.room import Room
 from app.models.session import Session
 from app.models.user import User
+from app.realtime import events
 from app.schemas.session import (
     JoinRequest,
     JoinResponse,
@@ -123,6 +124,25 @@ async def create_session(
     raise AppError(ErrorCode.INTERNAL, "無法產生活動代碼，請重試")
 
 
+async def broadcast_session_ended(db: AsyncSession, session: Session) -> None:
+    """活動結束時廣播至所有房間連線（參與者即時通知）。"""
+    result = await db.execute(
+        select(Room.id).where(Room.session_id == session.id)
+    )
+    payload = {
+        "session_id": str(session.id),
+        "title": session.title,
+        "status": SessionStatus.ENDED.value,
+    }
+    for (room_id,) in result.all():
+        await events.publish(
+            room_id,
+            events.SESSION_ENDED,
+            payload,
+            target_modes=events.MODE_ALL,
+        )
+
+
 async def update_session(
     db: AsyncSession,
     *,
@@ -135,6 +155,7 @@ async def update_session(
     if session.host_user_id != host.id and host.org_id != session.org_id:
         raise AppError(ErrorCode.FORBIDDEN, "無權限編輯此活動")
 
+    old_status = session.status
     if payload.title is not None:
         session.title = payload.title
     if payload.description is not None:
@@ -150,6 +171,11 @@ async def update_session(
 
     await db.commit()
     await db.refresh(session)
+    if (
+        payload.status == SessionStatus.ENDED
+        and old_status != SessionStatus.ENDED
+    ):
+        await broadcast_session_ended(db, session)
     return await _to_host_response(db, session)
 
 

@@ -213,6 +213,7 @@ export interface EngagementAnalytics {
   participants_total: number;
   participants_qa: number;
   participants_poll_voters: number;
+  participants_engaged: number;
   engaged_score_percent: number;
   poll_votes_total: number;
   qa_questions_total: number;

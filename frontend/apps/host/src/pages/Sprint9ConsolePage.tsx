@@ -8,6 +8,7 @@ import { HostTitleLink } from "../components/HostTitleActions";
 import { listInteractions } from "../lib/interactionApi";
 import {
   addQuizQuestion,
+  deleteQuizQuestion,
   getQuizLeaderboard,
   getSurveyResults,
   hideIdea,
@@ -94,6 +95,12 @@ export function Sprint9ConsolePage({
     },
   });
 
+  const deleteQuestionMutation = useMutation({
+    mutationFn: deleteQuizQuestion,
+    onSuccess: () =>
+      void qc.invalidateQueries({ queryKey: ["quiz-questions", interactionId] }),
+  });
+
   const hideMutation = useMutation({
     mutationFn: hideIdea,
     onSuccess: () => void qc.invalidateQueries({ queryKey: ["ideas", interactionId] }),
@@ -172,7 +179,15 @@ export function Sprint9ConsolePage({
                       狀態：{quizQuestionStateLabel(q.state)}
                     </p>
                   </div>
-                  <div className="flex gap-2">
+                  <div className="flex flex-wrap gap-2">
+                    {q.state === "pending" ? (
+                      <a
+                        href={`#/rooms/${roomId}/sprint9/${interactionId}/questions/${q.id}/edit`}
+                        className="le-btn-secondary !min-h-0 px-2 py-1 text-xs"
+                      >
+                        編輯
+                      </a>
+                    ) : null}
                     <button
                       type="button"
                       onClick={() =>
@@ -191,6 +206,19 @@ export function Sprint9ConsolePage({
                     >
                       揭曉
                     </button>
+                    {q.state === "pending" ? (
+                      <button
+                        type="button"
+                        disabled={deleteQuestionMutation.isPending}
+                        onClick={() => {
+                          if (!window.confirm(`確定要刪除子題「${q.title}」？`)) return;
+                          deleteQuestionMutation.mutate(q.id);
+                        }}
+                        className="rounded border border-red-200 px-2 py-1 text-xs text-red-600 hover:bg-red-50 dark:border-red-900"
+                      >
+                        刪除
+                      </button>
+                    ) : null}
                   </div>
                 </li>
               ))}

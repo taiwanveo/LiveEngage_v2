@@ -50,7 +50,7 @@ export function DashboardPage({ onLogout }: Props): React.JSX.Element {
               title="參與互動的參與者"
               summary={
                 engagement
-                  ? `共 ${engagement.participants_total} 位參與者，其中 ${engagement.participants_qa + engagement.participants_poll_voters} 位曾使用 Poll 或 Q&A。`
+                  ? `共 ${engagement.participants_total} 位參與者，其中 ${engagement.participants_engaged} 位曾使用 Poll 或 Q&A。`
                   : "載入中…"
               }
               accent="pink"
@@ -65,6 +65,10 @@ export function DashboardPage({ onLogout }: Props): React.JSX.Element {
                   <li className="flex justify-between">
                     <span>Poll 投票參與者</span>
                     <span>{engagement.participants_poll_voters}</span>
+                  </li>
+                  <li className="flex justify-between border-t border-border pt-2 font-medium text-foreground">
+                    <span>至少用過一種（去重）</span>
+                    <span>{engagement.participants_engaged}</span>
                   </li>
                 </ul>
               ) : null}

@@ -6,14 +6,16 @@ import datetime as dt
 import uuid
 from typing import cast
 
-from sqlalchemy import func, select
+from sqlalchemy import func, select, delete
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.errors import AppError, ErrorCode
 from app.core.ids import uuid7
 from app.models.enums import InteractionStatus, InteractionType
 from app.models.interaction import Interaction
+from app.models.poll import PollOption, PollResponse
 from app.models.room import Room
+from app.models.sprint9 import QuizQuestion, SurveyQuestion
 from app.models.session import Session
 from app.models.user import User
 from app.realtime import events
@@ -185,6 +187,72 @@ def _apply_status_transition(
     if new_status == InteractionStatus.STOPPED:
         interaction.stopped_at = now
     interaction.status = new_status
+
+
+async def _clear_poll_data(db: AsyncSession, interaction_id: uuid.UUID) -> None:
+    await db.execute(
+        delete(PollResponse).where(PollResponse.interaction_id == interaction_id)
+    )
+    await db.execute(
+        delete(PollOption).where(PollOption.interaction_id == interaction_id)
+    )
+
+
+async def _delete_quiz_children(db: AsyncSession, quiz_interaction_id: uuid.UUID) -> None:
+    result = await db.execute(
+        select(QuizQuestion.child_interaction_id).where(
+            QuizQuestion.quiz_interaction_id == quiz_interaction_id
+        )
+    )
+    for (child_id,) in result.all():
+        await _clear_poll_data(db, child_id)
+        await db.execute(delete(Interaction).where(Interaction.id == child_id))
+    await db.execute(
+        delete(QuizQuestion).where(
+            QuizQuestion.quiz_interaction_id == quiz_interaction_id
+        )
+    )
+
+
+async def _delete_survey_children(db: AsyncSession, survey_interaction_id: uuid.UUID) -> None:
+    result = await db.execute(
+        select(SurveyQuestion.child_interaction_id).where(
+            SurveyQuestion.survey_interaction_id == survey_interaction_id
+        )
+    )
+    for (child_id,) in result.all():
+        await _clear_poll_data(db, child_id)
+        await db.execute(delete(Interaction).where(Interaction.id == child_id))
+    await db.execute(
+        delete(SurveyQuestion).where(
+            SurveyQuestion.survey_interaction_id == survey_interaction_id
+        )
+    )
+
+
+async def delete_interaction(
+    db: AsyncSession,
+    *,
+    interaction_id: uuid.UUID,
+    host: User,
+) -> None:
+    """刪除互動項目（須非 active；Quiz／Survey 一併清除子題）。"""
+    interaction = await _load_interaction_for_host(db, interaction_id, host)
+    if interaction.status == InteractionStatus.ACTIVE:
+        raise AppError(
+            ErrorCode.POLL_INVALID_STATE,
+            "進行中的互動須先停止後才能刪除",
+        )
+
+    if interaction.type == InteractionType.QUIZ:
+        await _delete_quiz_children(db, interaction.id)
+    elif interaction.type == InteractionType.SURVEY:
+        await _delete_survey_children(db, interaction.id)
+    elif interaction.type in POLL_TYPES:
+        await _clear_poll_data(db, interaction.id)
+
+    await db.delete(interaction)
+    await db.commit()
 
 
 async def get_active_qa(db: AsyncSession, room_id: uuid.UUID) -> Interaction | None:

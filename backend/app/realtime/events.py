@@ -40,6 +40,9 @@ QUIZ_LEADERBOARD_UPDATED = "quiz_leaderboard_updated"
 IDEA_SUBMITTED = "idea_submitted"
 IDEA_REACTED = "idea_reacted"
 
+# Session 事件（活動生命週期）
+SESSION_ENDED = "session_ended"
+
 # 接收端 mode 集合
 MODE_HOST = {"host"}
 MODE_PRESENT_HOST = {"present", "host"}
@@ -61,12 +64,8 @@ async def publish(
         target_modes=sorted(target_modes) if target_modes else None,
     )
     data = envelope.model_dump(mode="json", by_alias=True)
+    room_key = str(room_id)
 
-    if await publish_raw(str(room_id), data):
-        return
-
-    await manager.broadcast(
-        str(room_id),
-        data,
-        target_modes=target_modes,
-    )
+    # 本機 WS 立即推送，避免僅依賴 Redis Pub/Sub 迴圈導致延遲或漏送
+    await manager.broadcast(room_key, data, target_modes=target_modes)
+    await publish_raw(room_key, data)

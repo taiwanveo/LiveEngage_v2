@@ -20,6 +20,7 @@ from app.schemas.quiz import (
     QuizLeaderboardResponse,
     QuizQuestionCreateRequest,
     QuizQuestionPublic,
+    QuizQuestionUpdateRequest,
 )
 from app.services import quiz_service
 
@@ -59,6 +60,32 @@ async def list_quiz_questions(
     return await quiz_service.list_questions(
         db, quiz_interaction_id=quiz_interaction_id, host=host
     )
+
+
+@router.patch(
+    "/quizzes/questions/{question_id}",
+    response_model=QuizQuestionPublic,
+)
+async def update_quiz_question(
+    question_id: uuid.UUID,
+    payload: QuizQuestionUpdateRequest,
+    db: Annotated[AsyncSession, Depends(get_session)],
+    host: Annotated[User, Depends(get_current_user)],
+) -> QuizQuestionPublic:
+    """更新 Quiz 子題（僅 pending）。"""
+    return await quiz_service.update_question(
+        db, question_id=question_id, host=host, payload=payload
+    )
+
+
+@router.delete("/quizzes/questions/{question_id}", status_code=204)
+async def delete_quiz_question(
+    question_id: uuid.UUID,
+    db: Annotated[AsyncSession, Depends(get_session)],
+    host: Annotated[User, Depends(get_current_user)],
+) -> None:
+    """刪除 Quiz 子題（僅 pending）。"""
+    await quiz_service.delete_question(db, question_id=question_id, host=host)
 
 
 @router.get(

@@ -13,12 +13,14 @@ import {
   POLL_UNLOCKED,
   QA_EVENT_TYPES,
   QUIZ_QUESTION_STARTED,
+  SESSION_ENDED,
   IDEAS_EVENT_TYPES,
   useRoomWebSocket,
   type WsEvent,
 } from "@liveengage/realtime";
 import { PollRenderer } from "@liveengage/renderers";
 import { RoomIdeasPanel } from "../components/RoomIdeasPanel";
+import { ParticipantShareActions } from "../components/ParticipantShareActions";
 import { RoomQaPanel } from "../components/RoomQaPanel";
 import { ApiException } from "../lib/api";
 import {
@@ -28,7 +30,7 @@ import {
 import { getPoll, getPollResults, isPollType, submitPollResponse } from "../lib/pollApi";
 import { getSessionState } from "../lib/sessionApi";
 import { submitQuizAnswer, type ActiveQuizQuestion } from "../lib/sprint9Api";
-import { AppHeader } from "@liveengage/ui";
+import { AppHeader, Modal } from "@liveengage/ui";
 
 export function RoomPage(): React.JSX.Element {
   const ctx = getParticipantContext();
@@ -39,6 +41,8 @@ export function RoomPage(): React.JSX.Element {
   const [quizSubmitOk, setQuizSubmitOk] = useState(false);
   const [quizQuestion, setQuizQuestion] = useState<ActiveQuizQuestion | null>(null);
   const [quizSubmitting, setQuizSubmitting] = useState(false);
+  const [sessionEnded, setSessionEnded] = useState(false);
+  const [endedTitle, setEndedTitle] = useState("活動");
 
   // session-state：30s 安全備援；WS 事件觸發 invalidate
   const stateQuery = useQuery({
@@ -88,6 +92,13 @@ export function RoomPage(): React.JSX.Element {
       void queryClient.removeQueries({ queryKey: ["poll-results", activePollId] });
     }
   }, [activePollId, queryClient]);
+
+  useEffect(() => {
+    if (stateQuery.data?.status === "ended") {
+      setEndedTitle(stateQuery.data.title ?? "活動");
+      setSessionEnded(true);
+    }
+  }, [stateQuery.data?.status, stateQuery.data?.title]);
 
   // WS 事件處理：依事件類型決定 invalidate 策略
   const handleWsEvent = useCallback(
@@ -151,6 +162,13 @@ export function RoomPage(): React.JSX.Element {
           }
           break;
         }
+        case SESSION_ENDED: {
+          const title =
+            typeof event.payload.title === "string" ? event.payload.title : "活動";
+          setEndedTitle(title);
+          setSessionEnded(true);
+          break;
+        }
         default:
           if (IDEAS_EVENT_TYPES.has(event.type) && activeIdeasBoardId) {
             void queryClient.invalidateQueries({
@@ -206,12 +224,18 @@ export function RoomPage(): React.JSX.Element {
   }
 
   const sessionTitle = stateQuery.data?.title ?? "活動";
+  const sessionCode = ctx.sessionCode ?? stateQuery.data?.code ?? null;
   const poll = pollQuery.data;
 
   const leave = (): void => {
     clearParticipantSession();
     const code = ctx.sessionCode;
     window.location.hash = code ? `#/join/${code}` : "#/join";
+  };
+
+  const leaveAfterSessionEnded = (): void => {
+    setSessionEnded(false);
+    leave();
   };
 
   return (
@@ -222,6 +246,7 @@ export function RoomPage(): React.JSX.Element {
         maxWidth="2xl"
         logoutLabel="離開"
         onLogout={leave}
+        chromeFooterActions={<ParticipantShareActions sessionCode={sessionCode} />}
         actions={
           <span
             className={connected ? "le-status-dot-live" : "le-status-dot bg-muted"}
@@ -288,20 +313,28 @@ export function RoomPage(): React.JSX.Element {
                 </li>
               ))}
             </ul>
-            {quizSubmitOk ? (
-              <p className="mt-3 text-sm text-success">Quiz 已提交</p>
-            ) : null}
+            <Modal
+              open={quizSubmitOk}
+              onClose={() => setQuizSubmitOk(false)}
+              title="提交成功"
+              size="sm"
+            >
+              <p className="text-sm text-muted">Quiz 已提交，感謝參與！</p>
+            </Modal>
             {submitError ? (
               <p className="mt-3 text-sm text-danger">{submitError}</p>
             ) : null}
           </div>
         ) : (
           <>
-        {pollSubmitOk ? (
-          <p className="mb-4 rounded-xl border border-success/30 bg-success/10 px-4 py-2 text-sm text-success">
-            已提交，感謝參與！
-          </p>
-        ) : null}
+        <Modal
+          open={pollSubmitOk}
+          onClose={() => setPollSubmitOk(false)}
+          title="提交成功"
+          size="sm"
+        >
+          <p className="text-sm text-muted">已提交，感謝參與！</p>
+        </Modal>
 
         {stateQuery.isLoading ? (
           <p className="text-center text-sm text-muted">載入活動狀態…</p>
@@ -334,6 +367,17 @@ export function RoomPage(): React.JSX.Element {
           </>
         )}
       </div>
+
+      <Modal
+        open={sessionEnded}
+        onClose={leaveAfterSessionEnded}
+        title="活動已結束"
+        size="sm"
+      >
+        <p className="text-sm text-muted">
+          「{endedTitle}」已由主持人結束，感謝您的參與！
+        </p>
+      </Modal>
     </main>
   );
 }

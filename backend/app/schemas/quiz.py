@@ -34,6 +34,20 @@ class QuizQuestionCreateRequest(BaseModel):
     options: list[PollOptionInput] = Field(min_length=2, max_length=10)
 
 
+class QuizQuestionUpdateRequest(BaseModel):
+    """更新 Quiz 子題（僅 pending 可編輯）。"""
+
+    title: str | None = Field(default=None, min_length=1, max_length=500)
+    description: str | None = None
+    time_limit_s: int | None = Field(default=None, ge=5, le=300)
+    base_points: int | None = Field(default=None, ge=0, le=10000)
+    speed_bonus: bool | None = None
+    explanation: str | None = None
+    options: list[PollOptionInput] | None = Field(
+        default=None, min_length=2, max_length=10
+    )
+
+
 class QuizQuestionPublic(BaseModel):
     """Quiz 子題對外表示。"""
 

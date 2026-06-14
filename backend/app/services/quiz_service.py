@@ -12,7 +12,7 @@ import uuid
 from decimal import Decimal
 from typing import Any, cast
 
-from sqlalchemy import func, select
+from sqlalchemy import func, select, delete
 from sqlalchemy import update as sa_update
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -37,6 +37,7 @@ from app.schemas.quiz import (
     QuizLeaderboardResponse,
     QuizQuestionCreateRequest,
     QuizQuestionPublic,
+    QuizQuestionUpdateRequest,
 )
 from app.services import audit_service, interaction_service
 
@@ -244,6 +245,94 @@ async def list_questions(
         )
         items.append(_to_question_public(qq, child, options))
     return items
+
+
+async def _upsert_child_options(
+    db: AsyncSession,
+    child_interaction_id: uuid.UUID,
+    option_payloads: list[dict[str, Any]],
+) -> None:
+    await db.execute(
+        delete(PollOption).where(PollOption.interaction_id == child_interaction_id)
+    )
+    now = dt.datetime.now(dt.UTC)
+    for i, p in enumerate(option_payloads):
+        db.add(
+            PollOption(
+                id=uuid7(),
+                interaction_id=child_interaction_id,
+                text=str(p.get("text", "")),
+                is_correct=bool(p.get("is_correct", False)),
+                order_no=int(p.get("order_no", i)),
+                created_at=now,
+            )
+        )
+
+
+async def update_question(
+    db: AsyncSession,
+    *,
+    question_id: uuid.UUID,
+    host: User,
+    payload: QuizQuestionUpdateRequest,
+) -> QuizQuestionPublic:
+    """更新 Quiz 子題（僅 pending）。"""
+    qq = await _load_quiz_question(db, question_id)
+    if qq.state != QuizQuestionState.PENDING:
+        raise AppError(
+            ErrorCode.POLL_INVALID_STATE,
+            "僅待開始的子題可編輯",
+        )
+    await _load_quiz_for_host(db, qq.quiz_interaction_id, host)
+    child = await _get_child_interaction(db, qq.child_interaction_id)
+
+    if payload.title is not None:
+        child.title = payload.title
+    if payload.description is not None:
+        child.description = payload.description
+    if payload.time_limit_s is not None:
+        qq.time_limit_s = payload.time_limit_s
+    if payload.base_points is not None:
+        qq.base_points = payload.base_points
+    if payload.speed_bonus is not None:
+        qq.speed_bonus = payload.speed_bonus
+    if payload.explanation is not None:
+        qq.explanation = payload.explanation
+    if payload.options is not None:
+        await _upsert_child_options(
+            db,
+            child.id,
+            [opt.model_dump() for opt in payload.options],
+        )
+
+    await db.commit()
+    await db.refresh(qq)
+    await db.refresh(child)
+    options = await _question_options(db, child.id, hide_correct=True)
+    return _to_question_public(qq, child, options)
+
+
+async def delete_question(
+    db: AsyncSession,
+    *,
+    question_id: uuid.UUID,
+    host: User,
+) -> None:
+    """刪除 Quiz 子題（僅 pending）。"""
+    qq = await _load_quiz_question(db, question_id)
+    if qq.state != QuizQuestionState.PENDING:
+        raise AppError(
+            ErrorCode.POLL_INVALID_STATE,
+            "僅待開始的子題可刪除",
+        )
+    await _load_quiz_for_host(db, qq.quiz_interaction_id, host)
+    child_id = qq.child_interaction_id
+    await db.execute(
+        delete(PollOption).where(PollOption.interaction_id == child_id)
+    )
+    await db.delete(qq)
+    await db.execute(delete(Interaction).where(Interaction.id == child_id))
+    await db.commit()
 
 
 async def get_leaderboard(

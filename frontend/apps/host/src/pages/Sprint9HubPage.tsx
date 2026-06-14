@@ -7,6 +7,7 @@ import { HostShell } from "../components/HostShell";
 import { ApiException } from "../lib/api";
 import {
   createInteraction,
+  deleteInteraction,
   listInteractions,
   updateInteractionStatus,
 } from "../lib/interactionApi";
@@ -58,6 +59,11 @@ export function Sprint9HubPage({ roomId, onLogout }: Props): React.JSX.Element {
         err instanceof ApiException ? err.error.message : "開放失敗，請稍後再試"
       );
     },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => deleteInteraction(id),
+    onSuccess: () => void qc.invalidateQueries({ queryKey: ["interactions", roomId] }),
   });
 
   const s9Items = (items ?? []).filter((i) =>
@@ -142,6 +148,30 @@ export function Sprint9HubPage({ roomId, onLogout }: Props): React.JSX.Element {
                   >
                     控制台
                   </a>
+                  {item.type === "quiz" ? (
+                    <button
+                      type="button"
+                      disabled={item.status === "active" || deleteMutation.isPending}
+                      title={
+                        item.status === "active"
+                          ? "進行中的 Quiz 須先結束後才能刪除"
+                          : "刪除此 Quiz"
+                      }
+                      onClick={() => {
+                        if (
+                          !window.confirm(
+                            `確定要刪除「${item.title ?? "快問快答"}」？此動作無法復原。`
+                          )
+                        ) {
+                          return;
+                        }
+                        deleteMutation.mutate(item.id);
+                      }}
+                      className="rounded-md border border-red-200 px-3 py-1.5 text-xs text-red-600 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-40 dark:border-red-900 dark:hover:bg-red-950/40"
+                    >
+                      刪除
+                    </button>
+                  ) : null}
                 </div>
               </li>
             ))}

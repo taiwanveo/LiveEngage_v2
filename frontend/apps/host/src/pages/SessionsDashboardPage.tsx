@@ -6,14 +6,12 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   createSession,
   listSessions,
-  participantJoinUrl,
   updateSession,
   type SessionHost,
   type SessionStatus,
 } from "../lib/sessionApi";
-import { JoinShareCard } from "../components/JoinShareCard";
 import { ApiException } from "../lib/api";
-import { AppHeader, Modal } from "@liveengage/ui";
+import { AppHeader, JoinShareCard, Modal, participantJoinUrl } from "@liveengage/ui";
 import { HOST_DASHBOARD_HASH } from "../components/HostShell";
 
 interface Props {
