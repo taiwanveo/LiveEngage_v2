@@ -7,8 +7,8 @@
 ## SNAPSHOT（2026-06-14）
 
 - **Repo**：https://github.com/ColdRighter/LiveEngage.git（master）
-- **最新 commit**：`ae6af17` — Admin 重組、Host 儀表板／工作台 UI
-- **pytest**：全 suite 建議 CI 再跑（本輪以 Host/Admin 前端為主）
+- **最新 commit**：見下方 HISTORY 本輪條目
+- **pytest**：全 suite 建議 CI 再跑（本輪以 Host 前端為主）
 - **Zeabur**：**六服務** — api / host / participant / present / admin / worker（push `master` 自動 redeploy）
 
 ### 已上線服務
@@ -22,58 +22,79 @@
 | admin | https://le-admin.zeabur.app |
 | worker | Celery（無公開 URL） |
 
-### 本輪重點
+### 本輪重點（Host）
 
 | 區塊 | 內容 |
 |------|------|
-| **Admin 後台** | 選單重排（總覽→活動→稽核→帳號→組織→匯出）；`AccountsPage`；品牌併入組織設定；Analytics 繁中；頁首留白縮半 |
-| **Host 儀表板** | 左 40% 建立表單／右 60% 活動列表；標題「活動儀表板」；左上 brand 回 `#/dashboard` |
-| **Host 跨頁** | `HostRoomHeaderActions`：右上角「投影／分享」（分享改 Modal）；`AppHeader` `brandHref` |
-| **工作台** | 左欄「互動項目」寬 2/3（約 17%）；右欄手機預覽約 28%；頂欄導覽第二列；Participant 預覽字級縮小 |
+| **Q&A 開關** | `QaControlBar` 於 **Q&A 審核** 頂部「開啟／關閉 Q&A」；自動建立 `qa` 互動＋`moderation_enabled`；與 Quiz 分離 |
+| **活動儀表板** | 「建立新活動」改為副標旁按鈕 → Modal 輸入名稱；「我的活動」全寬列表 |
+| **頂欄 meta** | `HostSessionMeta` 顯示活動名稱，hover 顯示 `room: {UUID}` |
+| **分享 Modal** | `Modal` portal 至 `document.body` 真正置中；底部「關閉」；Esc／backdrop 可關 |
+| **投影按鈕** | 僅工作台（有 `presentPollId`）顯示；Q&A／Poll／Quiz 管理頁不再顯示 disabled 投影 |
 
-### 生產環境新增/可選 env（api）
+### 先前已上線（ae6af17 一帶）
+
+| 區塊 | 內容 |
+|------|------|
+| **Admin** | 選單重排、帳號管理、組織＋品牌合併、Analytics 繁中 |
+| **Host 跨頁** | `HostRoomHeaderActions` 分享；`brandHref` 回儀表板 |
+| **工作台** | 三欄 17%／55%／28%；「互動項目」；參與者預覽放大 |
+
+### 現場 Q&A 流程（主持人）
+
+1. 活動儀表板建立活動 → 設為進行中 → 分享 QR／連結  
+2. **Q&A 審核** → **開啟 Q&A**（非 Quiz 管理）  
+3. 參與者 Q&A 分頁提問 → 主持人於三欄審核  
+
+> 同一 room 同時僅一個 `active` 互動；開 Q&A 會 stop 進行中的 Poll／Quiz。
+
+### 生產環境 env（api）
 
 | 變數 | 用途 |
 |------|------|
-| `LE_SSO_ENABLED` | 啟用 SSO |
-| `LE_SSO_OIDC_*` | IdP 設定 |
+| `LE_SSO_ENABLED` / `LE_SSO_OIDC_*` | SSO |
 | `LE_API_PUBLIC_URL` | `https://le-api.zeabur.app` |
 | `LE_SSO_*_FRONTEND_URL` | 各前端 Zeabur 網域 |
 | `LE_AI_ENABLED` / `LE_AI_API_KEY` | 真實 LLM（可選） |
 
 ### 仍可做（非阻塞）
 
-- Webhook 實際 outbound 派送（Celery task）
-- Playwright 完整 join→poll 瀏覽器流程
-- Admin Integrations 管理 UI 頁
+- Webhook outbound 派送（Celery）
+- Playwright join→poll→Q&A E2E
+- Admin Integrations UI
+- 活動儀表板列表卡片：Room ID 改 hover 顯示（頂欄 meta 已做）
 
 ---
 
 ## HISTORY
 
+### 2026-06-14 — Q&A 開關 + 儀表板 Modal + 分享／meta UI（本輪）
+
+`QaControlBar`；儀表板建立活動 Modal；`HostSessionMeta`；Modal portal＋關閉鈕；非工作台隱藏投影。
+
 ### 2026-06-14 — Admin 重組 + Host 儀表板／工作台 UI（ae6af17）
 
-Admin 帳號管理獨立、組織與品牌合併、Analytics 中文化；Host 活動儀表板左右分欄、分享 Modal、投影／分享固定於登出下方、工作台三欄比例與參與者預覽優化。
+Admin 帳號管理、組織設定；Host 分享 Modal、工作台三欄、brand 回儀表板。
 
 ### 2026-06-14 — Quiz 開放 + Admin 版型 + Host 導覽（cbd1cfb）
 
-後端 unique index 衝突修復；Admin 移除開發代號快捷入口與 typography 統一；Host 頂欄三選單與 Q&A 重新整理位置調整。
+後端 activate 前先 stop 同 room active；Admin typography；Host 三選單。
 
 ### 2026-06-14 — 深色主題 + 頂欄一致 + 工作台版面（3d8edd6）
 
-深色相容層與 le-card 全端接線；AppHeaderChrome 四端對齊；Host 工作台三欄、手機預覽、Poll toggle 控場。
+`AppHeaderChrome` 四端對齊；工作台三欄與 Poll 控場。
 
-### 2026-06-14 — Slido UI + SSO + Phase D 接續（22e4015）
+### 2026-06-14 — Slido UI + SSO + Phase D（22e4015）
 
-Slido 風格控場 UI；Host 三欄工作台；Admin Analytics；OIDC 三端 SSO；Poll 修復；LLM/Integrations/多房間/E2E 最小實作。
+Host 工作台、Admin Analytics、OIDC、Quiz／Ideas／Survey。
 
 ### 2026-06-13 — UI 設計系統（d6a0499 / b2feac5）
 
-`@liveengage/ui` 四主題 light/dark/cursor/claude。
+`@liveengage/ui` 四主題。
 
 ### 2026-06-13 — Phase D Sprint 9（5c98f3e）
 
-Quiz / Ideas / Survey；Zeabur worker。
+Quiz；Zeabur worker。
 
 ### 2026-06-13 — Phase C+（0fbde82）/ Phase A（c4e0eff）
 

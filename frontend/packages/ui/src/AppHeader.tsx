@@ -17,6 +17,8 @@ interface Props {
   meta?: React.ReactNode;
   /** 標題右側附加控制（如「重新整理」） */
   brandAddon?: React.ReactNode;
+  /** 副標右側附加控制（如「建立新活動」） */
+  taglineAddon?: React.ReactNode;
   navItems?: NavItem[];
   actions?: React.ReactNode;
   onLogout?: () => void;
@@ -84,6 +86,7 @@ export function AppHeader({
   tagline,
   meta,
   brandAddon,
+  taglineAddon,
   navItems,
   actions,
   onLogout,
@@ -107,7 +110,12 @@ export function AppHeader({
               {brandAddon}
             </h1>
             {tagline ? (
-              <p className="truncate text-xs text-muted">{tagline}</p>
+              <div className="mt-0.5 flex flex-wrap items-center gap-x-2">
+                <p className="truncate text-xs text-muted">{tagline}</p>
+                {taglineAddon}
+              </div>
+            ) : taglineAddon ? (
+              <div className="mt-0.5 flex flex-wrap items-center gap-x-2">{taglineAddon}</div>
             ) : null}
             {meta ? <div className="mt-0.5 font-mono text-[10px] text-muted">{meta}</div> : null}
           </div>

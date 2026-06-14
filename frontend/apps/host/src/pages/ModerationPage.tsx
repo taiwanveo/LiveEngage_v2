@@ -12,6 +12,7 @@ import { useMemo, useState } from "react";
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { HostShell } from "../components/HostShell";
 import { HostTitleButton } from "../components/HostTitleActions";
+import { QaControlBar } from "../components/QaControlBar";
 import { listModeration, moderate, reply } from "../lib/qaApi";
 import type {
   ModerateAction,
@@ -91,6 +92,8 @@ export function ModerationPage({ roomId, onLogout }: Props): React.JSX.Element {
           載入失敗：{(error as Error).message}
         </div>
       ) : null}
+
+      <QaControlBar roomId={roomId} />
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
         <Column

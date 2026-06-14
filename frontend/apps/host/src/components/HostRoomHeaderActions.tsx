@@ -1,4 +1,4 @@
-/** Host 房間頁右上角：投影 + 分享（跨頁固定）。 */
+/** Host 房間頁右上角：分享（跨頁固定）；工作台可選投影。 */
 
 import * as React from "react";
 import { useState } from "react";
@@ -11,7 +11,7 @@ import { JoinShareCard } from "./JoinShareCard";
 const BTN_SECONDARY =
   "inline-flex min-h-[28px] items-center gap-1 rounded-full border border-border bg-surface px-2.5 text-[11px] font-medium text-accent hover:border-accent/40";
 const BTN_PRIMARY =
-  "inline-flex min-h-[28px] items-center gap-1 rounded-full border border-accent bg-accent px-2.5 text-[11px] font-semibold text-accent-fg hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-40";
+  "inline-flex min-h-[28px] items-center gap-1 rounded-full border border-accent bg-accent px-2.5 text-[11px] font-semibold text-accent-fg hover:brightness-105";
 
 interface Props {
   roomId: string;
@@ -32,30 +32,31 @@ export function HostRoomHeaderActions({
   });
 
   const session = sessionsQuery.data?.find((s) => s.default_room_id === roomId) ?? null;
+  const showPresent = Boolean(presentPollId);
 
   return (
     <>
       <div className="flex items-center justify-end gap-1.5">
-        <div className="inline-flex overflow-hidden rounded-full border border-accent">
-          <button
-            type="button"
-            disabled={!presentPollId}
-            title={presentPollId ? "開啟投影視窗" : "請先選擇 Poll"}
-            onClick={() => {
-              if (!presentPollId) return;
-              window.open(presentAppUrl(roomId, presentPollId), "_blank", "noopener");
-            }}
-            className={`${BTN_PRIMARY} !rounded-none !border-0`}
-          >
-            <PresentIcon />
-            投影
-          </button>
-          {presentMenu && presentPollId ? (
-            <div className="flex items-center border-l border-accent/30 bg-accent px-0.5">
-              {presentMenu}
-            </div>
-          ) : null}
-        </div>
+        {showPresent ? (
+          <div className="inline-flex overflow-hidden rounded-full border border-accent">
+            <button
+              type="button"
+              title="開啟投影視窗"
+              onClick={() => {
+                window.open(presentAppUrl(roomId, presentPollId!), "_blank", "noopener");
+              }}
+              className={`${BTN_PRIMARY} !rounded-none !border-0`}
+            >
+              <PresentIcon />
+              投影
+            </button>
+            {presentMenu ? (
+              <div className="flex items-center border-l border-accent/30 bg-accent px-0.5">
+                {presentMenu}
+              </div>
+            ) : null}
+          </div>
+        ) : null}
         <button
           type="button"
           disabled={!session}

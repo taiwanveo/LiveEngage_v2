@@ -5,7 +5,9 @@ import type { InteractionSummary, PollInteractionType } from "./pollTypes";
 
 export type Sprint9InteractionType = "quiz" | "ideas" | "survey";
 
-export type InteractionCreateType = PollInteractionType | Sprint9InteractionType;
+export type QaInteractionType = "qa";
+
+export type InteractionCreateType = PollInteractionType | Sprint9InteractionType | QaInteractionType;
 
 export async function listInteractions(
   roomId: string
@@ -36,6 +38,17 @@ export async function updateInteractionStatus(
     method: "PATCH",
     body: { status },
   });
+}
+
+/** 房間內最新的 Q&A 互動（對齊後端 get_qa_interaction）。 */
+export function findLatestQaInteraction(
+  items: InteractionSummary[]
+): InteractionSummary | null {
+  const qaItems = items.filter((i) => i.type === "qa");
+  if (qaItems.length === 0) return null;
+  return qaItems.reduce((latest, item) =>
+    item.created_at > latest.created_at ? item : latest
+  );
 }
 
 export async function updateInteraction(

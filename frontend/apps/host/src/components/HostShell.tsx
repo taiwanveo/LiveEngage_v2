@@ -1,6 +1,7 @@
 import * as React from "react";
 import { AppHeader } from "@liveengage/ui";
 import { HostRoomHeaderActions } from "./HostRoomHeaderActions";
+import { HostSessionMeta } from "./HostSessionMeta";
 
 export type HostNavId = "moderation" | "polls" | "sprint9";
 
@@ -44,7 +45,7 @@ export function HostShell({
         brandHref={HOST_DASHBOARD_HASH}
         brandAddon={titleAddon}
         tagline={subtitle ?? ""}
-        meta={`room: ${roomId}`}
+        meta={<HostSessionMeta roomId={roomId} />}
         maxWidth="7xl"
         onLogout={onLogout}
         actions={actions}
