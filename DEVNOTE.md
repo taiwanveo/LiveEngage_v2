@@ -7,8 +7,8 @@
 ## SNAPSHOT（2026-06-14）
 
 - **Repo**：https://github.com/ColdRighter/LiveEngage.git（master）
-- **最新 commit**：`3078a70` — Q&A 開關、儀表板 Modal、分享 Modal 置中
-- **pytest**：全 suite 建議 CI 再跑（本輪以 Host 前端為主）
+- **最新 commit**：`e930fec` — Host 繁中 UI、Q&A 審核開關／取消核准、參與者標記星號
+- **pytest**：`test_unapprove_returns_to_pending_and_hides_from_public` 通過（需 `LE_DATABASE_URL`）
 - **Zeabur**：**六服務** — api / host / participant / present / admin / worker（push `master` 自動 redeploy）
 
 ### 已上線服務
@@ -22,29 +22,32 @@
 | admin | https://le-admin.zeabur.app |
 | worker | Celery（無公開 URL） |
 
-### 本輪重點（Host）
+### 本輪重點（e930fec）
 
 | 區塊 | 內容 |
 |------|------|
-| **Q&A 開關** | `QaControlBar` 於 **Q&A 審核** 頂部「開啟／關閉 Q&A」；自動建立 `qa` 互動＋`moderation_enabled`；與 Quiz 分離 |
-| **活動儀表板** | 「建立新活動」改為副標旁按鈕 → Modal 輸入名稱；「我的活動」全寬列表 |
-| **頂欄 meta** | `HostSessionMeta` 顯示活動名稱，hover 顯示 `room: {UUID}` |
-| **分享 Modal** | `Modal` portal 至 `document.body` 真正置中；底部「關閉」；Esc／backdrop 可關 |
-| **投影按鈕** | 僅工作台（有 `presentPollId`）顯示；Q&A／Poll／Quiz 管理頁不再顯示 disabled 投影 |
+| **Host 繁中 UI** | `pollTypes.ts` 統一 `interactionTypeLabel`／`interactionStatusLabel`／`quizQuestionStateLabel`；Poll 列表、控制台、Builder、工作台、Sprint9、儀表板不再顯示 `multiple_choice`／`idle` 等代碼 |
+| **Q&A 審核** | 三欄標題與按鈕純中文；**取消核准**（`unapprove`）將已核准退回待審 |
+| **Q&A 控場** | `QaControlBar`：開／關 Q&A、開／關審核（`moderation_enabled`）；狀態徽章；控制列高度壓縮 |
+| **Q&A 即時** | 審核頁 `useRoomWebSocket` + `QA_EVENT_TYPES`；30s 輪詢備援 |
+| **參與者 Q&A** | 主持人標記問題顯示 ★，hover 提示「這個問題已被活動主持人標記」 |
+| **後端** | `ModerateAction.UNAPPROVE`；廣播 `question_dismissed` 至全端以更新公開列表 |
 
-### 先前已上線（ae6af17 一帶）
+### 先前已上線（3078a70 一帶）
 
 | 區塊 | 內容 |
 |------|------|
-| **Admin** | 選單重排、帳號管理、組織＋品牌合併、Analytics 繁中 |
-| **Host 跨頁** | `HostRoomHeaderActions` 分享；`brandHref` 回儀表板 |
-| **工作台** | 三欄 17%／55%／28%；「互動項目」；參與者預覽放大 |
+| **活動儀表板** | 「建立新活動」Modal；全寬列表 |
+| **頂欄 meta** | 活動名稱 + hover Room ID |
+| **分享 Modal** | portal 置中、關閉鈕與複製連結同列 |
+| **投影** | 僅工作台顯示 |
 
 ### 現場 Q&A 流程（主持人）
 
 1. 活動儀表板建立活動 → 設為進行中 → 分享 QR／連結  
-2. **Q&A 審核** → **開啟 Q&A**（非 Quiz 管理）  
-3. 參與者 Q&A 分頁提問 → 主持人於三欄審核  
+2. **Q&A 審核** → **開啟 Q&A**；可切換 **開啟／關閉審核**  
+3. 參與者提問 → 待審（有審核）或直接已核准（免審）  
+4. 核准／取消核准／標記／標為已答  
 
 > 同一 room 同時僅一個 `active` 互動；開 Q&A 會 stop 進行中的 Poll／Quiz。
 
@@ -62,11 +65,15 @@
 - Webhook outbound 派送（Celery）
 - Playwright join→poll→Q&A E2E
 - Admin Integrations UI
-- 活動儀表板列表卡片：Room ID 改 hover 顯示（頂欄 meta 已做）
+- 參與者提問成功文案依審核開關動態顯示
 
 ---
 
 ## HISTORY
+
+### 2026-06-14 — 繁中 UI + Q&A 審核增強（e930fec）
+
+Host 題型／狀態中文化；Q&A 審核純中文按鈕與取消核准；審核開關；參與者標記星號；後端 `unapprove`。
 
 ### 2026-06-14 — Q&A 開關 + 儀表板 Modal + 分享／meta UI（3078a70）
 
@@ -78,24 +85,18 @@ Admin 帳號管理、組織設定；Host 分享 Modal、工作台三欄、brand 
 
 ### 2026-06-14 — Quiz 開放 + Admin 版型 + Host 導覽（cbd1cfb）
 
-後端 activate 前先 stop 同 room active；Admin typography；Host 三選單。
+Quiz 管理開放；Admin 選單重排；Host 跨頁分享與導覽。
 
-### 2026-06-14 — 深色主題 + 頂欄一致 + 工作台版面（3d8edd6）
+---
 
-`AppHeaderChrome` 四端對齊；工作台三欄與 Poll 控場。
+## 契約速查（鐵律）
 
-### 2026-06-14 — Slido UI + SSO + Phase D（22e4015）
+1. 寫入走 REST；WebSocket 只做廣播  
+2. 投票／計數後端聚合  
+3. 匿名遮蔽只在 `mask_identity`  
+4. 寫入端點支援 `Idempotency-Key`  
+5. 同一 Room 同時僅一 active Poll（互動）  
+6. AI 旁路、10s timeout、失敗 503  
+7. UTC 儲存、UUID v7、伺服端強制權限  
 
-Host 工作台、Admin Analytics、OIDC、Quiz／Ideas／Survey。
-
-### 2026-06-13 — UI 設計系統（d6a0499 / b2feac5）
-
-`@liveengage/ui` 四主題。
-
-### 2026-06-13 — Phase D Sprint 9（5c98f3e）
-
-Quiz；Zeabur worker。
-
-### 2026-06-13 — Phase C+（0fbde82）/ Phase A（c4e0eff）
-
-Rate limit、Celery export、Runbook。
+完整規格見 `docs/LiveEngage_AI_Coding_Agent_實作指引.md`。
