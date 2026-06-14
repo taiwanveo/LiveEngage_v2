@@ -7,7 +7,7 @@
 ## SNAPSHOT（2026-06-14）
 
 - **Repo**：https://github.com/ColdRighter/LiveEngage.git（master）
-- **最新 commit**：見下方 HISTORY 本輪條目
+- **最新 commit**：`3078a70` — Q&A 開關、儀表板 Modal、分享 Modal 置中
 - **pytest**：全 suite 建議 CI 再跑（本輪以 Host 前端為主）
 - **Zeabur**：**六服務** — api / host / participant / present / admin / worker（push `master` 自動 redeploy）
 
@@ -68,7 +68,7 @@
 
 ## HISTORY
 
-### 2026-06-14 — Q&A 開關 + 儀表板 Modal + 分享／meta UI（本輪）
+### 2026-06-14 — Q&A 開關 + 儀表板 Modal + 分享／meta UI（3078a70）
 
 `QaControlBar`；儀表板建立活動 Modal；`HostSessionMeta`；Modal portal＋關閉鈕；非工作台隱藏投影。
 
