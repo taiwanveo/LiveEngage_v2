@@ -7,7 +7,7 @@
 ## SNAPSHOT（2026-06-14）
 
 - **Repo**：https://github.com/ColdRighter/LiveEngage.git（master）
-- **最新 commit**：`22e4015` — Slido UI、SSO、工作台、Phase D 接續
+- **最新 commit**：`3d8edd6` — 深色主題、四端頂欄一致、Host 工作台版面
 - **pytest**：19+（SSO + admin + poll lifecycle）；全 suite 建議 CI 再跑
 - **Zeabur**：**六服務** — api / host / participant / present / admin / worker（push `master` 自動 redeploy）
 
@@ -22,20 +22,16 @@
 | admin | https://le-admin.zeabur.app |
 | worker | Celery（無公開 URL） |
 
-### 本輪重點（22e4015）
+### 本輪重點（3d8edd6）
 
 | 區塊 | 內容 |
 |------|------|
-| **Slido UI** | 新主題 `slido`（白底深綠、預設）；`SessionToolbar` / `WorkbenchLayout` / `ParticipantPreviewFrame` |
-| **Host 工作台** | `#/rooms/:roomId/workbench/:pollId?` 三欄：互動清單｜控場｜Participant 預覽 |
-| **Admin Analytics** | `GET /admin/stats/overview`、`/analytics/engagement`；Dashboard 三欄儀表板 |
-| **SSO** | OIDC Host/Admin/Participant；`/auth/sso/*`；Participant `/sso/participant-join` |
-| **Auth UX** | Admin/Host JWT **refresh token** 自動換發（修復邀請成員 Token 過期） |
-| **Poll BUG** | `result_visible` 預設 false；Participant 不再閃現答案 |
-| **LLM** | `LE_AI_ENABLED` + OpenAI-compatible API；失敗降級 stub |
-| **Integrations** | Webhook CRUD → org `settings_jsonb.webhooks` |
-| **多房間** | `GET/POST /sessions/{id}/rooms` |
-| **E2E** | `e2e/smoke.spec.ts`（Playwright API smoke） |
+| **深色主題** | `theme.css` 相容層（slate/gray → token）；`le-card` 取代硬編碼白底 |
+| **四端頂欄** | `AppHeaderChrome` 固定 viewport 右上；Admin 主題/登出移出側欄左下 |
+| **Participant** | Q&A/Ideas/Poll/Join/CodeEntry 接設計系統 |
+| **Host 工作台** | 三欄 **25% / 60% / 15%**；手機外框 Participant 預覽 |
+| **控場 UX** | Stop/Prev/Next 左上；Poll **toggle**（開始/鎖定/揭示）+ 重置 |
+| **Analytics** | 深色下 `le-analytics-accent-*` 可讀 |
 
 ### 生產環境新增/可選 env（api）
 
@@ -58,6 +54,10 @@
 ---
 
 ## HISTORY
+
+### 2026-06-14 — 深色主題 + 頂欄一致 + 工作台版面（3d8edd6）
+
+深色相容層與 le-card 全端接線；AppHeaderChrome 四端對齊；Host 工作台 25/60/15、手機預覽、Poll toggle 控場。
 
 ### 2026-06-14 — Slido UI + SSO + Phase D 接續（22e4015）
 
