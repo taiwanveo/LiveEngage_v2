@@ -25,6 +25,8 @@ interface HostShellProps {
   activeNav?: HostNavId;
   /** 有 Poll 時可投影 */
   presentPollId?: string | undefined;
+  /** 標題列下方麵包屑（Poll／Quiz 管理等） */
+  breadcrumb?: React.ReactNode;
 }
 
 export function HostShell({
@@ -37,6 +39,7 @@ export function HostShell({
   titleAddon,
   activeNav,
   presentPollId,
+  breadcrumb,
 }: HostShellProps): React.JSX.Element {
   return (
     <main className="le-page-bg min-h-full">
@@ -58,7 +61,12 @@ export function HostShell({
           active: activeNav === item.id,
         }))}
       />
-      <div className="relative z-10 mx-auto max-w-7xl px-4 py-6 sm:px-6">{children}</div>
+      <div className="relative z-10 mx-auto max-w-7xl px-4 sm:px-6">
+        {breadcrumb ? (
+          <div className="border-b border-border/60 pb-3 pt-4">{breadcrumb}</div>
+        ) : null}
+        <div className="py-6">{children}</div>
+      </div>
     </main>
   );
 }

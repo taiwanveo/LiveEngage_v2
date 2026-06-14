@@ -6,7 +6,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { PollRenderer } from "@liveengage/renderers";
 import { useSystemNotice } from "@liveengage/ui";
 import { HostShell } from "../components/HostShell";
-import { HostTitleLink } from "../components/HostTitleActions";
+import { HostTitleLink, HostTitleActions } from "../components/HostTitleActions";
 import { updateInteraction } from "../lib/interactionApi";
 import { getPoll, updatePollOptions } from "../lib/pollApi";
 import type { PollOptionInput } from "../lib/pollTypes";
@@ -101,9 +101,17 @@ export function PollBuilderPage({
       onLogout={onLogout}
       activeNav="polls"
       titleAddon={
-        <HostTitleLink href={`#/rooms/${roomId}/polls/${pollId}/console`} variant="primary">
-          前往控制台
-        </HostTitleLink>
+        <HostTitleActions>
+          <HostTitleLink
+            href={`#/rooms/${roomId}/workbench/${pollId}`}
+            variant="secondary"
+          >
+            回到工作台
+          </HostTitleLink>
+          <HostTitleLink href={`#/rooms/${roomId}/polls/${pollId}/console`} variant="primary">
+            前往控制台
+          </HostTitleLink>
+        </HostTitleActions>
       }
     >
       {isLoading || !poll ? (

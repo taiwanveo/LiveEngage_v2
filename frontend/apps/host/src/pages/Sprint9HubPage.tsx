@@ -4,6 +4,7 @@ import * as React from "react";
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useSystemNotice } from "@liveengage/ui";
+import { HostRoomHubBreadcrumb } from "../components/HostBreadcrumb";
 import { HostShell } from "../components/HostShell";
 import { ApiException } from "../lib/api";
 import {
@@ -74,7 +75,13 @@ export function Sprint9HubPage({ roomId, onLogout }: Props): React.JSX.Element {
   );
 
   return (
-    <HostShell title="Quiz 管理" roomId={roomId} onLogout={onLogout} activeNav="sprint9">
+    <HostShell
+      title="Quiz 管理"
+      roomId={roomId}
+      onLogout={onLogout}
+      activeNav="sprint9"
+      breadcrumb={<HostRoomHubBreadcrumb roomId={roomId} currentLabel="Quiz 管理" />}
+    >
       <section className="le-card mb-8 p-6">
         <h2 className="mb-4 text-sm font-semibold text-foreground">建立互動</h2>
         <div className="flex flex-wrap gap-3">

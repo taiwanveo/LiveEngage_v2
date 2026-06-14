@@ -4,6 +4,7 @@ import * as React from "react";
 import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useSystemNotice } from "@liveengage/ui";
+import { HostRoomHubBreadcrumb } from "../components/HostBreadcrumb";
 import { HostShell } from "../components/HostShell";
 import { createInteraction, deleteInteraction, listInteractions } from "../lib/interactionApi";
 import {
@@ -54,7 +55,13 @@ export function PollHubPage({ roomId, onLogout }: Props): React.JSX.Element {
   }, [error, showError]);
 
   return (
-    <HostShell title="Poll 管理" roomId={roomId} onLogout={onLogout} activeNav="polls">
+    <HostShell
+      title="Poll 管理"
+      roomId={roomId}
+      onLogout={onLogout}
+      activeNav="polls"
+      breadcrumb={<HostRoomHubBreadcrumb roomId={roomId} currentLabel="Poll 管理" />}
+    >
       <section className="le-card mb-8 p-6">
         <h2 className="mb-4 text-sm font-semibold text-foreground">建立新 Poll</h2>
         <div className="flex flex-wrap gap-3">
