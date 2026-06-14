@@ -7,8 +7,8 @@
 ## SNAPSHOT（2026-06-14）
 
 - **Repo**：https://github.com/ColdRighter/LiveEngage.git（master）
-- **最新 commit**：`f9211a9` — 工作台手機預覽長形外框、即時時鐘與暗色捲軸
-- **typecheck**：`realtime` / `host` / `participant` / `admin` / `present` 通過
+- **最新 commit**：`db1a4bc` — Poll/Quiz 麵包屑、投票編輯回到工作台
+- **typecheck**：`host` 通過（本輪變更範圍）
 - **Zeabur**：**六服務** — api / host / participant / present / admin / worker（push `master` 自動 redeploy）
 
 ### 已上線服務
@@ -22,33 +22,26 @@
 | admin | https://le-admin.zeabur.app |
 | worker | Celery（無公開 URL） |
 
-### 本輪重點（f9211a9）
+### 本輪重點（db1a4bc）
 
 | 區塊 | 內容 |
 |------|------|
-| **手機預覽** | `ParticipantPreviewFrame` 9:19.5 長形外框；狀態列本機即時時間、冒號每秒閃爍；內容區暗色捲軸 |
+| **麵包屑** | `HostBreadcrumb`／`HostRoomHubBreadcrumb`；Poll／Quiz 管理頁顯示「活動儀表板 / {活動名} / 目前頁」，可點擊跳轉 |
+| **投票編輯** | `PollBuilderPage` 標題列「回到工作台」→ `#/rooms/{roomId}/workbench/{pollId}` |
 
-### 先前已上線（f531f6e 一帶）
-
-| 區塊 | 內容 |
-|------|------|
-| **活動開始通知** | `SESSION_STARTED` WS 廣播；參與者 Modal「活動已開始」 |
-| **互動開放通知** | `INTERACTION_STARTED`；Sprint9 開放修復；全系統 `useSystemNotice` Modal |
+### 先前已上線（f9211a9 一帶）
 
 | 區塊 | 內容 |
 |------|------|
-| **結束活動** | `SESSION_ENDED` 廣播 + 參與者結束 Modal |
-| **Quiz 編輯／刪除** | 子題 PATCH/DELETE、編輯頁、Poll/Quiz 刪除 |
-| **Q&A／Admin UX** | 審核即時、參與度去重、稽核中文化、分享按鈕 |
+| **手機預覽** | `ParticipantPreviewFrame` 9:19.5 長形外框；即時時鐘、暗色捲軸 |
+| **活動／互動通知** | `SESSION_STARTED`／`INTERACTION_STARTED`；`useSystemNotice` Modal |
+| **結束活動／Quiz** | `SESSION_ENDED`；Quiz 編輯刪除；Poll/Quiz 刪除 |
 
-### 現場流程速查
+### Host 導覽速查
 
-1. **開始活動**：儀表板設為進行中 → 參與者頁 Modal「活動已開始」  
-2. **開放互動**：Quiz 管理「開放」→ 參與者 Modal「快問快答已開始」  
-3. **Poll**：控制台 start → 參與者 Modal「投票已開始」  
-4. **系統訊息**：成功／失敗皆以置中 Modal 顯示（點遮罩或關閉鈕可關）  
-
-> 同一 room 同時僅一個 `active` 互動。
+1. **儀表板** → 建立／進行中活動 → **工作台**（三欄）  
+2. **Poll 管理**／**Quiz 管理**：頂欄下方麵包屑可回儀表板或工作台  
+3. **投票編輯**：可「回到工作台」或「前往控制台」  
 
 ### 生產環境 env（api）
 
@@ -63,12 +56,16 @@
 
 - Webhook outbound 派送（Celery）
 - Playwright join→poll→Q&A E2E
-- `session_started`／`interaction_started` 專項 pytest
+- Q&A 審核頁麵包屑（與 Poll/Quiz 對齊）
 - Admin Integrations UI
 
 ---
 
 ## HISTORY
+
+### 2026-06-14 — Poll/Quiz 麵包屑 + 投票編輯回工作台（db1a4bc）
+
+`HostBreadcrumb`；Poll/Quiz 管理麵包屑；PollBuilder「回到工作台」。
 
 ### 2026-06-14 — 工作台手機預覽 UX（f9211a9）
 
@@ -76,19 +73,15 @@
 
 ### 2026-06-14 — 活動開始通知 + Sprint9 開放修復 + Modal 統一（f531f6e）
 
-`session_started`／`interaction_started` 廣播；Sprint9 開放房間鎖修復；`useSystemNotice` 全系統 Modal；參與者互動開始即時提示。
+`session_started`／`interaction_started` 廣播；Sprint9 開放房間鎖修復；`useSystemNotice` 全系統 Modal。
 
 ### 2026-06-14 — 結束活動通知 + Quiz 編輯 + Poll/Quiz 刪除（c9b53f1）
 
-`session_ended` 廣播；參與者結束 Modal；Quiz 子題 PATCH/DELETE 與編輯頁；互動 DELETE；Q&A 即時審核；參與度去重；稽核中文化；參與者分享與提交 Modal。
+`session_ended` 廣播；參與者結束 Modal；Quiz 子題 PATCH/DELETE 與編輯頁；互動 DELETE。
 
 ### 2026-06-14 — 繁中 UI + Q&A 審核增強（e930fec）
 
-Host 題型／狀態中文化；Q&A 審核純中文按鈕與取消核准；審核開關；參與者標記星號；後端 `unapprove`。
-
-### 2026-06-14 — Q&A 開關 + 儀表板 Modal + 分享／meta UI（3078a70）
-
-`QaControlBar`；儀表板建立活動 Modal；`HostSessionMeta`；Modal portal＋關閉鈕；非工作台隱藏投影。
+Host 題型／狀態中文化；Q&A 審核開關／取消核准；參與者標記星號。
 
 ---
 
