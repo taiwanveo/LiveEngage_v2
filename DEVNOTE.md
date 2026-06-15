@@ -19,7 +19,13 @@
 | host | https://le-host.zeabur.app |
 | participant | https://le-participant.zeabur.app |
 
-### 本輪重點（f82edc6）
+### 本輪重點（7d4420d）
+
+| 區塊 | 內容 |
+|------|------|
+| **分享連結修復** | `participantJoinUrl` 不再用 Host 的 `window.location`；QR／複製連結皆指向 `le-participant` |
+
+### 前一輪（f82edc6）
 
 | 區塊 | 內容 |
 |------|------|
@@ -53,6 +59,10 @@
 ---
 
 ## HISTORY
+
+### 2026-06-14 — 分享連結指向 participant（7d4420d）
+
+Host「分享加入資訊」的 URL／QR 修正為 `le-participant.zeabur.app/#/join/{code}`。
 
 ### 2026-06-14 — Survey 作答、Quiz 重載與按鈕缺口修復（f82edc6）
 
