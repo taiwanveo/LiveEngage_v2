@@ -7,7 +7,7 @@
 ## SNAPSHOT（2026-06-15）
 
 - **Repo**：https://github.com/ColdRighter/LiveEngage.git（master）
-- **最新 commit**：`PLACEHOLDER` — 問卷填寫明細、頂欄「進行中」膠囊
+- **最新 commit**：`84b76ab` — 問卷填寫明細、頂欄「進行中」膠囊
 - **測試**：`test_fe012_survey_multiple_choice_and_open_text` 涵蓋 `GET /surveys/{id}/submissions`
 - **api 健康**：https://le-api.zeabur.app/health → 待驗證
 - **Zeabur 部署**：push 後自動建置；需 redeploy **api**、**host**
