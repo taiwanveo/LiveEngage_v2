@@ -7,30 +7,42 @@
 ## SNAPSHOT（2026-06-14）
 
 - **Repo**：https://github.com/ColdRighter/LiveEngage.git（master）
-- **最新 commit**：`c51b348` — 三端登入文案、頁面標題與頂欄品牌統一
-- **typecheck**：`host` 通過
+- **最新 commit**：`0a3866d` — 工作台與管理頁 UX 強化、點子隱藏切換與刪除修復
+- **typecheck**：`host` 通過；後端 `test_s9_phase_d` 新增 hide/show、子題列表過濾、DELETE 冪等測試通過
 - **接手文件**：[`docs/服務架構.md`](docs/服務架構.md)
 - **api 健康**：https://le-api.zeabur.app/health
 
-### 本輪重點（三端品牌與文案，c51b348）
+### 本輪重點（工作台／管理頁／後端修復，0a3866d）
 
 | 區塊 | 內容 |
 |------|------|
-| **登入頁文案** | Admin／Host／Participant 登入與加入頁副標、說明文字更新 |
-| **HTML title** | 固定為 `LiveEngage管理後台`、`LiveEngage主持人工作台`、`LiveEngage互動會場`（不再被組織名稱覆寫） |
-| **頂欄單行標題** | Admin「LiveEngage 管理後台」；Host 儀表板「LiveEngage 主持人工作台」；Participant 活動頁「LiveEngage 互動會場」 |
-| **組織 Logo** | `AppHeader` 僅在已上傳 `logo_url` 時顯示 Logo 列；Participant `RoomPage` 依活動代碼載入品牌 |
-| **Host 儀表板** | 「建立新活動」移至「我的活動」右側（`3ch` 間距）；「結束活動」改紅字 |
+| **工作台控場** | 「上一題／下一題／開放／Poll 控場」移至中欄置中；移除頂欄 Q&A 按鈕與 `QaModerationModal` |
+| **編輯／刪除** | `WorkbenchInteractionActions`：編輯題目、刪除題目移至工具列末端（compact 樣式）；標題列僅留狀態徽章 |
+| **Sprint9 開放** | 移除 `Sprint9ActivateBanner`；「開放」按鈕無狀態圓點（`showDot={false}`） |
+| **點子牆** | Host 端隱藏／顯示切換；隱藏項灰色仍可見；參與者列表過濾 hidden；`POST …/show` + `idea_visibility_changed` WS |
+| **刪除互動修復** | 列表排除 Quiz／Survey **子題** child interaction；DELETE 冪等（404 視成功）；Hub 刪除樂觀更新 |
+| **Quiz 子題** | 各狀態可 `update_question`；`closed` 可重啟；新增 `hide` action；`result_visible` 欄位 |
+| **Poll／Quiz 管理** | `HubCreateCard` 與 Q&A 提問同高；Quiz 標題「新增 Quiz」；空狀態「尚無 Quiz」 |
+| **麵包屑** | 工作台、即時總覽補上 `HostRoomHubBreadcrumb`（活動列表／活動名／目前頁） |
+| **文案** | 「活動儀表板」→「活動列表」；Logo hover「回到活動列表」 |
+| **參與者會場** | 頂欄單行「LiveEngage 互動會場：{活動名}」；頁籤 Poll／Quiz／Q&A；Q&A「問題列表」文案 |
 
 ### 部署（本輪）
 
-Git push `c51b348` 後 Zeabur 自動建置；需 redeploy：**admin**、**host**、**participant**（皆含 `ui` 套件）；**api**／**worker** 無變更可略。
+Git push `0a3866d` 後 Zeabur 自動建置；需 redeploy：**api**（ideas／interaction／quiz）、**host**、**participant**（含 `realtime`）；**worker** 無 Celery 變更可略。
+
+| 服務 | URL |
+|------|-----|
+| api | https://le-api.zeabur.app |
+| host | https://le-host.zeabur.app |
+| participant | https://le-participant.zeabur.app |
+| admin | https://le-admin.zeabur.app |
 
 ---
 
 ## SNAPSHOT（2026-06-14，歷史）
 
-- **最新 commit（舊）**：`e53e73f` — Poll/Quiz 管理列表對齊與開始結束切換
+- **最新 commit（舊）**：`c51b348` — 三端登入文案、頁面標題與頂欄品牌統一
 
 | 區塊 | 內容 |
 |------|------|
