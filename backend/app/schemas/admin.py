@@ -40,7 +40,11 @@ class MemberResponse(BaseModel):
 
 
 class MemberUpdateRequest(BaseModel):
-    role: UserRole
+    """更新成員資料（至少一項）。"""
+
+    role: UserRole | None = None
+    name: str | None = Field(default=None, max_length=255)
+    password: str | None = Field(default=None, min_length=8, max_length=128)
 
 
 class MemberInviteRequest(BaseModel):

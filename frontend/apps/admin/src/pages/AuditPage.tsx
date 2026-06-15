@@ -30,6 +30,7 @@ const ACTION_COLORS: Record<string, string> = {
   update_organization: "bg-blue-500/10 text-blue-600 dark:text-blue-400",
   invite_member: "bg-green-500/10 text-green-600 dark:text-green-400",
   remove_member: "bg-red-500/10 text-red-600 dark:text-red-400",
+  update_member: "bg-yellow-500/10 text-yellow-600 dark:text-yellow-400",
   update_member_role: "bg-yellow-500/10 text-yellow-600 dark:text-yellow-400",
   admin_update_session_status: "bg-purple-500/10 text-purple-600 dark:text-purple-400",
 };

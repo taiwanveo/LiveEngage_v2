@@ -5,15 +5,16 @@ from __future__ import annotations
 import datetime as dt
 import uuid
 
-from sqlalchemy import func, select
+from sqlalchemy import and_, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.errors import AppError, ErrorCode
-from app.models.enums import InteractionStatus
+from app.models.enums import InteractionStatus, InteractionType
 from app.models.interaction import Interaction
 from app.models.participant import Participant
 from app.models.room import Room
 from app.models.session import Session
+from app.models.sprint9 import QuizQuestion
 from app.schemas.state import (
     ActiveInteractionSnapshot,
     RoomSnapshot,
@@ -41,10 +42,18 @@ async def get_session_state(
     active: list[ActiveInteractionSnapshot] = []
     if rooms:
         room_ids = [r.id for r in rooms]
+        quiz_child_ids = select(QuizQuestion.child_interaction_id)
         active_result = await db.execute(
             select(Interaction).where(
                 Interaction.room_id.in_(room_ids),
-                Interaction.status == InteractionStatus.ACTIVE,
+                Interaction.id.not_in(quiz_child_ids),
+                or_(
+                    Interaction.status == InteractionStatus.ACTIVE,
+                    and_(
+                        Interaction.type == InteractionType.QUIZ,
+                        Interaction.status == InteractionStatus.LOCKED,
+                    ),
+                ),
             )
         )
         active = [

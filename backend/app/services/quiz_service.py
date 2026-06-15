@@ -262,7 +262,7 @@ async def get_active_question_for_participant(
     quiz = result.scalar_one_or_none()
     if quiz is None or quiz.type != InteractionType.QUIZ:
         raise AppError(ErrorCode.NOT_FOUND, "找不到 Quiz")
-    if quiz.status != InteractionStatus.ACTIVE:
+    if quiz.status not in (InteractionStatus.ACTIVE, InteractionStatus.LOCKED):
         return None
 
     part_check = await db.execute(
@@ -436,6 +436,28 @@ async def get_leaderboard(
     )
 
 
+async def _yield_room_active_slot_to_quiz_child(
+    db: AsyncSession,
+    *,
+    room_id: uuid.UUID,
+    parent_quiz: Interaction,
+    child_id: uuid.UUID,
+) -> None:
+    """子題佔用 room 唯一 active 名額：父 Quiz 改 locked，並 stop 其它 active 互動。"""
+    if parent_quiz.status == InteractionStatus.ACTIVE:
+        parent_quiz.status = InteractionStatus.LOCKED
+        await db.flush()
+    await interaction_service._stop_other_active_in_room(
+        db, room_id, except_id=child_id, also_except=parent_quiz.id
+    )
+
+
+def _restore_quiz_parent_if_locked(parent_quiz: Interaction) -> None:
+    """子題結束且 Quiz 仍開放時，父 Quiz 恢復 active。"""
+    if parent_quiz.status == InteractionStatus.LOCKED:
+        parent_quiz.status = InteractionStatus.ACTIVE
+
+
 async def _close_active_siblings(
     db: AsyncSession, quiz_interaction_id: uuid.UUID, except_id: uuid.UUID | None
 ) -> None:
@@ -508,6 +530,9 @@ async def quiz_action(
                 f"start_question 僅允許 pending 狀態（目前 {qq.state}）",
             )
         await _close_active_siblings(db, qq.quiz_interaction_id, except_id=qq.id)
+        await _yield_room_active_slot_to_quiz_child(
+            db, room_id=room_id, parent_quiz=quiz, child_id=child.id
+        )
         await _start_child_poll(db, child, qq)
         options = await _question_options(db, child.id, hide_correct=True)
         await events.publish(
@@ -530,6 +555,7 @@ async def quiz_action(
         qq.state = QuizQuestionState.REVEALED
         child.result_visible = True
         child.status = InteractionStatus.LOCKED
+        _restore_quiz_parent_if_locked(quiz)
         correct_ids = await _get_correct_option_ids(db, child.id)
         await events.publish(
             room_id,
@@ -550,6 +576,7 @@ async def quiz_action(
         qq.state = QuizQuestionState.CLOSED
         child.status = InteractionStatus.STOPPED
         child.stopped_at = now
+        _restore_quiz_parent_if_locked(quiz)
 
     elif action == QuizAction.NEXT:
         if qq.state in (QuizQuestionState.ACTIVE, QuizQuestionState.REVEALED):
@@ -574,6 +601,9 @@ async def quiz_action(
             await _close_active_siblings(
                 db, qq.quiz_interaction_id, except_id=next_qq.id
             )
+            await _yield_room_active_slot_to_quiz_child(
+                db, room_id=room_id, parent_quiz=quiz, child_id=next_child.id
+            )
             await _start_child_poll(db, next_child, next_qq)
             qq = next_qq
             child = next_child
@@ -588,6 +618,8 @@ async def quiz_action(
                     ),
                 },
             )
+        else:
+            _restore_quiz_parent_if_locked(quiz)
     else:
         raise AppError(ErrorCode.VALIDATION_ERROR, f"不支援的動作：{action}")
 

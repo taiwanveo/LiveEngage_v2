@@ -7,30 +7,38 @@
 ## SNAPSHOT（2026-06-15）
 
 - **Repo**：https://github.com/ColdRighter/LiveEngage.git（master）
-- **最新 commit**：`3a36bec` — 組織品牌套用 + 角色模型（host／cohost）
-- **typecheck**：`ui`、`host`、`participant`、`admin` 通過
-- **DB migration**：`0007_user_roles_host_cohost`（部署 api 時需跑 alembic upgrade）
+- **最新 commit**：`83d042f` — Quiz 子題開始修復、後台成員編輯、cohost Quiz UI
+- **typecheck**：`host`、`participant`、`admin` 通過
+- **整合測試**：`test_start_question_after_quiz_activated`、`test_fe011_quiz_submit_and_leaderboard` 通過（需 `LE_DATABASE_URL`）
 
 ### 本輪重點
 
 | 區塊 | 內容 |
 |------|------|
-| **組織品牌** | `GET /api/v1/branding/me`（Host）、`/by-code/{code}`（Participant）；頂欄 Logo、favicon、主色 |
-| **角色** | `member`→`host`（主持人）；新增 `cohost`（助理主持人）；停用 `guest` 邀請 |
-| **助理主持人** | 可控場／投影／審核；不可建立／編輯／刪除 Poll／Quiz（後端 `host_permissions` 強制） |
+| **Quiz 子題開始** | 父 Quiz 已「開放」時 `start_question` 不再觸發 `uq_interactions_active_room`；父 `active`→`locked`，子題佔 active 名額，結束後恢復 |
+| **參與者 reconnect** | `state_service` 含 `locked` Quiz 父題、排除 Quiz 子題 MC；`RoomPage` 以 active/locked 找 Quiz |
+| **後台帳號管理** | `PATCH /admin/members/{id}` 支援姓名／密碼／角色；Admin「編輯」對話框 |
+| **助理主持人 UI** | Quiz 控制台隱藏新增子題／編輯／刪除（對齊 Poll Hub） |
 
-### 角色速查
+### Quiz 父／子狀態（控場時）
 
-| role | 中文 | 說明 |
-|------|------|------|
-| owner / admin | 擁有者／管理員 | 後台 + 完整控場 |
-| host | 主持人 | 原 member；Host 登入、建立與編輯內容 |
-| cohost | 助理主持人 | 現場控場，不可改 Poll／Quiz 結構 |
-| guest | 訪客 | 已停用邀請；參與者走 QR，不用此帳號 |
+| 階段 | 父 Quiz | 子題 child |
+|------|---------|------------|
+| 已開放、等待子題 | `active` | `idle` |
+| 子題進行中 | `locked` | `active` |
+| 揭曉／子題結束 | `active` | `locked` / `stopped` |
+
+### 部署
+
+需 redeploy：**api**、**host**、**participant**、**admin**（api 啟動時自動 `alembic upgrade head`）。
 
 ---
 
 ## HISTORY
+
+### 2026-06-15 — Quiz 子題開始 + 後台成員編輯 + cohost Quiz UI
+
+`quiz_service._yield_room_active_slot_to_quiz_child`；`state_service` locked Quiz；Admin `updateMember`；Sprint9ConsolePage `canEditHostContent`。
 
 ### 2026-06-15 — 組織品牌 + 角色（3a36bec）
 

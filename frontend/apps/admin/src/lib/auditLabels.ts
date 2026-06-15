@@ -5,6 +5,7 @@ export const AUDIT_ACTION_LABELS: Record<string, string> = {
   update_organization: "更新組織資料",
   update_branding: "更新品牌設定",
   invite_member: "邀請成員",
+  update_member: "更新成員",
   update_member_role: "更新成員角色",
   remove_member: "移除成員",
   admin_update_session_status: "更新活動狀態",

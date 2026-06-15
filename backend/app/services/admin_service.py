@@ -195,36 +195,55 @@ async def invite_member(
     return _to_member_response(new_user)
 
 
-async def update_member_role(
+async def update_member(
     db: AsyncSession,
     *,
     actor: User,
     user_id: uuid.UUID,
     payload: MemberUpdateRequest,
 ) -> MemberResponse:
-    """變更成員角色（不可降低 owner 等級）。"""
+    """更新成員姓名、密碼或角色（不可降低 owner 等級）。"""
+    if payload.role is None and payload.name is None and payload.password is None:
+        raise AppError(ErrorCode.VALIDATION_ERROR, "請至少提供一項要更新的欄位")
+
     result = await db.execute(select(User).where(User.id == user_id, User.org_id == actor.org_id))
     target = result.scalar_one_or_none()
     if target is None:
         raise AppError(ErrorCode.NOT_FOUND, "找不到成員")
-    if target.role == UserRole.OWNER and payload.role != UserRole.OWNER:
-        raise AppError(ErrorCode.FORBIDDEN, "不可降低 Owner 角色")
-    if payload.role == UserRole.GUEST:
-        raise AppError(
-            ErrorCode.VALIDATION_ERROR,
-            "訪客帳號已停用；參與者請使用活動 QR Code 加入",
-        )
-    new_role = UserRole.HOST if payload.role == UserRole.MEMBER else payload.role
 
-    old_role = target.role
-    target.role = new_role
+    changes: dict[str, Any] = {}
+
+    if payload.name is not None and payload.name != target.name:
+        changes["name"] = {"from": target.name, "to": payload.name}
+        target.name = payload.name
+
+    if payload.password is not None:
+        target.password_hash = hash_secret(payload.password)
+        changes["password"] = True
+
+    if payload.role is not None:
+        if target.role == UserRole.OWNER and payload.role != UserRole.OWNER:
+            raise AppError(ErrorCode.FORBIDDEN, "不可變更 Owner 角色")
+        if payload.role == UserRole.GUEST:
+            raise AppError(
+                ErrorCode.VALIDATION_ERROR,
+                "訪客帳號已停用；參與者請使用活動 QR Code 加入",
+            )
+        new_role = UserRole.HOST if payload.role == UserRole.MEMBER else payload.role
+        if new_role != target.role:
+            changes["role"] = {"from": target.role.value, "to": new_role.value}
+            target.role = new_role
+
+    if not changes:
+        return _to_member_response(target)
+
     await audit_service.log(
         db,
         actor=actor,
-        action="update_member_role",
+        action="update_member",
         target_type="user",
         target_id=target.id,
-        details={"from": old_role.value, "to": new_role.value},
+        details={"email": target.email, "changes": changes},
     )
     await db.commit()
     await db.refresh(target)

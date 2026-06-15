@@ -87,14 +87,24 @@ export const inviteMember = (payload: {
 }): Promise<MemberData> =>
   api<MemberData>("/api/v1/admin/members", { method: "POST", body: payload });
 
-export const updateMemberRole = (
+export interface MemberUpdatePayload {
+  name?: string;
+  role?: string;
+  password?: string;
+}
+
+export const updateMember = (
   userId: string,
-  role: string
+  payload: MemberUpdatePayload
 ): Promise<MemberData> =>
   api<MemberData>(`/api/v1/admin/members/${userId}`, {
     method: "PATCH",
-    body: { role },
+    body: payload,
   });
+
+/** @deprecated 請改用 updateMember */
+export const updateMemberRole = (userId: string, role: string): Promise<MemberData> =>
+  updateMember(userId, { role });
 
 export const removeMember = (userId: string): Promise<void> =>
   api<void>(`/api/v1/admin/members/${userId}`, { method: "DELETE" });

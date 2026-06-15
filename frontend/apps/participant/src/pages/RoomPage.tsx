@@ -89,7 +89,10 @@ export function RoomPage(): React.JSX.Element {
   const activeQuizId = useMemo(() => {
     if (!ctx || !stateQuery.data) return null;
     const hit = stateQuery.data.active_interactions.find(
-      (i) => i.room_id === ctx.roomId && i.type === "quiz" && i.status === "active"
+      (i) =>
+        i.room_id === ctx.roomId &&
+        i.type === "quiz" &&
+        (i.status === "active" || i.status === "locked")
     );
     return hit?.id ?? null;
   }, [ctx, stateQuery.data]);

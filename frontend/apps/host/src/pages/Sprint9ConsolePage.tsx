@@ -20,7 +20,7 @@ import { HostRoomDetailBreadcrumb } from "../components/HostBreadcrumb";
 import { HostShell } from "../components/HostShell";
 import { HostTitleLink } from "../components/HostTitleActions";
 import { sprint9PresentUrl } from "../lib/presentUrl";
-import { getAccessToken } from "../lib/auth";
+import { getAccessToken, canEditHostContent } from "../lib/auth";
 import { listInteractions } from "../lib/interactionApi";
 import {
   addQuizQuestion,
@@ -59,6 +59,7 @@ export function Sprint9ConsolePage({
   const qc = useQueryClient();
   const [quizTitle, setQuizTitle] = useState("");
   const { showError, showSuccess, systemNoticeModal } = useSystemNotice();
+  const editable = canEditHostContent();
 
   const metaQuery = useQuery({
     queryKey: ["interactions", roomId],
@@ -236,7 +237,7 @@ export function Sprint9ConsolePage({
     >
       {item.type === "quiz" ? (
         <div className="space-y-6">
-          {item.status !== "active" ? (
+          {item.status !== "active" && item.status !== "locked" ? (
             <p className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-100">
               此 Quiz 尚未開放。請先到{" "}
               <a href={`#/rooms/${roomId}/sprint9`} className="font-medium underline">
@@ -245,25 +246,27 @@ export function Sprint9ConsolePage({
               點「開放」，參與者才能作答；主機仍可在下方控場。
             </p>
           ) : null}
-          <section className="le-card p-4">
-            <h3 className="mb-3 text-sm font-semibold text-foreground">新增子題</h3>
-            <div className="flex gap-2">
-              <input
-                value={quizTitle}
-                onChange={(e) => setQuizTitle(e.target.value)}
-                placeholder="題目文字"
-                className="le-input flex-1"
-              />
-              <button
-                type="button"
-                disabled={addQuestionMutation.isPending}
-                onClick={() => addQuestionMutation.mutate()}
-                className="le-btn-primary le-btn-sm"
-              >
-                新增
-              </button>
-            </div>
-          </section>
+          {editable ? (
+            <section className="le-card p-4">
+              <h3 className="mb-3 text-sm font-semibold text-foreground">新增子題</h3>
+              <div className="flex gap-2">
+                <input
+                  value={quizTitle}
+                  onChange={(e) => setQuizTitle(e.target.value)}
+                  placeholder="題目文字"
+                  className="le-input flex-1"
+                />
+                <button
+                  type="button"
+                  disabled={addQuestionMutation.isPending}
+                  onClick={() => addQuestionMutation.mutate()}
+                  className="le-btn-primary le-btn-sm"
+                >
+                  新增
+                </button>
+              </div>
+            </section>
+          ) : null}
           <section className="le-card p-4">
             <h3 className="mb-3 text-sm font-semibold text-foreground">子題控場</h3>
             <ul className="space-y-3">
@@ -282,7 +285,7 @@ export function Sprint9ConsolePage({
                     </p>
                   </div>
                   <div className="flex flex-wrap items-center gap-2">
-                    {q.state === "pending" ? (
+                    {editable && q.state === "pending" ? (
                       <ListActionLink
                         href={`#/rooms/${roomId}/sprint9/${interactionId}/questions/${q.id}/edit`}
                       >
@@ -321,7 +324,7 @@ export function Sprint9ConsolePage({
                         結束
                       </Button>
                     ) : null}
-                    {q.state === "pending" ? (
+                    {editable && q.state === "pending" ? (
                       <ListActionDanger
                         disabled={deleteQuestionMutation.isPending}
                         onClick={() => {

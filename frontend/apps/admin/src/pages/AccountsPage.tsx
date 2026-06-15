@@ -1,14 +1,15 @@
-/** 帳號管理：組織成員邀請與角色。 */
+/** 帳號管理：組織成員邀請、編輯與角色。 */
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
-import { useSystemNotice } from "@liveengage/ui";
+import { useEffect, useState } from "react";
+import { Modal, useSystemNotice } from "@liveengage/ui";
 import {
   AdminFormField,
   AdminPageHeader,
   AdminPanel,
   AdminSectionTitle,
   adminBtnPrimary,
+  adminBtnSecondary,
   adminInputClass,
   adminPageStackClass,
   adminTableHeadClass,
@@ -19,7 +20,7 @@ import {
   inviteMember,
   listMembers,
   removeMember,
-  updateMemberRole,
+  updateMember,
 } from "../lib/adminApi";
 
 const ROLE_LABELS: Record<string, string> = {
@@ -36,6 +37,10 @@ const INVITE_ROLES = [
   { value: "cohost", label: "助理主持人" },
   { value: "admin", label: "管理員" },
 ] as const;
+
+function normalizeRole(role: MemberData["role"]): string {
+  return role === "member" ? "host" : role;
+}
 
 function InviteForm({ onDone }: { onDone: () => void }) {
   const { showError, systemNoticeModal } = useSystemNotice();
@@ -117,23 +122,136 @@ function InviteForm({ onDone }: { onDone: () => void }) {
   );
 }
 
-function MemberRow({ member }: { member: MemberData }) {
-  const qc = useQueryClient();
-  const [selectedRole, setSelectedRole] = useState(member.role);
-  const [saving, setSaving] = useState(false);
+function EditMemberModal({
+  member,
+  onClose,
+  onSaved,
+}: {
+  member: MemberData;
+  onClose: () => void;
+  onSaved: () => void;
+}) {
+  const { showError, showSuccess, systemNoticeModal } = useSystemNotice();
+  const isOwner = member.role === "owner";
+  const [name, setName] = useState(member.name ?? "");
+  const [role, setRole] = useState(normalizeRole(member.role));
+  const [password, setPassword] = useState("");
 
-  const onRoleChange = async (newRole: string) => {
-    setSaving(true);
-    setSelectedRole(newRole as MemberData["role"]);
-    await updateMemberRole(member.id, newRole);
-    qc.invalidateQueries({ queryKey: ["admin-members"] });
-    setSaving(false);
-  };
+  useEffect(() => {
+    setName(member.name ?? "");
+    setRole(normalizeRole(member.role));
+    setPassword("");
+  }, [member]);
+
+  const mutation = useMutation({
+    mutationFn: () => {
+      const payload: Parameters<typeof updateMember>[1] = {};
+      const trimmedName = name.trim();
+      if (trimmedName !== (member.name ?? "")) {
+        payload.name = trimmedName;
+      }
+      if (!isOwner && role !== normalizeRole(member.role)) {
+        payload.role = role;
+      }
+      if (password) {
+        payload.password = password;
+      }
+      if (!payload.name && !payload.role && !payload.password) {
+        throw new Error("請修改至少一項欄位");
+      }
+      return updateMember(member.id, payload);
+    },
+    onSuccess: () => {
+      showSuccess("成員資料已更新");
+      onSaved();
+      onClose();
+    },
+    onError: (e: Error) => showError(e.message),
+  });
+
+  return (
+    <>
+      <Modal open title="編輯成員" onClose={onClose} showCloseButton={false} size="md">
+        <div className="space-y-3">
+          <AdminFormField label="Email">
+            <input className={adminInputClass} type="email" value={member.email} disabled />
+          </AdminFormField>
+          <AdminFormField label="姓名">
+            <input
+              className={adminInputClass}
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="姓名"
+            />
+          </AdminFormField>
+          <AdminFormField label="角色">
+            {isOwner ? (
+              <input
+                className={adminInputClass}
+                value={ROLE_LABELS[member.role]}
+                disabled
+              />
+            ) : (
+              <select
+                className={adminInputClass}
+                value={role}
+                onChange={(e) => setRole(e.target.value)}
+              >
+                {INVITE_ROLES.map((r) => (
+                  <option key={r.value} value={r.value}>
+                    {r.label}
+                  </option>
+                ))}
+              </select>
+            )}
+          </AdminFormField>
+          <AdminFormField label="新密碼（選填）">
+            <input
+              className={adminInputClass}
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="留空則不變更，至少 8 碼"
+            />
+          </AdminFormField>
+        </div>
+        <div className="mt-5 flex justify-end gap-2 border-t border-border pt-4">
+          <button type="button" className={adminBtnSecondary} onClick={onClose}>
+            取消
+          </button>
+          <button
+            type="button"
+            className={adminBtnPrimary}
+            disabled={mutation.isPending}
+            onClick={() => mutation.mutate()}
+          >
+            {mutation.isPending ? "儲存中..." : "儲存"}
+          </button>
+        </div>
+      </Modal>
+      {systemNoticeModal}
+    </>
+  );
+}
+
+function MemberRow({
+  member,
+  onEdit,
+}: {
+  member: MemberData;
+  onEdit: (member: MemberData) => void;
+}) {
+  const qc = useQueryClient();
+  const { showError } = useSystemNotice();
 
   const onRemove = async () => {
     if (!confirm(`確定移除成員 ${member.email}？`)) return;
-    await removeMember(member.id);
-    qc.invalidateQueries({ queryKey: ["admin-members"] });
+    try {
+      await removeMember(member.id);
+      void qc.invalidateQueries({ queryKey: ["admin-members"] });
+    } catch (e) {
+      showError(e instanceof Error ? e.message : "移除失敗");
+    }
   };
 
   const isOwner = member.role === "owner";
@@ -147,34 +265,38 @@ function MemberRow({ member }: { member: MemberData }) {
         </div>
       </td>
       <td className="px-4 py-3">
-        {isOwner ? (
-          <span className="inline-block rounded-full bg-yellow-500/10 px-2.5 py-0.5 text-xs font-medium text-yellow-600 dark:text-yellow-400">
-            {ROLE_LABELS[member.role]}
-          </span>
-        ) : (
-          <select
-            className="rounded border border-border bg-surface px-2 py-1 text-sm text-foreground disabled:opacity-50"
-            value={selectedRole === "member" ? "host" : selectedRole}
-            onChange={(e) => onRoleChange(e.target.value)}
-            disabled={saving}
-          >
-            {INVITE_ROLES.map((r) => (
-              <option key={r.value} value={r.value}>
-                {r.label}
-              </option>
-            ))}
-          </select>
-        )}
+        <span
+          className={
+            isOwner
+              ? "inline-block rounded-full bg-yellow-500/10 px-2.5 py-0.5 text-xs font-medium text-yellow-600 dark:text-yellow-400"
+              : "inline-block rounded-full bg-surface-elevated px-2.5 py-0.5 text-xs font-medium text-foreground"
+          }
+        >
+          {ROLE_LABELS[member.role] ?? member.role}
+        </span>
       </td>
       <td className="px-4 py-3 text-xs text-muted">
         {new Date(member.created_at).toLocaleDateString("zh-TW")}
       </td>
       <td className="px-4 py-3">
-        {!isOwner ? (
-          <button className="text-xs text-danger hover:underline" onClick={onRemove}>
-            移除
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            className="text-xs text-accent hover:underline"
+            onClick={() => onEdit(member)}
+          >
+            編輯
           </button>
-        ) : null}
+          {!isOwner ? (
+            <button
+              type="button"
+              className="text-xs text-danger hover:underline"
+              onClick={() => void onRemove()}
+            >
+              移除
+            </button>
+          ) : null}
+        </div>
       </td>
     </tr>
   );
@@ -191,13 +313,14 @@ export function AccountsPage({ onLogout }: Props): React.JSX.Element {
     queryFn: listMembers,
   });
   const [showInvite, setShowInvite] = useState(false);
+  const [editingMember, setEditingMember] = useState<MemberData | null>(null);
 
   return (
     <AdminShell active="accounts" onLogout={onLogout}>
       <div className={`mx-auto max-w-4xl ${adminPageStackClass}`}>
         <AdminPageHeader
           title="帳號管理"
-          description="邀請成員並管理角色權限。"
+          description="邀請成員，或編輯姓名、密碼與角色權限。"
         />
 
         <AdminPanel className="overflow-hidden">
@@ -232,18 +355,26 @@ export function AccountsPage({ onLogout }: Props): React.JSX.Element {
                   <th className="px-4 py-3">成員</th>
                   <th className="px-4 py-3">角色</th>
                   <th className="px-4 py-3">加入時間</th>
-                  <th className="px-4 py-3"></th>
+                  <th className="px-4 py-3">操作</th>
                 </tr>
               </thead>
               <tbody>
                 {members.map((m) => (
-                  <MemberRow key={m.id} member={m} />
+                  <MemberRow key={m.id} member={m} onEdit={setEditingMember} />
                 ))}
               </tbody>
             </table>
           )}
         </AdminPanel>
       </div>
+
+      {editingMember ? (
+        <EditMemberModal
+          member={editingMember}
+          onClose={() => setEditingMember(null)}
+          onSaved={() => void qc.invalidateQueries({ queryKey: ["admin-members"] })}
+        />
+      ) : null}
     </AdminShell>
   );
 }

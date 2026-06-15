@@ -129,6 +129,78 @@ class TestBE008Members:
 
         client.delete(f"/api/v1/admin/members/{new_id}", headers=_auth_headers(token))
 
+    def test_update_member_name_and_password(
+        self, client: TestClient, host_token: tuple[str, str]
+    ) -> None:
+        """BE-008-AC8：更新成員姓名與密碼。"""
+        token, _ = host_token
+        new_email = f"edit-{uuid.uuid4().hex[:8]}@example.com"
+
+        invite = client.post(
+            "/api/v1/admin/members",
+            headers=_auth_headers(token),
+            json={
+                "email": new_email,
+                "name": "原名",
+                "role": "member",
+                "password": "TestPass123!",
+            },
+        )
+        assert invite.status_code == 201
+        new_id = invite.json()["id"]
+
+        patch_resp = client.patch(
+            f"/api/v1/admin/members/{new_id}",
+            headers=_auth_headers(token),
+            json={"name": "新名稱", "password": "NewPass456!"},
+        )
+        assert patch_resp.status_code == 200, patch_resp.text
+        assert patch_resp.json()["name"] == "新名稱"
+
+        login = client.post(
+            "/api/v1/auth/login",
+            json={"email": new_email, "password": "NewPass456!"},
+        )
+        assert login.status_code == 200, login.text
+
+        client.delete(f"/api/v1/admin/members/{new_id}", headers=_auth_headers(token))
+
+    def test_update_member_name_and_password(
+        self, client: TestClient, host_token: tuple[str, str]
+    ) -> None:
+        """BE-008-AC8：更新成員姓名與密碼。"""
+        token, _ = host_token
+        new_email = f"edit-{uuid.uuid4().hex[:8]}@example.com"
+
+        invite = client.post(
+            "/api/v1/admin/members",
+            headers=_auth_headers(token),
+            json={
+                "email": new_email,
+                "name": "原名",
+                "role": "member",
+                "password": "TestPass123!",
+            },
+        )
+        assert invite.status_code == 201
+        new_id = invite.json()["id"]
+
+        patch_resp = client.patch(
+            f"/api/v1/admin/members/{new_id}",
+            headers=_auth_headers(token),
+            json={"name": "新名稱", "password": "NewPass456!"},
+        )
+        assert patch_resp.status_code == 200, patch_resp.text
+        assert patch_resp.json()["name"] == "新名稱"
+
+        login = client.post(
+            "/api/v1/auth/login",
+            json={"email": new_email, "password": "NewPass456!"},
+        )
+        assert login.status_code == 200, login.text
+
+        client.delete(f"/api/v1/admin/members/{new_id}", headers=_auth_headers(token))
+
     def test_cannot_remove_self(self, client: TestClient, host_token: tuple[str, str]) -> None:
         """BE-008-AC7：不可移除自己。"""
         token, _ = host_token

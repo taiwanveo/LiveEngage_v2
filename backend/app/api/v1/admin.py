@@ -101,8 +101,8 @@ async def update_member(
     db: Annotated[AsyncSession, Depends(get_session)],
     actor: Annotated[User, Depends(get_current_user)],
 ) -> MemberResponse:
-    """更新成員角色（BE-008）。"""
-    return await admin_service.update_member_role(
+    """更新成員資料（BE-008）。"""
+    return await admin_service.update_member(
         db, actor=actor, user_id=user_id, payload=payload
     )
 

@@ -226,13 +226,18 @@ async def _stop_other_active_in_room(
     db: AsyncSession,
     room_id: uuid.UUID,
     except_id: uuid.UUID,
+    *,
+    also_except: uuid.UUID | None = None,
 ) -> None:
     """同一 room 僅允許一個 active（``uq_interactions_active_room``）；對齊 poll start。"""
+    exclude = {except_id}
+    if also_except is not None:
+        exclude.add(also_except)
     result = await db.execute(
         select(Interaction).where(
             Interaction.room_id == room_id,
             Interaction.status == InteractionStatus.ACTIVE,
-            Interaction.id != except_id,
+            Interaction.id.not_in(exclude),
         )
     )
     now = dt.datetime.now(dt.UTC)

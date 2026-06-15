@@ -252,6 +252,64 @@ def test_activate_quiz_stops_existing_active_poll(
     assert by_id[quiz_id]["status"] == "active"
 
 
+def test_start_question_after_quiz_activated(
+    client: TestClient, host_token: tuple[str, str]
+) -> None:
+    """父 Quiz 已開放（active）時 start_question 應成功（父改 locked、子題 active）。"""
+    token, _ = host_token
+    headers = _auth(token)
+    session = _live_session(client, headers)
+    room_id = str(session["default_room_id"])
+
+    quiz = client.post(
+        f"/api/v1/rooms/{room_id}/interactions",
+        headers=headers,
+        json={"type": "quiz", "title": "已開放 Quiz"},
+    )
+    assert quiz.status_code == 201, quiz.text
+    quiz_id = quiz.json()["id"]
+
+    activate = client.patch(
+        f"/api/v1/interactions/{quiz_id}",
+        headers=headers,
+        json={"status": "active"},
+    )
+    assert activate.status_code == 200, activate.text
+    assert activate.json()["status"] == "active"
+
+    q = client.post(
+        f"/api/v1/quizzes/{quiz_id}/questions",
+        headers=headers,
+        json={
+            "title": "1+1=?",
+            "time_limit_s": 30,
+            "base_points": 100,
+            "options": [
+                {"text": "1", "is_correct": False, "order_no": 0},
+                {"text": "2", "is_correct": True, "order_no": 1},
+            ],
+        },
+    )
+    assert q.status_code == 201, q.text
+    question_id = q.json()["id"]
+
+    start = client.post(
+        f"/api/v1/quizzes/questions/{question_id}/actions",
+        headers=headers,
+        json={"action": "start_question"},
+    )
+    assert start.status_code == 200, start.text
+    assert start.json()["state"] == "active"
+
+    listed = client.get(
+        f"/api/v1/rooms/{room_id}/interactions",
+        headers=headers,
+    )
+    assert listed.status_code == 200, listed.text
+    by_id = {item["id"]: item for item in listed.json()}
+    assert by_id[quiz_id]["status"] == "locked"
+
+
 def test_ai001_unavailable_without_key(
     client: TestClient, host_token: tuple[str, str], monkeypatch: pytest.MonkeyPatch
 ) -> None:
