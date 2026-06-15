@@ -7,8 +7,8 @@
 ## SNAPSHOT（2026-06-15）
 
 - **Repo**：https://github.com/ColdRighter/LiveEngage.git（master）
-- **最新 commit**：`4e5e273` — 移除獨立 Present App 與 le-present 部署遺跡
-- **typecheck**：`host`、`participant` 通過
+- **最新 commit**：`792f5a0` — 全專案 API／網路錯誤訊息中文化
+- **typecheck**：`realtime`、`host`、`participant`、`admin` 通過
 - **Zeabur**：api / host / participant / admin / worker（**已刪除** `present` / `le-present`）
 
 ### 已上線服務
@@ -24,9 +24,9 @@
 
 | 區塊 | 內容 |
 |------|------|
-| **移除 Present App** | 刪除 `frontend/apps/present`、`Dockerfile.present`；Zeabur `present` 服務已砍掉 |
-| **文件同步** | RUNBOOK、Zeabur 部署指引、實作指引、ARCHITECTURE 不再提及 `le-present` |
-| **投影** | 一律由 Host 同源路由開啟（Poll / Q&A / Quiz / Ideas / Survey） |
+| **錯誤訊息中文化** | 新增 `formatUserFacingError`；`Failed to fetch` 等英文改為「無法連上伺服器，請確認網路連線或稍後再試」 |
+| **API client** | host / participant / admin 的 `fetch` 失敗統一拋中文 `ApiException` |
+| **Quiz 控場** | `Sprint9ConsolePage` 子題「開始」等 mutation 錯誤改走統一格式化 |
 
 ### 投影路由速查（Host）
 
@@ -44,6 +44,10 @@
 ---
 
 ## HISTORY
+
+### 2026-06-15 — 錯誤訊息中文化（792f5a0）
+
+`apiErrors.ts` + 三端 API client + 各頁 `formatUserFacingError`；Quiz 子題控場不再顯示英文 `Failed to fetch`。
 
 ### 2026-06-15 — 移除獨立 Present App（4e5e273）
 
