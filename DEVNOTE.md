@@ -7,7 +7,7 @@
 ## SNAPSHOT（2026-06-15）
 
 - **Repo**：https://github.com/ColdRighter/LiveEngage.git（master）
-- **最新 commit**：`83d042f` — Quiz 子題開始修復、後台成員編輯、cohost Quiz UI
+- **最新 commit**：`10cc916` — Quiz 子題開始修復、後台成員編輯、cohost Quiz UI
 - **typecheck**：`host`、`participant`、`admin` 通過
 - **整合測試**：`test_start_question_after_quiz_activated`、`test_fe011_quiz_submit_and_leaderboard` 通過（需 `LE_DATABASE_URL`）
 
