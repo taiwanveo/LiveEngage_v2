@@ -7,11 +7,49 @@
 ## SNAPSHOT（2026-06-15）
 
 - **Repo**：https://github.com/ColdRighter/LiveEngage.git（master）
-- **最新 commit**：`c74ce13` — 登入輸入框可見性、Host 手機 RWD
+- **最新 commit**：`a7638b9` — Poll 揭曉限制、投影刻度與正解標記
+- **api 健康**：https://le-api.zeabur.app/health → 200
+- **Zeabur 部署**：push `a7638b9` 後自動建置；**host**、**participant** 皆 `RUNNING`（2026-06-15 16:40 UTC）
+- **狀態**：核心流程可上線試用（見下方「開始使用」）
+
+### 本輪重點
+
+| 區塊 | 內容 |
+|------|------|
+| **揭曉答案限制** | Poll `idle` 時「揭曉答案」disabled；hover 提示「必須在互動項目開始或停止之後才可揭曉答案」；工作台頂欄與控場列共用 |
+| **投影刻度** | `ResultBarChart` X 軸改整數次數刻度（`allowDecimals` + `chartUtils` 自訂 ticks），不再出現 0.25／0.5 等小數 |
+| **投影正解** | 主持人揭曉答案後，投影長條圖正確選項左側顯示綠色「正解」 |
+
+### 部署（本輪）
+
+| 服務 | URL | 變更 |
+|------|-----|------|
+| host | https://le-host.zeabur.app | 揭曉限制、投影刻度／正解 — RUNNING |
+| participant | https://le-participant.zeabur.app | renderers 共用（作答端結果 UI）— RUNNING |
+| api | https://le-api.zeabur.app | 本輪無變更 — RUNNING |
+| admin | https://le-admin.zeabur.app | 本輪無變更 — RUNNING |
+| worker | （內部） | 本輪無變更 — RUNNING |
+
+### 開始使用（LiveEngage 上線試用）
+
+| 角色 | 入口 | 典型流程 |
+|------|------|----------|
+| **Admin** | https://le-admin.zeabur.app | 建立組織／Room → 邀請 Host |
+| **Host** | https://le-host.zeabur.app | 登入 → 進 Room → 建立 Poll／Quiz／Q&A／問卷 → 控場 → 開投影 |
+| **Participant** | https://le-participant.zeabur.app | 輸入 Room 代碼加入 → 即時作答 |
+| **API** | https://le-api.zeabur.app | REST + WebSocket（前端已指向此生產 API） |
+
+**建議試跑一輪**：Admin 開 Room → Host 建選擇題 Poll → 開始 → Participant 投票 → 停止 → 揭曉答案 → 開投影確認刻度與「正解」。
+
+---
+
+## SNAPSHOT（2026-06-15，歷史）
+
+- **最新 commit（舊）**：`c74ce13` — 登入輸入框可見性、Host 手機 RWD
 - **api 健康**：https://le-api.zeabur.app/health → 200
 - **Zeabur 部署**：push `c74ce13` 後 redeploy；**host**、**admin**、**participant** 皆 `RUNNING`（2026-06-15 16:20 UTC）
 
-### 本輪重點
+### 本輪重點（登入可見性／Host RWD）
 
 | 區塊 | 內容 |
 |------|------|
@@ -23,10 +61,10 @@
 
 | 服務 | URL | 變更 |
 |------|-----|------|
-| host | https://le-host.zeabur.app | 頂欄 RWD、工作台控場列 |
-| admin | https://le-admin.zeabur.app | 登入輸入框可見性（ui） |
-| participant | https://le-participant.zeabur.app | 加入頁輸入框可見性（ui） |
-| api | https://le-api.zeabur.app | 本輪無變更 |
+| host | https://le-host.zeabur.app | 頂欄 RWD、工作台控場列 — RUNNING |
+| admin | https://le-admin.zeabur.app | 登入輸入框可見性（ui）— RUNNING |
+| participant | https://le-participant.zeabur.app | 加入頁輸入框可見性（ui）— RUNNING |
+| api | https://le-api.zeabur.app | 本輪無變更 — RUNNING |
 | worker | （內部） | 本輪無變更 |
 
 ---
