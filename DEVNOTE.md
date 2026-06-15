@@ -7,7 +7,7 @@
 ## SNAPSHOT（2026-06-15）
 
 - **Repo**：https://github.com/ColdRighter/LiveEngage.git（master）
-- **最新 commit**：`de77a61` — 三端登入品牌、UI 修正、公開 branding API
+- **最新 commit**：`ab0e987` — 站點品牌 API 優先已設定 Logo 的組織
 - **typecheck**：`ui`、`realtime`、`admin`、`host`、`participant` 通過
 - **接手文件**：[`docs/服務架構.md`](docs/服務架構.md)
 - **api 健康**：https://le-api.zeabur.app/health
