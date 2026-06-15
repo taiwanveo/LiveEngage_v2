@@ -7,26 +7,37 @@
 ## SNAPSHOT（2026-06-15）
 
 - **Repo**：https://github.com/ColdRighter/LiveEngage.git（master）
-- **最新 commit**：`92c9365` — CSV 匯出 DictWriter 欄位聯集修復
-- **typecheck**：`test_export_csv` 通過
-- **api 健康**：https://le-api.zeabur.app/health
+- **最新 commit**：`8c611f2` — Quiz 揭曉、問卷多題型、Q&A 投票與工作台 UX 優化
+- **測試**：`test_s9_phase_d` 新增 quiz reveal／host is_correct／survey 多題型用例
+- **api 健康**：https://le-api.zeabur.app/health → 200
+- **Zeabur 部署**：push `8c611f2` 後自動建置；**api**、**host**、**participant** 皆 `RUNNING`（2026-06-15）
 
-### 本輪重點（CSV 匯出 failed 修復）
+### 本輪重點
 
 | 區塊 | 內容 |
 |------|------|
-| **根因** | `csv.DictWriter` 僅用第一列 `fieldnames`（session 僅 section/field/value）；participant 列含 `email`、question 列含 `status`/`upvotes` 時 Worker 拋 `ValueError` → status `failed` |
-| **修復** | `_export_fieldnames()` 聯集欄位 + `_write_csv_bytes()`；XLSX 表頭同步 |
+| **Quiz 揭曉** | `reveal` 先 flush 子題再恢復父 Quiz，避免 `uq_interactions_active_room` 衝突；參與者 `active-question` 支援 `revealed`；`POLL_RESULT_REVEALED` 同步揭曉 UI |
+| **Quiz 編輯** | Host API 回傳 `is_correct`；子題編輯頁「本題工作台」藍色按鈕；儲存須恰好一個正解 |
+| **問卷 Survey** | 工作台支援**評分／選擇／開放文字**三題型；Host 列表含選項；開放文字回應數自 submission 統計 |
+| **Q&A 投票** | 參與者 👍／👎 toggle（灰階↔彩色）；樂觀更新含倒讚；`downvote_enabled` 預設 true；審核面板文案調整 |
+| **工作台 UX** | 控場列（上一題／下一題／開放／編輯）固定於 `HostRoomNavHeader.navControls`；Poll 編輯頁標題「題目編輯」 |
+| **其他** | 參與者等待文案 17px；`RoomWaitingPlaceholder` 統一 |
 
 ### 部署（本輪）
 
-需 redeploy：**api**、**worker**（Celery 執行 `build_export_bytes`）
+| 服務 | URL | 狀態 |
+|------|-----|------|
+| api | https://le-api.zeabur.app | RUNNING |
+| host | https://le-host.zeabur.app | RUNNING |
+| participant | https://le-participant.zeabur.app | RUNNING |
+| admin | https://le-admin.zeabur.app | 本輪無變更（未觸發 redeploy） |
+| worker | （內部） | 本輪無後端匯出變更 |
 
 ---
 
 ## SNAPSHOT（2026-06-15，歷史）
 
-- **最新 commit（舊）**：`a0f4abf` — 匯出下載連結修復 + DEVNOTE
+- **最新 commit（舊）**：`92c9365` — CSV 匯出 DictWriter 欄位聯集修復
 - **typecheck**：`admin` 通過；`test_public_url` 2 passed
 - **接手文件**：[`docs/服務架構.md`](docs/服務架構.md)
 - **api 健康**：https://le-api.zeabur.app/health
