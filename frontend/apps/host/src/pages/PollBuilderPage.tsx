@@ -4,7 +4,7 @@ import * as React from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { formatUserFacingError } from "@liveengage/realtime";
-import { PollRenderer } from "@liveengage/renderers";
+import { PollRenderer, readNumber } from "@liveengage/renderers";
 import { useSystemNotice } from "@liveengage/ui";
 import { HostRoomDetailBreadcrumb } from "../components/HostBreadcrumb";
 import { HostShell } from "../components/HostShell";
@@ -67,6 +67,8 @@ export function PollBuilderPage({
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [options, setOptions] = useState<PollOptionInput[]>([]);
+  const [minValue, setMinValue] = useState(1);
+  const [maxValue, setMaxValue] = useState(5);
   const optionsHydratingRef = useRef(true);
   const lastAutosavedOptionsRef = useRef("");
 
@@ -86,6 +88,10 @@ export function PollBuilderPage({
     }));
     setOptions(loaded);
     lastAutosavedOptionsRef.current = JSON.stringify(optionsPayload(loaded));
+    if (poll.type === "rating") {
+      setMinValue(readNumber(poll.settings_public, "min_value", 1));
+      setMaxValue(readNumber(poll.settings_public, "max_value", 5));
+    }
     const t = window.setTimeout(() => {
       optionsHydratingRef.current = false;
     }, 0);
@@ -94,7 +100,19 @@ export function PollBuilderPage({
 
   const saveMeta = useMutation({
     mutationFn: async () => {
-      await updateInteraction(pollId, { title, description });
+      const payload: {
+        title: string;
+        description: string;
+        settings?: Record<string, unknown>;
+      } = { title, description };
+      if (poll?.type === "rating") {
+        payload.settings = {
+          ...poll.settings_public,
+          min_value: minValue,
+          max_value: maxValue,
+        };
+      }
+      await updateInteraction(pollId, payload);
     },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["poll", pollId] });
@@ -116,6 +134,7 @@ export function PollBuilderPage({
   );
 
   const showOptions = Boolean(poll && OPTION_TYPES.has(poll.type));
+  const showRatingScale = poll?.type === "rating";
 
   useEffect(() => {
     if (!showOptions || optionsHydratingRef.current) return;
@@ -139,6 +158,16 @@ export function PollBuilderPage({
       showError("請至少提供一個選項");
       return;
     }
+    if (showRatingScale) {
+      if (minValue >= maxValue) {
+        showError("最低分須小於最高分");
+        return;
+      }
+      if (maxValue > 100) {
+        showError("最高分不可超過 100");
+        return;
+      }
+    }
     saveMeta.mutate();
   };
 
@@ -147,6 +176,14 @@ export function PollBuilderPage({
         ...poll,
         title: title || poll.title,
         description: description || poll.description,
+        settings_public:
+          poll.type === "rating"
+            ? {
+                ...poll.settings_public,
+                min_value: minValue,
+                max_value: maxValue,
+              }
+            : poll.settings_public,
         options: options.map((o, i) => ({
           id: `preview-${i}`,
           text: o.text,
@@ -218,6 +255,47 @@ export function PollBuilderPage({
                 className="le-input mt-1 min-h-[72px] w-full resize-y"
               />
             </label>
+
+            {showRatingScale ? (
+              <div className="space-y-3 border-t border-border pt-4">
+                <h3 className="text-sm font-semibold text-foreground">評分尺度</h3>
+                <p className="text-xs text-muted">
+                  最高 ≤5 顯示按鈕；6–10 顯示下拉選單；11 以上改為數字輸入。
+                </p>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <label className="block text-sm">
+                    <span className="font-medium text-foreground">最低分</span>
+                    <input
+                      type="number"
+                      min={0}
+                      max={99}
+                      step={1}
+                      value={minValue}
+                      onChange={(e) => {
+                        const n = Number.parseInt(e.target.value, 10);
+                        if (!Number.isNaN(n)) setMinValue(n);
+                      }}
+                      className="le-input mt-1 w-full"
+                    />
+                  </label>
+                  <label className="block text-sm">
+                    <span className="font-medium text-foreground">最高分</span>
+                    <input
+                      type="number"
+                      min={1}
+                      max={100}
+                      step={1}
+                      value={maxValue}
+                      onChange={(e) => {
+                        const n = Number.parseInt(e.target.value, 10);
+                        if (!Number.isNaN(n)) setMaxValue(n);
+                      }}
+                      className="le-input mt-1 w-full"
+                    />
+                  </label>
+                </div>
+              </div>
+            ) : null}
 
             {showOptions ? (
               <div className="space-y-3 border-t border-border pt-4">

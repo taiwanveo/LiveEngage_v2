@@ -47,6 +47,7 @@ from app.schemas.poll import (
     PollSubmitRequest,
     PollSubmitResult,
     RankingAnswer,
+    RankingOrderCount,
     RankingSettings,
     RatingAnswer,
     RatingSettings,
@@ -1009,6 +1010,10 @@ async def _submit_ranking(
             points = n - 1 - i
             await increment_option_count(interaction.id, str(oid), delta=points)
 
+    _, id_to_index, _ = await _get_ranking_option_maps(db, interaction.id)
+    order_key = _ranking_order_key(ranked, id_to_index)
+    await increment_option_count(interaction.id, f"order:{order_key}", delta=1)
+
     return await _finish_submit_broadcast(db, interaction)
 
 
@@ -1083,6 +1088,7 @@ async def get_poll_results(
             RankingSettings,
             parse_settings(InteractionType.RANKING, interaction.settings_jsonb),
         )
+        order_counts = await _get_ranking_order_counts(db, interaction_id)
         if ranking_settings.ranking_mode == "borda":
             counts = await _get_mc_option_counts(db, interaction_id)
         else:
@@ -1093,6 +1099,7 @@ async def get_poll_results(
             status=interaction.status,
             response_count=response_count,
             option_counts=counts,
+            ranking_order_counts=order_counts,
         )
 
     raise AppError(ErrorCode.VALIDATION_ERROR, f"題型 {itype} 不支援結果查詢")
@@ -1199,6 +1206,16 @@ async def _build_broadcast_payload(
             RankingSettings,
             parse_settings(InteractionType.RANKING, interaction.settings_jsonb),
         )
+        order_counts = await _get_ranking_order_counts(db, interaction.id)
+        base["aggregates"]["ranking_order_counts"] = [
+            {
+                "order_key": oc.order_key,
+                "order_labels": oc.order_labels,
+                "count": oc.count,
+                "percentage": oc.percentage,
+            }
+            for oc in order_counts
+        ]
         if settings.ranking_mode == "borda":
             counts = await _get_mc_option_counts(db, interaction.id)
         else:
@@ -1418,6 +1435,90 @@ def _author_display(
         }
     )
     return masked.get("display_name")
+
+
+async def _get_ranking_option_maps(
+    db: AsyncSession, interaction_id: uuid.UUID
+) -> tuple[list[PollOption], dict[uuid.UUID, int], dict[uuid.UUID, str]]:
+    """依 order_no 建立選項 1-based 索引（排序組合 key 用）。"""
+    result = await db.execute(
+        select(PollOption)
+        .where(PollOption.interaction_id == interaction_id)
+        .order_by(PollOption.order_no)
+    )
+    options = list(result.scalars().all())
+    id_to_index = {opt.id: i + 1 for i, opt in enumerate(options)}
+    id_to_text = {opt.id: opt.text for opt in options}
+    return options, id_to_index, id_to_text
+
+
+def _ranking_order_key(
+    ranked: list[uuid.UUID | str], id_to_index: dict[uuid.UUID, int]
+) -> str:
+    indices: list[str] = []
+    for oid in ranked:
+        uid = oid if isinstance(oid, uuid.UUID) else uuid.UUID(str(oid))
+        indices.append(str(id_to_index[uid]))
+    return ",".join(indices)
+
+
+def _labels_from_order_key(order_key: str, options: list[PollOption]) -> list[str]:
+    labels: list[str] = []
+    for part in order_key.split(","):
+        if not part.isdigit():
+            continue
+        idx = int(part) - 1
+        if 0 <= idx < len(options):
+            labels.append(options[idx].text)
+    return labels
+
+
+async def _get_ranking_order_counts(
+    db: AsyncSession, interaction_id: uuid.UUID
+) -> list[RankingOrderCount]:
+    """排序題：統計每種完整排列組合的票數與佔比。"""
+    options, id_to_index, _ = await _get_ranking_option_maps(db, interaction_id)
+    if not options:
+        return []
+
+    perm_counts: dict[str, int] = {}
+    agg = await get_poll_agg(interaction_id)
+    for key, value in agg.items():
+        if key.startswith("order:") and value.lstrip("-").isdigit():
+            perm_counts[key[6:]] = int(value)
+
+    if not perm_counts:
+        result = await db.execute(
+            select(PollResponse.answer_jsonb).where(
+                PollResponse.interaction_id == interaction_id
+            )
+        )
+        for row in result.all():
+            ranked = row[0].get("ranked_option_ids", [])
+            if not ranked:
+                continue
+            try:
+                order_key = _ranking_order_key(ranked, id_to_index)
+            except (KeyError, ValueError):
+                continue
+            perm_counts[order_key] = perm_counts.get(order_key, 0) + 1
+
+    total = sum(perm_counts.values())
+    if total == 0:
+        return []
+
+    items: list[RankingOrderCount] = []
+    for order_key, count in sorted(perm_counts.items(), key=lambda x: -x[1]):
+        percentage = round(count / total * 100, 1)
+        items.append(
+            RankingOrderCount(
+                order_key=order_key,
+                order_labels=_labels_from_order_key(order_key, options),
+                count=count,
+                percentage=percentage,
+            )
+        )
+    return items
 
 
 async def _get_ranking_average_counts(

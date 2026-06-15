@@ -410,6 +410,65 @@ def test_fe009_rating_average(
     assert body["distribution"]["4"] == 1
 
 
+def test_fe009_rating_custom_scale(
+    client: TestClient, host_token: tuple[str, str]
+) -> None:
+    """FE-009：主持人可設定 1–10 評分尺度。"""
+    headers = _auth(host_token[0])
+    session = _live_session(client, headers)
+    ptoken, room_id = _join(client, session["id"])
+    poll_id, _ = _setup_poll(
+        client,
+        headers,
+        room_id,
+        poll_type="rating",
+        title="NPS",
+        settings={"min_value": 1, "max_value": 10},
+    )
+    _start_poll(client, headers, poll_id)
+
+    submit = client.post(
+        f"/api/v1/polls/{poll_id}/responses",
+        headers=_auth(ptoken),
+        json={"answer": {"value": 8}},
+    )
+    assert submit.status_code == 201, submit.text
+
+    _reveal_results(client, headers, poll_id)
+    results = client.get(
+        f"/api/v1/polls/{poll_id}/results", headers=headers
+    )
+    body = results.json()
+    assert body["average"] == 8.0
+    assert body["distribution"]["8"] == 1
+
+
+def test_fe009_rating_out_of_range_rejected(
+    client: TestClient, host_token: tuple[str, str]
+) -> None:
+    """FE-009：超出主持人設定區間的評分應拒絕。"""
+    headers = _auth(host_token[0])
+    session = _live_session(client, headers)
+    ptoken, room_id = _join(client, session["id"])
+    poll_id, _ = _setup_poll(
+        client,
+        headers,
+        room_id,
+        poll_type="rating",
+        title="超出範圍",
+        settings={"min_value": 1, "max_value": 10},
+    )
+    _start_poll(client, headers, poll_id)
+
+    submit = client.post(
+        f"/api/v1/polls/{poll_id}/responses",
+        headers=_auth(ptoken),
+        json={"answer": {"value": 11}},
+    )
+    assert submit.status_code == 400, submit.text
+    assert submit.json()["error"]["code"] == "VALIDATION_ERROR"
+
+
 def test_fe008_open_text_mask_voter_names(
     client: TestClient, host_token: tuple[str, str]
 ) -> None:
@@ -524,7 +583,14 @@ def test_fe010_ranking_borda(
         f"/api/v1/polls/{poll_id}/results", headers=headers
     )
     assert results.status_code == 200, results.text
-    counts = {c["option_id"]: c["count"] for c in results.json()["option_counts"]}
+    body = results.json()
+    counts = {c["option_id"]: c["count"] for c in body["option_counts"]}
+    assert counts[str(options[0]["id"])] > counts.get(str(options[2]["id"]), 0)
+    order_counts = body.get("ranking_order_counts") or []
+    assert len(order_counts) == 1
+    assert order_counts[0]["order_key"] == "1,2,3"
+    assert order_counts[0]["count"] == 1
+    assert order_counts[0]["percentage"] == 100.0
     assert counts[str(options[0]["id"])] == 2
     assert counts[str(options[1]["id"])] == 1
     assert counts.get(str(options[2]["id"]), 0) == 0

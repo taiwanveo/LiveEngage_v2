@@ -27,6 +27,7 @@ import {
   type InteractionSummary,
 } from "../../lib/pollTypes";
 import { Sprint9ActivateBanner } from "./Sprint9ActivateBanner";
+import { WorkbenchInteractionTitle } from "./WorkbenchInteractionTitle";
 
 interface Props {
   roomId: string;
@@ -110,9 +111,12 @@ export function QuizWorkbenchMain({ roomId, item }: Props): React.JSX.Element {
     <div className="space-y-4">
       <div>
         <p className="text-xs font-medium text-muted">{interactionTypeLabel(item.type)}</p>
-        <h2 className="font-display text-xl font-semibold text-foreground">
-          {item.title ?? "未命名 Quiz"}
-        </h2>
+        <WorkbenchInteractionTitle
+          roomId={roomId}
+          interactionId={item.id}
+          title={item.title}
+          placeholder="未命名 Quiz"
+        />
         <p className="mt-1 text-sm text-muted">{interactionMetaLine(item.type, item.status)}</p>
       </div>
 

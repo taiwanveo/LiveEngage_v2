@@ -171,6 +171,22 @@ function applyPollResponseSubmitted(
       });
     }
 
+    const rankingOrders = aggregates?.ranking_order_counts;
+    if (Array.isArray(rankingOrders)) {
+      next.ranking_order_counts = rankingOrders.map((row) => {
+        const r = row as Record<string, unknown>;
+        const labels = r.order_labels;
+        return {
+          order_key: String(r.order_key ?? ""),
+          order_labels: Array.isArray(labels)
+            ? labels.map((l) => String(l))
+            : [],
+          count: Number(r.count ?? 0),
+          percentage: Number(r.percentage ?? 0),
+        };
+      });
+    }
+
     const wordCounts = aggregates?.word_counts;
     if (Array.isArray(wordCounts)) {
       next.word_counts = wordCounts.map((row) => {

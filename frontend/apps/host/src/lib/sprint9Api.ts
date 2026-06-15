@@ -107,6 +107,7 @@ export interface SurveyQuestion {
   child_interaction_id: string;
   title: string | null;
   question_type: string;
+  required: boolean;
 }
 
 export async function addSurveyQuestion(

@@ -36,6 +36,12 @@ class InteractionUpdateRequest(BaseModel):
     result_visible: bool | None = None
 
 
+class InteractionReorderRequest(BaseModel):
+    """工作台左欄拖曳排序：傳入房間內所有非 Q&A 互動 id（新順序）。"""
+
+    ordered_ids: list[uuid.UUID] = Field(min_length=1)
+
+
 class InteractionResponse(BaseModel):
     id: uuid.UUID
     room_id: uuid.UUID

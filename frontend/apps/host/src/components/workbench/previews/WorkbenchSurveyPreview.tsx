@@ -18,10 +18,11 @@ export function WorkbenchSurveyPreview({ item }: Props): React.JSX.Element {
   });
 
   const questions = questionsQuery.data ?? [];
+  const surveyOpen = item.status === "active" || item.status === "locked";
 
   return (
     <ParticipantPreviewFrame stats={<p className="text-[10px] text-muted">預覽模式</p>}>
-      {item.status !== "active" && item.status !== "locked" ? (
+      {!surveyOpen && questions.length === 0 ? (
         <div className="le-card border-dashed p-6 text-center text-xs text-muted">
           問卷尚未開放
         </div>
@@ -30,7 +31,13 @@ export function WorkbenchSurveyPreview({ item }: Props): React.JSX.Element {
           尚無題目，請在中欄新增
         </div>
       ) : (
-        <form className="space-y-4 p-1" onSubmit={(e) => e.preventDefault()}>
+        <div className="space-y-3 p-1">
+          {!surveyOpen ? (
+            <p className="rounded-lg border border-border bg-surface-elevated px-3 py-2 text-center text-[10px] text-muted">
+              問卷尚未開放（僅預覽題目版面）
+            </p>
+          ) : null}
+          <form className="space-y-4" onSubmit={(e) => e.preventDefault()}>
           {questions.map((q) => (
             <section key={q.child_interaction_id} className="le-card p-4">
               <p className="mb-2 text-xs font-medium text-foreground">
@@ -63,6 +70,7 @@ export function WorkbenchSurveyPreview({ item }: Props): React.JSX.Element {
             提交問卷
           </button>
         </form>
+        </div>
       )}
     </ParticipantPreviewFrame>
   );

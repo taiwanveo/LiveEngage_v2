@@ -8,8 +8,18 @@ export type {
   PollOption,
   PollRendererProps,
   PollResults,
+  RankingOrderCount,
   RenderMode,
   TextEntry,
   WordCount,
 } from "./types";
-export { canAnswer, modeLabel, readBool, readNumber, statusLabel } from "./utils";
+export {
+  canAnswer,
+  isRatingValueInRange,
+  modeLabel,
+  ratingInputMode,
+  readBool,
+  readNumber,
+  statusLabel,
+} from "./utils";
+export type { RatingInputMode } from "./utils";

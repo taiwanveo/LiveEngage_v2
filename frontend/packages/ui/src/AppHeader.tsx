@@ -118,10 +118,16 @@ export function AppHeader({
                 />
               </div>
             ) : null}
-            <h1 className="flex flex-wrap items-center gap-x-2 font-display text-lg font-bold tracking-tight text-foreground">
-              <BrandText brand={brand} {...(brandHref ? { href: brandHref } : {})} />
-              {brandAddon}
-            </h1>
+            <div className="flex items-center justify-between gap-x-3 gap-y-1">
+              <h1 className="min-w-0 font-display text-lg font-bold tracking-tight text-foreground">
+                <BrandText brand={brand} {...(brandHref ? { href: brandHref } : {})} />
+              </h1>
+              {brandAddon ? (
+                <div className="flex shrink-0 flex-wrap items-center justify-end gap-x-2">
+                  {brandAddon}
+                </div>
+              ) : null}
+            </div>
             {tagline ? (
               <div className="mt-0.5 flex flex-wrap items-center gap-x-2">
                 <p className="truncate text-xs text-muted">{tagline}</p>

@@ -5,7 +5,108 @@ import { RatingDisplay } from "../present/RatingDisplay";
 import { RatingBarChart } from "../present/RatingBarChart";
 import { SubmitFooter } from "../SubmitFooter";
 import type { PollRendererProps } from "../types";
-import { canAnswer, readNumber, shouldShowParticipantResults } from "../utils";
+import {
+  canAnswer,
+  isRatingValueInRange,
+  ratingInputMode,
+  readNumber,
+  shouldShowParticipantResults,
+} from "../utils";
+
+function RatingInput({
+  min,
+  max,
+  value,
+  onChange,
+  disabled,
+}: {
+  min: number;
+  max: number;
+  value: number | null;
+  onChange: (next: number | null) => void;
+  disabled: boolean;
+}): React.JSX.Element {
+  const mode = ratingInputMode(max);
+  const values = Array.from({ length: max - min + 1 }, (_, i) => min + i);
+
+  if (mode === "select") {
+    return (
+      <label className="block text-sm">
+        <span className="font-medium text-slate-700">選擇評分</span>
+        <select
+          disabled={disabled}
+          value={value ?? ""}
+          onChange={(e) => {
+            const raw = e.target.value;
+            onChange(raw === "" ? null : Number.parseInt(raw, 10));
+          }}
+          className="le-input mt-2 w-full max-w-xs"
+          aria-label="評分"
+        >
+          <option value="">請選擇分數</option>
+          {values.map((v) => (
+            <option key={v} value={v}>
+              {v} 分
+            </option>
+          ))}
+        </select>
+      </label>
+    );
+  }
+
+  if (mode === "number") {
+    return (
+      <label className="block text-sm">
+        <span className="font-medium text-slate-700">輸入評分</span>
+        <input
+          type="number"
+          min={min}
+          max={max}
+          step={1}
+          disabled={disabled}
+          value={value ?? ""}
+          onChange={(e) => {
+            const raw = e.target.value;
+            if (raw === "") {
+              onChange(null);
+              return;
+            }
+            const n = Number.parseInt(raw, 10);
+            if (!Number.isNaN(n)) onChange(n);
+          }}
+          className="le-input mt-2 w-full max-w-xs"
+          aria-label="評分"
+        />
+        <span className="mt-1 block text-xs text-slate-500">
+          請輸入 {min} 到 {max} 的分數
+        </span>
+      </label>
+    );
+  }
+
+  return (
+    <div className="flex flex-wrap gap-2" role="radiogroup" aria-label="評分">
+      {values.map((v) => {
+        const selected = value === v;
+        return (
+          <button
+            key={v}
+            type="button"
+            disabled={disabled}
+            onClick={() => onChange(v)}
+            className={`flex h-12 w-12 items-center justify-center rounded-full border text-lg font-semibold transition ${
+              selected
+                ? "border-amber-400 bg-amber-50 text-amber-700"
+                : "border-slate-200 text-slate-700 hover:border-slate-300"
+            } disabled:opacity-50`}
+          >
+            {v}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
 
 export function RatingPoll({
   mode,
@@ -24,8 +125,8 @@ export function RatingPoll({
   const [value, setValue] = useState<number | null>(null);
 
   const handleSubmit = (): void => {
-    if (!onSubmit || value == null) return;
-    onSubmit({ value });
+    if (!onSubmit || !isRatingValueInRange(value, min, max)) return;
+    onSubmit({ value: value! });
   };
 
   const showResults =
@@ -33,7 +134,8 @@ export function RatingPoll({
     (mode === "answer" &&
       shouldShowParticipantResults(poll, results != null, { hostWorkbenchPreview }));
 
-  const values = Array.from({ length: max - min + 1 }, (_, i) => min + i);
+  const inputDisabled = !answerable && mode !== "preview";
+  const canSubmit = isRatingValueInRange(value, min, max);
 
   return (
     <PollShell
@@ -46,7 +148,7 @@ export function RatingPoll({
           <SubmitFooter
             onSubmit={handleSubmit}
             submitting={submitting}
-            disabled={value == null}
+            disabled={!canSubmit}
             submitError={submitError}
           />
         ) : undefined
@@ -71,29 +173,15 @@ export function RatingPoll({
           />
         )
       ) : (
-        <div className="flex flex-wrap gap-2" role="radiogroup" aria-label="評分">
-          {values.map((v) => {
-            const selected = value === v;
-            const disabled = !answerable && mode !== "preview";
-            return (
-              <button
-                key={v}
-                type="button"
-                disabled={disabled}
-                onClick={() => {
-                  if (answerable || mode === "preview") setValue(v);
-                }}
-                className={`flex h-12 w-12 items-center justify-center rounded-full border text-lg font-semibold transition ${
-                  selected
-                    ? "border-amber-400 bg-amber-50 text-amber-700"
-                    : "border-slate-200 text-slate-700 hover:border-slate-300"
-                } disabled:opacity-50`}
-              >
-                {v}
-              </button>
-            );
-          })}
-        </div>
+        <RatingInput
+          min={min}
+          max={max}
+          value={value}
+          onChange={(next) => {
+            if (answerable || mode === "preview") setValue(next);
+          }}
+          disabled={inputDisabled}
+        />
       )}
     </PollShell>
   );

@@ -15,6 +15,17 @@ const HOST_NAV: { id: HostNavId; segment: string; label: string }[] = [
   { id: "sprint9", segment: "sprint9", label: "Quiz 管理" },
 ];
 
+export function hostRoomNavItems(
+  roomId: string,
+  activeNav?: HostNavId
+): { href: string; label: string; active: boolean }[] {
+  return HOST_NAV.map((item) => ({
+    href: `#/rooms/${roomId}/${item.segment}`,
+    label: item.label,
+    active: activeNav === item.id,
+  }));
+}
+
 interface HostShellProps {
   title: string;
   subtitle?: string;
@@ -61,11 +72,7 @@ export function HostShell({
             {...(presentHref ? { presentHref } : {})}
           />
         }
-        navItems={HOST_NAV.map((item) => ({
-          href: `#/rooms/${roomId}/${item.segment}`,
-          label: item.label,
-          active: activeNav === item.id,
-        }))}
+        navItems={hostRoomNavItems(roomId, activeNav)}
       />
       <div className="relative z-10 mx-auto max-w-7xl px-4 py-6 sm:px-6">{children}</div>
     </main>

@@ -5,12 +5,15 @@ interface ResultBarsProps {
   options: PollOption[];
   counts: OptionCount[];
   large?: boolean;
+  /** 揭曉結果後顯示正解標記（參與者／工作台預覽） */
+  showCorrectAnswer?: boolean;
 }
 
 export function ResultBars({
   options,
   counts,
   large = false,
+  showCorrectAnswer = false,
 }: ResultBarsProps): React.JSX.Element {
   const countMap = new Map(counts.map((c) => [c.option_id, c.count]));
   const max = Math.max(1, ...counts.map((c) => c.count));
@@ -24,7 +27,12 @@ export function ResultBars({
           <li key={opt.id}>
             <div className="mb-1 flex justify-between gap-2">
               <span className="font-medium">{opt.text}</span>
-              <span className="tabular-nums text-slate-500">{count}</span>
+              <span className="flex shrink-0 items-center gap-2">
+                {showCorrectAnswer && opt.is_correct ? (
+                  <span className="text-xs text-emerald-600">正解</span>
+                ) : null}
+                <span className="tabular-nums text-slate-500">{count}</span>
+              </span>
             </div>
             <div
               className={

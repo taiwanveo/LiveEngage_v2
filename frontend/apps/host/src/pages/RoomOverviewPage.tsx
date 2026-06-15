@@ -131,7 +131,7 @@ export function RoomOverviewPage({ roomId, onLogout }: Props): React.JSX.Element
       presentHref={overviewPresentUrl(roomId)}
       titleAddon={
         <span
-          className={`ml-2 inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${
+          className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${
             session.status === "live"
               ? "bg-live/15 text-live"
               : "bg-surface-elevated text-muted"

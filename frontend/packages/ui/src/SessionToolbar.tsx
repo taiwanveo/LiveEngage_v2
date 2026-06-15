@@ -11,6 +11,8 @@ export interface SessionToolbarProps {
   statusLabel?: string;
   /** 狀態徽章樣式（預設 live 綠色） */
   statusBadgeVariant?: "live" | "accent" | "muted";
+  /** 房間頁面導覽（工作台／總覽／審核等） */
+  navItems?: { href: string; label: string; active?: boolean }[];
   /** 返回按鈕文字（預設「← 返回」） */
   backLabel?: string;
   /** 第二列：控場 / 導覽按鈕 */
@@ -31,6 +33,7 @@ export function SessionToolbar({
   visibilityLabel,
   statusLabel,
   statusBadgeVariant = "live",
+  navItems,
   backLabel = "← 返回",
   navControls,
   onBack,
@@ -40,11 +43,13 @@ export function SessionToolbar({
   chromeFooterActions,
 }: SessionToolbarProps): React.JSX.Element {
   const hasNavRow = Boolean(onBack || navControls);
+  const hasPageNav = Boolean(navItems?.length);
 
   return (
     <header className="sticky top-0 z-40 border-b border-border/80 bg-surface/80 backdrop-blur-xl">
       <div className={`flex items-start gap-3 ${APP_HEADER_PADDING}`}>
-        <div className="flex min-w-0 flex-1 flex-col gap-1.5">
+        <div className="flex min-w-0 flex-1 items-start gap-3">
+          <div className="flex min-w-0 flex-1 flex-col gap-1.5">
           <div className="flex min-w-0 items-start gap-2">
             <div className="min-w-0 flex-1">
               <h1 className="truncate font-display text-lg font-bold tracking-tight text-foreground">
@@ -109,6 +114,21 @@ export function SessionToolbar({
                   {navControls}
                 </div>
               ) : null}
+            </div>
+          ) : null}
+          </div>
+
+          {hasPageNav ? (
+            <div className="flex shrink-0 flex-wrap items-center justify-end gap-2 pt-0.5">
+              {navItems!.map((item) => (
+                <a
+                  key={item.href}
+                  href={item.href}
+                  className={`le-nav-link ${item.active ? "le-nav-link-active" : ""}`}
+                >
+                  {item.label}
+                </a>
+              ))}
             </div>
           ) : null}
         </div>

@@ -14,6 +14,7 @@ from app.models.user import User
 from app.schemas.interaction import (
     InteractionCreateRequest,
     InteractionResponse,
+    InteractionReorderRequest,
     InteractionUpdateRequest,
 )
 from app.services import interaction_service
@@ -63,6 +64,22 @@ async def update_interaction(
     """更新互動項目（開關 Q&A、切換審核等）。"""
     return await interaction_service.update_interaction(
         db, interaction_id=interaction_id, host=host, payload=payload
+    )
+
+
+@router.put(
+    "/rooms/{room_id}/interactions/reorder",
+    response_model=list[InteractionResponse],
+)
+async def reorder_workbench_interactions(
+    room_id: uuid.UUID,
+    payload: InteractionReorderRequest,
+    db: Annotated[AsyncSession, Depends(get_session)],
+    host: Annotated[User, Depends(get_current_user)],
+) -> list[InteractionResponse]:
+    """拖曳排序：重設房間內工作台互動項目的 order_no。"""
+    return await interaction_service.reorder_workbench_interactions(
+        db, room_id=room_id, host=host, payload=payload
     )
 
 

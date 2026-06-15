@@ -87,3 +87,25 @@ export function readNumber(
   const v = settings[key];
   return typeof v === "number" ? v : fallback;
 }
+
+/** 評分題作答 UI：max≤5 按鈕、6–10 下拉、>10 數字輸入。 */
+export type RatingInputMode = "buttons" | "select" | "number";
+
+export function ratingInputMode(max: number): RatingInputMode {
+  if (max <= 5) return "buttons";
+  if (max <= 10) return "select";
+  return "number";
+}
+
+export function isRatingValueInRange(
+  value: number | null,
+  min: number,
+  max: number
+): boolean {
+  return (
+    value != null &&
+    Number.isInteger(value) &&
+    value >= min &&
+    value <= max
+  );
+}

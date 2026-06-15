@@ -1,11 +1,11 @@
 import * as React from "react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { PollShell } from "../PollShell";
-import { ResultBars } from "../present/ResultBars";
-import { ResultBarChart } from "../present/ResultBarChart";
+import { ResultRankingOrders } from "../present/ResultRankingOrders";
 import { SubmitFooter } from "../SubmitFooter";
 import type { PollRendererProps } from "../types";
 import { canAnswer, readNumber, shouldShowParticipantResults } from "../utils";
+import { RankingSortableList } from "./RankingSortableList";
 
 export function RankingPoll({
   mode,
@@ -26,38 +26,39 @@ export function RankingPoll({
     [poll.options]
   );
 
-  const [ranks, setRanks] = useState<(string | "")[]>(
-    () => Array.from({ length: required }, () => "")
+  const optionsById = useMemo(
+    () => new Map(sortedOptions.map((o) => [o.id, o])),
+    [sortedOptions]
   );
 
-  const setRank = (index: number, optionId: string): void => {
-    setRanks((prev) => {
-      const next = [...prev];
-      next[index] = optionId;
-      return next;
-    });
-  };
+  const [orderedIds, setOrderedIds] = useState<string[]>(() =>
+    sortedOptions.map((o) => o.id)
+  );
 
-  const usedIds = new Set(ranks.filter(Boolean));
-  const complete = ranks.every((r) => r !== "") && usedIds.size === required;
+  useEffect(() => {
+    setOrderedIds(sortedOptions.map((o) => o.id));
+  }, [poll.id, sortedOptions]);
 
   const handleSubmit = (): void => {
-    if (!onSubmit || !complete) return;
-    onSubmit({ ranked_option_ids: ranks as string[] });
+    if (!onSubmit) return;
+    onSubmit({ ranked_option_ids: orderedIds.slice(0, required) });
   };
+
+  const rankingOrders = results?.ranking_order_counts ?? null;
+  const hasRankingResults = Boolean(rankingOrders && rankingOrders.length > 0);
 
   const showResults =
     mode === "present" ||
     (mode === "answer" &&
-      shouldShowParticipantResults(poll, results?.option_counts != null, {
-        hostWorkbenchPreview,
-      }));
+      shouldShowParticipantResults(
+        poll,
+        hasRankingResults || results?.option_counts != null,
+        { hostWorkbenchPreview }
+      ));
 
-  const optionCounts =
-    results?.option_counts ??
-    (hostWorkbenchPreview && poll.result_visible
-      ? sortedOptions.map((o) => ({ option_id: o.id, count: 0 }))
-      : null);
+  const displayOrders = hasRankingResults
+    ? rankingOrders!.filter((o) => o.count > 0)
+    : null;
 
   return (
     <PollShell
@@ -70,53 +71,30 @@ export function RankingPoll({
           <SubmitFooter
             onSubmit={handleSubmit}
             submitting={submitting}
-            disabled={!complete}
+            disabled={orderedIds.length < required}
             submitError={submitError}
           />
         ) : undefined
       }
     >
-      {showResults && optionCounts ? (
-        mode === "present" ? (
-          <ResultBarChart
-            options={sortedOptions}
-            counts={optionCounts}
-            large
-          />
-        ) : (
-          <ResultBars
-            options={sortedOptions}
-            counts={optionCounts}
-            large={false}
-          />
-        )
+      {interactive && !answerable && !showResults ? (
+        <p className="text-sm text-slate-500">
+          {poll.status !== "active" ? "目前無法作答" : "您已提交過排序"}
+        </p>
+      ) : null}
+
+      {showResults && displayOrders && displayOrders.length > 0 ? (
+        <ResultRankingOrders orders={displayOrders} large={mode === "present"} />
+      ) : showResults ? (
+        <p className="text-sm text-slate-500">尚無排序結果</p>
       ) : (
-        <ol className="space-y-3">
-          {ranks.map((rank, index) => (
-            <li key={index} className="flex items-center gap-3">
-              <span className="w-8 text-sm font-semibold text-slate-500">
-                #{index + 1}
-              </span>
-              <select
-                value={rank}
-                disabled={!answerable && mode !== "preview"}
-                onChange={(e) => setRank(index, e.target.value)}
-                className="flex-1 rounded-lg border border-slate-300 px-3 py-2 text-sm"
-              >
-                <option value="">選擇選項…</option>
-                {sortedOptions.map((opt) => (
-                  <option
-                    key={opt.id}
-                    value={opt.id}
-                    disabled={usedIds.has(opt.id) && rank !== opt.id}
-                  >
-                    {opt.text}
-                  </option>
-                ))}
-              </select>
-            </li>
-          ))}
-        </ol>
+        <RankingSortableList
+          orderedIds={orderedIds}
+          optionsById={optionsById}
+          disabled={!answerable && mode !== "preview"}
+          rankedCount={required}
+          onChange={setOrderedIds}
+        />
       )}
     </PollShell>
   );

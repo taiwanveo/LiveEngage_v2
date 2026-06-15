@@ -25,6 +25,7 @@ from app.realtime import events
 from app.schemas.interaction import (
     InteractionCreateRequest,
     InteractionResponse,
+    InteractionReorderRequest,
     InteractionUpdateRequest,
 )
 from app.schemas.poll import POLL_TYPES
@@ -89,6 +90,52 @@ async def list_room_interactions(
         .order_by(Interaction.order_no, Interaction.created_at)
     )
     return [_to_response(i) for i in result.scalars().all()]
+
+
+def _is_workbench_interaction_type(interaction_type: InteractionType) -> bool:
+    """工作台左欄顯示的互動類型（排除 Q&A）。"""
+    return interaction_type != InteractionType.QA
+
+
+async def reorder_workbench_interactions(
+    db: AsyncSession,
+    *,
+    room_id: uuid.UUID,
+    host: User,
+    payload: InteractionReorderRequest,
+) -> list[InteractionResponse]:
+    """依 ordered_ids 重設工作台互動的 order_no（0..n-1）。"""
+    assert_can_edit_content(host)
+    await _load_room_for_host(db, room_id, host)
+
+    ordered_ids = payload.ordered_ids
+    if len(ordered_ids) != len(set(ordered_ids)):
+        raise AppError(ErrorCode.VALIDATION_ERROR, "ordered_ids 不可重複")
+
+    result = await db.execute(
+        select(Interaction).where(Interaction.room_id == room_id)
+    )
+    all_items = list(result.scalars().all())
+    workbench = [i for i in all_items if _is_workbench_interaction_type(i.type)]
+    expected_ids = {i.id for i in workbench}
+
+    if set(ordered_ids) != expected_ids:
+        raise AppError(
+            ErrorCode.VALIDATION_ERROR,
+            "ordered_ids 必須包含房間內所有工作台互動項目",
+        )
+
+    id_to_row = {i.id: i for i in workbench}
+    for idx, interaction_id in enumerate(ordered_ids):
+        id_to_row[interaction_id].order_no = idx
+
+    await db.commit()
+
+    for interaction in workbench:
+        await db.refresh(interaction)
+
+    workbench.sort(key=lambda i: (i.order_no, i.created_at))
+    return [_to_response(i) for i in workbench]
 
 
 async def create_interaction(

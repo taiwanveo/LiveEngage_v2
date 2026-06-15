@@ -38,6 +38,13 @@ export interface OptionCount {
   count: number;
 }
 
+export interface RankingOrderCount {
+  order_key: string;
+  order_labels: string[];
+  count: number;
+  percentage: number;
+}
+
 export interface WordCount {
   word: string;
   count: number;
@@ -56,6 +63,7 @@ export interface PollResults {
   status: InteractionStatus;
   response_count: number;
   option_counts?: OptionCount[] | null;
+  ranking_order_counts?: RankingOrderCount[] | null;
   word_counts?: WordCount[] | null;
   average?: number | null;
   distribution?: Record<string, number> | null;

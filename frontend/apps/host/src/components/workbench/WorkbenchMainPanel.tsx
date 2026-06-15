@@ -17,6 +17,7 @@ import { WorkbenchSurveyPreview } from "./previews/WorkbenchSurveyPreview";
 interface Props {
   roomId: string;
   item: InteractionSummary | null;
+  onInteractionDeleted?: (deletedId: string) => void;
 }
 
 function EmptyMain({ message }: { message: string }): React.JSX.Element {
@@ -27,7 +28,11 @@ function EmptyMain({ message }: { message: string }): React.JSX.Element {
   );
 }
 
-export function WorkbenchMainPanel({ roomId, item }: Props): React.JSX.Element {
+export function WorkbenchMainPanel({
+  roomId,
+  item,
+  onInteractionDeleted,
+}: Props): React.JSX.Element {
   const pollQuery = useQuery({
     queryKey: ["poll", item?.id],
     queryFn: () => getPoll(item!.id),
@@ -52,7 +57,12 @@ export function WorkbenchMainPanel({ roomId, item }: Props): React.JSX.Element {
     if (!poll) return <EmptyMain message="無法載入 Poll。" />;
     return (
       <div className="space-y-4">
-        <PollWorkbenchMain roomId={roomId} poll={poll} results={resultsQuery.data ?? null} />
+        <PollWorkbenchMain
+          roomId={roomId}
+          poll={poll}
+          results={resultsQuery.data ?? null}
+          onDeleted={() => onInteractionDeleted?.(poll.id)}
+        />
       </div>
     );
   }

@@ -2,8 +2,10 @@
 
 import assert from "node:assert/strict";
 import {
+  applyWorkbenchOrder,
   filterWorkbenchInteractions,
   isWorkbenchInteraction,
+  reorderWorkbenchIds,
   sortWorkbenchInteractions,
   workbenchInteractions,
 } from "./workbenchTypes";
@@ -48,5 +50,12 @@ assert.deepEqual(
 );
 
 assert.equal(workbenchInteractions(samples).length, 3);
+
+assert.deepEqual(reorderWorkbenchIds(["a", "b", "c"], 0, 2), ["b", "c", "a"]);
+assert.deepEqual(reorderWorkbenchIds(["a", "b", "c"], 2, 0), ["c", "a", "b"]);
+
+const reordered = applyWorkbenchOrder(samples, ["1", "2", "4"]);
+assert.equal(reordered.find((i) => i.id === "1")?.order_no, 0);
+assert.equal(reordered.find((i) => i.id === "2")?.order_no, 1);
 
 console.log("workbenchTypes: all assertions passed");

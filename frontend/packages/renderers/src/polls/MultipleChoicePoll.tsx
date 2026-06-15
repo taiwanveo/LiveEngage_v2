@@ -100,6 +100,7 @@ export function MultipleChoicePoll({
             options={sortedOptions}
             counts={optionCounts}
             large={false}
+            showCorrectAnswer={shouldShowCorrectAnswer(mode, poll)}
           />
         )
       ) : (

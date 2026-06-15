@@ -13,10 +13,11 @@ import {
   type WsEvent,
 } from "@liveengage/realtime";
 import { SessionToolbar, WorkbenchLayout, useSystemNotice } from "@liveengage/ui";
-import { getAccessToken } from "../lib/auth";
+import { getAccessToken, canEditHostContent } from "../lib/auth";
 import {
   createInteraction,
   listInteractions,
+  reorderWorkbenchInteractions,
   updateInteractionStatus,
 } from "../lib/interactionApi";
 import { getPoll, pollAction } from "../lib/pollApi";
@@ -31,12 +32,13 @@ import {
   type SessionVisibility,
 } from "../lib/sessionApi";
 import {
+  applyWorkbenchOrder,
   toInteractionCreateType,
   workbenchInteractions,
   isSprint9Type,
   type WorkbenchCreateType,
 } from "../lib/workbenchTypes";
-import { HOST_DASHBOARD_HASH } from "../components/HostShell";
+import { HOST_DASHBOARD_HASH, hostRoomNavItems } from "../components/HostShell";
 import { HostRoomHeaderActions } from "../components/HostRoomHeaderActions";
 import { ControlAction, ControlToggle, isPollRunning } from "../components/PollControlBar";
 import { presentAppUrl, sprint9PresentUrl } from "../lib/presentUrl";
@@ -184,6 +186,34 @@ export function SessionWorkbenchPage({
     },
   });
 
+  const reorderMutation = useMutation({
+    mutationFn: (orderedIds: string[]) =>
+      reorderWorkbenchInteractions(roomId, orderedIds),
+    onMutate: async (orderedIds) => {
+      await qc.cancelQueries({ queryKey: ["interactions", roomId] });
+      const previous = qc.getQueryData<InteractionSummary[]>([
+        "interactions",
+        roomId,
+      ]);
+      if (previous) {
+        qc.setQueryData(
+          ["interactions", roomId],
+          applyWorkbenchOrder(previous, orderedIds)
+        );
+      }
+      return { previous };
+    },
+    onError: (err: unknown, _ids, context) => {
+      if (context?.previous) {
+        qc.setQueryData(["interactions", roomId], context.previous);
+      }
+      showError(formatUserFacingError(err, "排序儲存失敗"));
+    },
+    onSettled: () => {
+      void qc.invalidateQueries({ queryKey: ["interactions", roomId] });
+    },
+  });
+
   const handleWsEvent = useCallback(
     (event: WsEvent) => {
       if (QA_EVENT_TYPES.has(event.type)) {
@@ -236,6 +266,20 @@ export function SessionWorkbenchPage({
   const selectItem = (id: string): void => {
     window.location.hash = `#/rooms/${roomId}/workbench/${id}`;
   };
+
+  const handleInteractionDeleted = useCallback(
+    (deletedId: string) => {
+      const idx = workbenchItems.findIndex((i) => i.id === deletedId);
+      const remaining = workbenchItems.filter((i) => i.id !== deletedId);
+      if (remaining.length === 0) {
+        window.location.hash = `#/rooms/${roomId}/workbench`;
+        return;
+      }
+      const next = remaining[Math.min(idx, remaining.length - 1)]!;
+      selectItem(next.id);
+    },
+    [roomId, workbenchItems]
+  );
 
   const goPrev = (): void => {
     if (selectedIndex > 0) selectItem(workbenchItems[selectedIndex - 1]!.id);
@@ -384,16 +428,13 @@ export function SessionWorkbenchPage({
             dateLabel={dateLabel}
             code={session?.code ?? "—"}
             visibilityLabel={session ? VISIBILITY_LABEL[session.visibility] : "—"}
+            navItems={hostRoomNavItems(roomId, "workbench")}
             {...(toolbarStatus
               ? {
                   statusLabel: toolbarStatus.label,
                   statusBadgeVariant: toolbarStatus.variant,
                 }
               : {})}
-            backLabel="← 回到活動列表"
-            onBack={() => {
-              window.location.hash = "#/dashboard";
-            }}
             navControls={navControls}
             chromeFooterActions={
               <HostRoomHeaderActions
@@ -415,6 +456,8 @@ export function SessionWorkbenchPage({
             items={workbenchItems}
             selectedId={selectedId}
             loading={interactionsQuery.isLoading}
+            reorderable={canEditHostContent()}
+            reordering={reorderMutation.isPending}
             newType={newType}
             newTitle={newTitle}
             creating={createMutation.isPending}
@@ -422,9 +465,16 @@ export function SessionWorkbenchPage({
             onNewTitle={setNewTitle}
             onCreate={() => createMutation.mutate()}
             onSelect={selectItem}
+            onReorder={(orderedIds) => reorderMutation.mutate(orderedIds)}
           />
         }
-        main={<WorkbenchMainPanel roomId={roomId} item={selectedItem} />}
+        main={
+          <WorkbenchMainPanel
+            roomId={roomId}
+            item={selectedItem}
+            onInteractionDeleted={handleInteractionDeleted}
+          />
+        }
         preview={<WorkbenchPreviewPanel item={selectedItem} />}
       />
       <QaModerationModal

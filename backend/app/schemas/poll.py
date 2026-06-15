@@ -11,7 +11,7 @@ import uuid
 from enum import StrEnum
 from typing import Annotated, Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 from app.models.enums import InteractionStatus, InteractionType
 
@@ -81,11 +81,17 @@ class RatingSettings(BaseModel):
     """FE-009。"""
 
     min_value: int = Field(default=1, ge=0)
-    max_value: int = Field(default=5, ge=1)
+    max_value: int = Field(default=5, ge=1, le=100)
     display: Literal["number", "star", "emoji"] = "star"
     low_label: str | None = Field(default=None, max_length=50)
     high_label: str | None = Field(default=None, max_length=50)
     show_result: bool = True
+
+    @model_validator(mode="after")
+    def _check_range(self) -> RatingSettings:
+        if self.min_value >= self.max_value:
+            raise ValueError("min_value 必須小於 max_value")
+        return self
 
 
 class RankingSettings(BaseModel):
@@ -227,6 +233,15 @@ class OptionCount(BaseModel):
     count: int
 
 
+class RankingOrderCount(BaseModel):
+    """排序題：完整排列組合統計（例如 order_key=\"1,2,3\"）。"""
+
+    order_key: str
+    order_labels: list[str]
+    count: int
+    percentage: float
+
+
 class WordCount(BaseModel):
     word: str
     count: int
@@ -248,6 +263,8 @@ class PollResults(BaseModel):
     response_count: int
     # multiple_choice / ranking（borda 後的票數或得分）
     option_counts: list[OptionCount] | None = None
+    # ranking：完整排列組合（僅出現過的組合）
+    ranking_order_counts: list[RankingOrderCount] | None = None
     # word_cloud
     word_counts: list[WordCount] | None = None
     # rating

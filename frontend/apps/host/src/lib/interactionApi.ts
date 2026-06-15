@@ -54,7 +54,7 @@ export function findLatestQaInteraction(
 export async function updateInteraction(
   interactionId: string,
   payload: {
-    title?: string;
+    title?: string | null;
     description?: string;
     settings?: Record<string, unknown>;
     result_visible?: boolean;
@@ -70,4 +70,19 @@ export async function deleteInteraction(interactionId: string): Promise<void> {
   await api<void>(`/api/v1/interactions/${interactionId}`, {
     method: "DELETE",
   });
+}
+
+/** 工作台左欄拖曳排序（須含房間內所有非 Q&A 互動 id）。 */
+export async function reorderWorkbenchInteractions(
+  roomId: string,
+  orderedIds: string[]
+): Promise<InteractionSummary[]> {
+  return api<InteractionSummary[]>(
+    `/api/v1/rooms/${roomId}/interactions/reorder`,
+    {
+      method: "PUT",
+      body: { ordered_ids: orderedIds },
+      idempotencyKey: crypto.randomUUID(),
+    }
+  );
 }

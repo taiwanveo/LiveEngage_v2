@@ -60,6 +60,40 @@ export function workbenchInteractions(
   return sortWorkbenchInteractions(filterWorkbenchInteractions(items ?? []));
 }
 
+/** 拖曳排序：將 fromIndex 項目移到 toIndex。 */
+export function reorderWorkbenchIds(
+  ids: string[],
+  fromIndex: number,
+  toIndex: number
+): string[] {
+  if (
+    fromIndex < 0 ||
+    toIndex < 0 ||
+    fromIndex >= ids.length ||
+    toIndex >= ids.length ||
+    fromIndex === toIndex
+  ) {
+    return ids;
+  }
+  const next = [...ids];
+  const [removed] = next.splice(fromIndex, 1);
+  next.splice(toIndex, 0, removed!);
+  return next;
+}
+
+/** 樂觀更新：依新順序重設 order_no。 */
+export function applyWorkbenchOrder(
+  items: InteractionSummary[],
+  orderedIds: string[]
+): InteractionSummary[] {
+  const orderMap = new Map(orderedIds.map((id, index) => [id, index]));
+  return items.map((item) =>
+    orderMap.has(item.id)
+      ? { ...item, order_no: orderMap.get(item.id)! }
+      : item
+  );
+}
+
 export function toInteractionCreateType(
   type: WorkbenchCreateType
 ): InteractionCreateType {
