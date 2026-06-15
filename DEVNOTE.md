@@ -7,7 +7,7 @@
 ## SNAPSHOT（2026-06-15）
 
 - **Repo**：https://github.com/ColdRighter/LiveEngage.git（master）
-- **最新 commit**：（本輪）移除獨立 Present App 與 `le-present` 部署
+- **最新 commit**：`4e5e273` — 移除獨立 Present App 與 le-present 部署遺跡
 - **typecheck**：`host`、`participant` 通過
 - **Zeabur**：api / host / participant / admin / worker（**已刪除** `present` / `le-present`）
 
@@ -45,7 +45,7 @@
 
 ## HISTORY
 
-### 2026-06-15 — 移除獨立 Present App（le-present）
+### 2026-06-15 — 移除獨立 Present App（4e5e273）
 
 刪除 `apps/present` 與 Zeabur 服務；投影僅 Host 同源。
 
