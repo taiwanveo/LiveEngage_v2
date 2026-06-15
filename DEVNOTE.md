@@ -4,13 +4,29 @@
 
 ---
 
-## SNAPSHOT（2026-06-15）
+## SNAPSHOT（2026-06-14）
 
 - **Repo**：https://github.com/ColdRighter/LiveEngage.git（master）
-- **最新 commit**：`35073c8` — Host 即時總覽、投影唯讀化、文字雲自適應
-- **typecheck**：`renderers`、`ui`、`host`、`participant` 通過；`test_session_overview` 2 passed
+- **最新 commit**：`073bba4` — 統一活動工作台、Q&A Modal、即時總覽投影
+- **typecheck**：`host` build 通過（`npm run typecheck` + `vite build`）
 - **接手文件**：[`docs/服務架構.md`](docs/服務架構.md)
 - **api 健康**：https://le-api.zeabur.app/health
+
+### 本輪重點（統一工作台 + 總覽投影，073bba4）
+
+| 區塊 | 內容 |
+|------|------|
+| **統一活動工作台** | `#/rooms/:id/workbench` 管理 Poll 五型 + Quiz/Ideas/Survey；左欄全互動清單；中欄依類型切換控場；右欄參與者預覽 |
+| **路由整合** | `/polls/:id/console`、`/sprint9/:id/console` 自動導向 workbench；Hub／Builder 連結更新 |
+| **Q&A Modal** | 工作台頂欄「Q&A」+ 待審 badge；`QaModerationPanel` 抽出共用；可跳轉完整審核頁 |
+| **文案** | 「控制台」統一為「工作台」；登入「活動主持工作台」 |
+| **即時總覽** | 移除重複活動名稱（subtitle）；右上角投影按鈕；`#/overview/present` + `OverviewPresentPage` |
+| **Poll 正解** | `shouldShowCorrectAnswer()`：僅 `result_visible` 或工作台預覽顯示正解標記 |
+| **Host 導覽** | `HostShell` 頂欄新增「工作台」入口 |
+
+### 部署（本輪）
+
+Git push `073bba4` 後 Zeabur 自動建置；本輪僅 **host**（含 `renderers`/`ui`）必 redeploy；**api**／**worker** 無後端變更可略；**participant** 若共用 renderers 變更建議一併 redeploy。
 
 ### 本輪重點（Host Overview + 投影 + UX，35073c8）
 
@@ -89,6 +105,10 @@
 ---
 
 ## HISTORY
+
+### 2026-06-14 — 統一活動工作台、Q&A Modal、即時總覽投影（073bba4）
+
+單一 workbench 控 Poll + Sprint9；Q&A 審核 Modal；overview 投影頁；console 路由導向；正解顯示修正；總覽頁重複標題修正。
 
 ### 2026-06-15 — Host 即時總覽、投影唯讀化、文字雲自適應（35073c8）
 
