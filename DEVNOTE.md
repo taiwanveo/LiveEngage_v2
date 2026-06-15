@@ -8,8 +8,8 @@
 
 - **Repo**：https://github.com/ColdRighter/LiveEngage.git（master）
 - **最新 commit**：`c74ce13` — 登入輸入框可見性、Host 手機 RWD
-- **api 健康**：https://le-api.zeabur.app/health → 待驗證
-- **Zeabur 部署**：push 後 redeploy **host**（必要）；**admin**、**participant**（登入頁共用 `@liveengage/ui`）
+- **api 健康**：https://le-api.zeabur.app/health → 200
+- **Zeabur 部署**：push `c74ce13` 後 redeploy；**host**、**admin**、**participant** 皆 `RUNNING`（2026-06-15 16:20 UTC）
 
 ### 本輪重點
 
