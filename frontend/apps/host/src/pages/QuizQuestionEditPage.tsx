@@ -8,7 +8,7 @@ import { useSystemNotice } from "@liveengage/ui";
 import { HostRoomDetailBreadcrumb } from "../components/HostBreadcrumb";
 import { HostShell } from "../components/HostShell";
 import { listInteractions } from "../lib/interactionApi";
-import { HostTitleLink } from "../components/HostTitleActions";
+import { HostTitleLink, HostTitleActions } from "../components/HostTitleActions";
 import { listQuizQuestions, updateQuizQuestion } from "../lib/sprint9Api";
 import { quizQuestionStateLabel } from "../lib/pollTypes";
 
@@ -62,7 +62,7 @@ export function QuizQuestionEditPage({
     setOptions(
       question.options.map((o) => ({
         text: o.text,
-        is_correct: Boolean(o.is_correct),
+        is_correct: o.is_correct === true,
       }))
     );
   }, [question]);
@@ -152,9 +152,11 @@ export function QuizQuestionEditPage({
       activeNav="sprint9"
       breadcrumb={editBreadcrumb}
       titleAddon={
-        <HostTitleLink href={backHref} variant="secondary">
-          返回工作台
-        </HostTitleLink>
+        <HostTitleActions>
+          <HostTitleLink href={backHref} variant="primary">
+            本題工作台
+          </HostTitleLink>
+        </HostTitleActions>
       }
     >
       {question.state !== "pending" ? (
@@ -267,7 +269,12 @@ export function QuizQuestionEditPage({
 
         <button
           type="button"
-          disabled={saveMutation.isPending || !title.trim() || options.some((o) => !o.text.trim())}
+          disabled={
+            saveMutation.isPending ||
+            !title.trim() ||
+            options.some((o) => !o.text.trim()) ||
+            options.filter((o) => o.is_correct).length !== 1
+          }
           onClick={() => saveMutation.mutate()}
           className="le-btn-primary"
         >

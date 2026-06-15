@@ -40,7 +40,7 @@ import { getPoll, getPollResults, isPollType, submitPollResponse } from "../lib/
 import { patchQaVoteFromWs } from "../lib/qaCache";
 import { getSessionState } from "../lib/sessionApi";
 import { fetchBrandingByCode } from "../lib/brandingApi";
-import { submitQuizAnswer, getActiveQuizQuestion, type ActiveQuizQuestion } from "../lib/sprint9Api";
+import { submitQuizAnswer, getActiveQuizQuestion, mapActiveQuizQuestion, type ActiveQuizQuestion } from "../lib/sprint9Api";
 import {
   AppHeader,
   Modal,
@@ -253,14 +253,26 @@ export function RoomPage(): React.JSX.Element {
           }
           break;
         case POLL_RESULT_REVEALED:
-        case POLL_RESULT_HIDDEN:
-          if (activePollId) {
+        case POLL_RESULT_HIDDEN: {
+          const pollId =
+            typeof event.payload.poll_id === "string" ? event.payload.poll_id : null;
+          if (activePollId && pollId === activePollId) {
             void queryClient.invalidateQueries({ queryKey: ["poll", activePollId] });
             void queryClient.invalidateQueries({
               queryKey: ["poll-results", activePollId],
             });
           }
+          if (
+            pollId &&
+            activeQuizId &&
+            quizQuestion?.child_interaction_id === pollId
+          ) {
+            void getActiveQuizQuestion(activeQuizId).then((q) => {
+              if (q) setQuizQuestion(q);
+            });
+          }
           break;
+        }
         case POLL_RESPONSE_SUBMITTED:
           if (activePollId) {
             void queryClient.invalidateQueries({
@@ -269,9 +281,11 @@ export function RoomPage(): React.JSX.Element {
           }
           break;
         case QUIZ_QUESTION_STARTED: {
-          const q = event.payload.question as ActiveQuizQuestion | undefined;
+          const q = event.payload.question as
+            | Parameters<typeof mapActiveQuizQuestion>[0]
+            | undefined;
           if (q) {
-            setQuizQuestion(q);
+            setQuizQuestion(mapActiveQuizQuestion(q));
             setTab("quiz");
             showInfo(`快問快答題目「${q.title ?? "新題目"}」已開始！`, "Quiz 已開始");
           }
@@ -293,7 +307,7 @@ export function RoomPage(): React.JSX.Element {
           break;
       }
     },
-    [queryClient, ctx?.sessionId, ctx?.roomId, activePollId, activeIdeasBoardId, showInfo],
+    [queryClient, ctx?.sessionId, ctx?.roomId, activePollId, activeQuizId, activeIdeasBoardId, quizQuestion?.child_interaction_id, showInfo],
   );
 
   const { connected } = useRoomWebSocket({
@@ -401,13 +415,20 @@ export function RoomPage(): React.JSX.Element {
         ) : tab === "quiz" ? (
           quizQuestion ? (
           <div className="le-card p-6">
+            {quizQuestion.state === "revealed" && quizQuestion.result_visible ? (
+              <p className="mb-2 text-xs font-medium text-emerald-700">正確答案已揭曉</p>
+            ) : null}
             <h2 className="font-display text-lg font-semibold text-foreground">{quizQuestion.title}</h2>
             <ul className="mt-4 space-y-2">
-              {quizQuestion.options.map((opt) => (
+              {quizQuestion.options.map((opt) => {
+                const revealed =
+                  quizQuestion.state === "revealed" && quizQuestion.result_visible;
+                const isCorrect = revealed && opt.is_correct === true;
+                return (
                 <li key={opt.id}>
                   <button
                     type="button"
-                    disabled={quizSubmitting}
+                    disabled={quizSubmitting || revealed}
                     onClick={() => {
                       setQuizSubmitting(true);
                       setSubmitError(null);
@@ -422,13 +443,20 @@ export function RoomPage(): React.JSX.Element {
                         })
                         .finally(() => setQuizSubmitting(false));
                     }}
-                    className="le-btn-secondary w-full !justify-start disabled:opacity-50"
+                    className={`le-btn-secondary w-full !justify-start disabled:opacity-50 ${
+                      isCorrect ? "ring-2 ring-emerald-500" : ""
+                    }`}
                   >
                     {opt.text}
+                    {isCorrect ? " ✓" : ""}
                   </button>
                 </li>
-              ))}
+              );
+              })}
             </ul>
+            {quizQuestion.state === "revealed" && quizQuestion.explanation ? (
+              <p className="mt-4 text-sm text-muted">{quizQuestion.explanation}</p>
+            ) : null}
             <Modal
               open={quizSubmitOk}
               onClose={() => setQuizSubmitOk(false)}

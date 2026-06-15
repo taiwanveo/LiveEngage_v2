@@ -71,6 +71,7 @@ class QuestionListResponse(BaseModel):
 
     items: list[QuestionPublic] = Field(default_factory=list)
     next_cursor: str | None = None
+    downvote_enabled: bool = True
 
 
 class VoteRequest(BaseModel):

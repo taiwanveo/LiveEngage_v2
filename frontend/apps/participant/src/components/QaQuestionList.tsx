@@ -1,4 +1,4 @@
-/** 熱門問題列表：FLIP 重排 + 按讚互動。 */
+/** 熱門問題列表：FLIP 重排 + 👍／👎 投票。 */
 
 import * as React from "react";
 import { useRef, useState } from "react";
@@ -8,24 +8,49 @@ import { useAutoFlipList } from "../hooks/useAutoFlipList";
 interface Props {
   items: QuestionPublic[];
   votingId: string | null;
-  onVote: (questionId: string) => void;
+  downvoteEnabled: boolean;
+  onVote: (questionId: string, direction: "up" | "down") => void;
+}
+
+const voteBtnClass =
+  "inline-flex items-center gap-1.5 rounded-lg border border-border bg-surface-elevated/60 px-2.5 py-1 text-sm transition-[background-color,border-color,box-shadow] hover:bg-surface-elevated disabled:opacity-50";
+
+function voteBtnActiveClass(direction: "up" | "down", active: boolean): string {
+  if (!active) return "";
+  return direction === "up"
+    ? " !border-emerald-500/40 !bg-emerald-500/10"
+    : " !border-rose-500/40 !bg-rose-500/10";
+}
+
+function voteEmojiClass(active: boolean): string {
+  return active
+    ? "text-base leading-none transition-[filter,opacity,transform] duration-150"
+    : "text-base leading-none opacity-45 grayscale transition-[filter,opacity,transform] duration-150";
 }
 
 export function QaQuestionList({
   items,
   votingId,
+  downvoteEnabled,
   onVote,
 }: Props): React.JSX.Element {
   const listRef = useRef<HTMLUListElement>(null);
   const [bumpId, setBumpId] = useState<string | null>(null);
+  const [bumpDir, setBumpDir] = useState<"up" | "down" | null>(null);
 
-  const orderSignature = items.map((q) => `${q.id}:${q.score}:${q.upvote_count}`).join("|");
+  const orderSignature = items
+    .map((q) => `${q.id}:${q.score}:${q.upvote_count}:${q.downvote_count}`)
+    .join("|");
   useAutoFlipList(listRef, orderSignature);
 
-  const handleVote = (questionId: string): void => {
+  const handleVote = (questionId: string, direction: "up" | "down"): void => {
     setBumpId(questionId);
-    window.setTimeout(() => setBumpId((id) => (id === questionId ? null : id)), 300);
-    onVote(questionId);
+    setBumpDir(direction);
+    window.setTimeout(() => {
+      setBumpId((id) => (id === questionId ? null : id));
+      setBumpDir((dir) => (dir === direction ? null : dir));
+    }, 300);
+    onVote(questionId, direction);
   };
 
   return (
@@ -62,21 +87,56 @@ export function QaQuestionList({
               ))}
             </div>
           ) : null}
-          <div className="mt-2 flex flex-wrap items-center gap-3 text-xs text-muted">
-            <span>{q.is_anonymous ? "匿名" : q.author_display ?? "—"}</span>
-            <span
-              className={bumpId === q.id ? "qa-vote-count--bump inline-block tabular-nums" : "tabular-nums"}
-            >
-              讚 {q.upvote_count}
+          <div className="mt-3 flex flex-wrap items-center gap-2">
+            <span className="text-xs text-muted">
+              {q.is_anonymous ? "匿名" : q.author_display ?? "—"}
             </span>
-            <button
-              type="button"
-              disabled={votingId === q.id || q.my_vote === "up"}
-              onClick={() => handleVote(q.id)}
-              className="le-btn-secondary !min-h-0 px-2 py-1 text-xs disabled:opacity-50"
-            >
-              {q.my_vote === "up" ? "已按讚" : votingId === q.id ? "送出中…" : "按讚"}
-            </button>
+            <div className="ml-auto flex items-center gap-2">
+              <button
+                type="button"
+                disabled={votingId === q.id}
+                aria-label={q.my_vote === "up" ? "已按讚，再按可取消" : "按讚"}
+                aria-pressed={q.my_vote === "up"}
+                onClick={() => handleVote(q.id, "up")}
+                className={`${voteBtnClass}${voteBtnActiveClass("up", q.my_vote === "up")}`}
+              >
+                <span aria-hidden className={voteEmojiClass(q.my_vote === "up")}>
+                  👍
+                </span>
+                <span
+                  className={
+                    bumpId === q.id && bumpDir === "up"
+                      ? "qa-vote-count--bump tabular-nums"
+                      : "tabular-nums"
+                  }
+                >
+                  {q.upvote_count}
+                </span>
+              </button>
+              {downvoteEnabled ? (
+                <button
+                  type="button"
+                  disabled={votingId === q.id}
+                  aria-label={q.my_vote === "down" ? "已按倒讚，再按可取消" : "按倒讚"}
+                  aria-pressed={q.my_vote === "down"}
+                  onClick={() => handleVote(q.id, "down")}
+                  className={`${voteBtnClass}${voteBtnActiveClass("down", q.my_vote === "down")}`}
+                >
+                  <span aria-hidden className={voteEmojiClass(q.my_vote === "down")}>
+                    👎
+                  </span>
+                  <span
+                    className={
+                      bumpId === q.id && bumpDir === "down"
+                        ? "qa-vote-count--bump tabular-nums"
+                        : "tabular-nums"
+                    }
+                  >
+                    {q.downvote_count}
+                  </span>
+                </button>
+              ) : null}
+            </div>
           </div>
         </li>
       ))}

@@ -285,7 +285,13 @@ async def list_public_questions(
             )
         )
     next_cursor = str(offset + _DEFAULT_PAGE_SIZE) if has_more else None
-    return QuestionListResponse(items=items, next_cursor=next_cursor)
+    qa = await interaction_service.get_qa_interaction(db, room_id)
+    settings = _qa_settings(qa.settings_jsonb if qa else None)
+    return QuestionListResponse(
+        items=items,
+        next_cursor=next_cursor,
+        downvote_enabled=settings.downvote_enabled,
+    )
 
 
 def _parse_cursor(cursor: str | None) -> int:

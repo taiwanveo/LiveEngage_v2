@@ -70,6 +70,14 @@ async def add_question(
             f"Survey 子題不支援題型 {payload.question_type}",
         )
 
+    if payload.question_type == InteractionType.MULTIPLE_CHOICE:
+        if len(payload.options) < 2:
+            raise AppError(
+                ErrorCode.VALIDATION_ERROR, "選擇題至少需要 2 個選項"
+            )
+        if any(not opt.text.strip() for opt in payload.options):
+            raise AppError(ErrorCode.VALIDATION_ERROR, "選項文字不可為空")
+
     max_order = await db.execute(
         select(func.coalesce(func.max(SurveyQuestion.order_no), -1)).where(
             SurveyQuestion.survey_interaction_id == survey_interaction_id
@@ -129,7 +137,7 @@ async def add_question(
     await db.commit()
     await db.refresh(sq)
 
-    return _to_question_public(sq, child)
+    return await _to_question_public(db, sq, child)
 
 
 async def list_questions(
@@ -146,7 +154,10 @@ async def list_questions(
         .where(SurveyQuestion.survey_interaction_id == survey_interaction_id)
         .order_by(SurveyQuestion.page_no, SurveyQuestion.order_no)
     )
-    return [_to_question_public(sq, child) for sq, child in rows.all()]
+    items: list[SurveyQuestionPublic] = []
+    for sq, child in rows.all():
+        items.append(await _to_question_public(db, sq, child))
+    return items
 
 
 async def _question_options_public(
@@ -216,7 +227,12 @@ async def list_questions_for_participant(
     return items
 
 
-def _to_question_public(sq: SurveyQuestion, child: Interaction) -> SurveyQuestionPublic:
+def _build_question_public(
+    sq: SurveyQuestion,
+    child: Interaction,
+    *,
+    options: list[PollOptionPublic] | None = None,
+) -> SurveyQuestionPublic:
     return SurveyQuestionPublic(
         id=sq.id,
         survey_interaction_id=sq.survey_interaction_id,
@@ -226,7 +242,17 @@ def _to_question_public(sq: SurveyQuestion, child: Interaction) -> SurveyQuestio
         required=sq.required,
         page_no=sq.page_no,
         order_no=sq.order_no,
+        options=options or [],
     )
+
+
+async def _to_question_public(
+    db: AsyncSession, sq: SurveyQuestion, child: Interaction
+) -> SurveyQuestionPublic:
+    options: list[PollOptionPublic] = []
+    if child.type == InteractionType.MULTIPLE_CHOICE:
+        options = await _question_options_public(db, child.id)
+    return _build_question_public(sq, child, options=options)
 
 
 async def submit_survey(
@@ -397,6 +423,16 @@ async def get_results(
                     rating_counter[str(int(ans))] += 1
             rating_counts = dict(rating_counter) if rating_counter else None
             count = sum(rating_counter.values())
+        elif child_i and child_i.type == InteractionType.OPEN_TEXT:
+            child_key = str(sq.child_interaction_id)
+            text_counter = 0
+            for (answers,) in completed_submissions:
+                if not isinstance(answers, dict):
+                    continue
+                ans = answers.get(child_key)
+                if isinstance(ans, str) and ans.strip():
+                    text_counter += 1
+            count = text_counter
         else:
             resp_count = await db.execute(
                 select(func.count())

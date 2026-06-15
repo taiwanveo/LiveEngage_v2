@@ -197,7 +197,7 @@ export function PollBuilderPage({
 
   return (
     <HostShell
-      title="投票編輯"
+      title="題目編輯"
       subtitle={poll ? interactionTypeLabel(poll.type) : ""}
       roomId={roomId}
       presentHref={presentAppUrl(roomId, pollId)}
@@ -219,12 +219,6 @@ export function PollBuilderPage({
       }
       titleAddon={
         <HostTitleActions>
-          <HostTitleLink
-            href={`#/rooms/${roomId}/workbench/${pollId}`}
-            variant="secondary"
-          >
-            活動工作台
-          </HostTitleLink>
           <HostTitleLink href={`#/rooms/${roomId}/workbench/${pollId}`} variant="primary">
             本題工作台
           </HostTitleLink>

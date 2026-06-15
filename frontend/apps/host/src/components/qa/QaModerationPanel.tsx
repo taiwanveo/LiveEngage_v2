@@ -348,6 +348,12 @@ interface QuestionCardActionsCtx {
   setReplyFormOpen: (open: boolean) => void;
 }
 
+function questionAuthorLabel(q: QuestionPublic): string {
+  if (q.is_anonymous) return "匿名";
+  const name = q.author_display?.trim();
+  return name || "未署名";
+}
+
 function QuestionCard(cardProps: {
   question: QuestionPublic;
   renderActions: (ctx: QuestionCardActionsCtx) => React.JSX.Element;
@@ -385,11 +391,10 @@ function QuestionCard(cardProps: {
           ))}
         </ul>
       ) : null}
-      <div className="mt-2 flex items-center gap-3 text-xs text-slate-500">
-        <span>作者 {q.is_anonymous ? "匿名" : q.author_display ?? "—"}</span>
-        <span>讚 {q.upvote_count}</span>
-        {q.downvote_count > 0 ? <span>倒讚 {q.downvote_count}</span> : null}
-        <span>分 {q.score}</span>
+      <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-500">
+        <span>發問者：{questionAuthorLabel(q)}</span>
+        <span>👍 {q.upvote_count}</span>
+        <span>👎 {q.downvote_count}</span>
         {q.highlighted ? (
           <span className="font-medium text-amber-600">★ 已標記</span>
         ) : null}

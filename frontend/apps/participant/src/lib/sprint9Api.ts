@@ -4,22 +4,35 @@ import { api, newIdempotencyKey } from "./api";
 
 export interface ActiveQuizQuestion {
   id: string;
+  child_interaction_id: string;
   title: string | null;
   state: string;
-  options: { id: string; text: string }[];
+  result_visible: boolean;
+  explanation: string | null;
+  options: { id: string; text: string; is_correct?: boolean | null }[];
 }
 
 export function mapActiveQuizQuestion(raw: {
   id: string;
+  child_interaction_id: string;
   title: string | null;
   state: string;
-  options: { id: string; text: string }[];
+  result_visible?: boolean;
+  explanation?: string | null;
+  options: { id: string; text: string; is_correct?: boolean | null }[];
 }): ActiveQuizQuestion {
   return {
     id: raw.id,
+    child_interaction_id: raw.child_interaction_id,
     title: raw.title,
     state: raw.state,
-    options: raw.options.map((o) => ({ id: o.id, text: o.text })),
+    result_visible: Boolean(raw.result_visible),
+    explanation: raw.explanation ?? null,
+    options: raw.options.map((o) => ({
+      id: o.id,
+      text: o.text,
+      is_correct: o.is_correct,
+    })),
   };
 }
 

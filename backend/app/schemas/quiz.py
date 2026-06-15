@@ -75,6 +75,7 @@ class QuizActionResponse(BaseModel):
     question_id: uuid.UUID
     state: QuizQuestionState
     child_status: str
+    result_visible: bool
 
 
 class QuizAnswerSubmitRequest(BaseModel):

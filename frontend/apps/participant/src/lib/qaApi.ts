@@ -39,6 +39,7 @@ export interface VoteResult {
 export interface QuestionListResponse {
   items: QuestionPublic[];
   next_cursor: string | null;
+  downvote_enabled?: boolean;
 }
 
 export async function submitQuestion(

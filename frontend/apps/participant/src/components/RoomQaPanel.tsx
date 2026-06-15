@@ -11,7 +11,7 @@ import {
   ROOM_QA_WAIT_MESSAGE,
 } from "./RoomWaitingPlaceholder";
 import {
-  applyOptimisticUpvote,
+  applyOptimisticVote,
   qaPublicQueryKey,
   reconcileVoteResult,
 } from "../lib/qaCache";
@@ -53,14 +53,15 @@ export function RoomQaPanel({ roomId, qaOpen }: Props): React.JSX.Element {
   });
 
   const voteMutation = useMutation({
-    mutationFn: (questionId: string) => voteQuestion(questionId, "up"),
-    onMutate: async (questionId) => {
+    mutationFn: ({ questionId, direction }: { questionId: string; direction: "up" | "down" }) =>
+      voteQuestion(questionId, direction),
+    onMutate: async ({ questionId, direction }) => {
       setVotingId(questionId);
       await qc.cancelQueries({ queryKey: qaPublicQueryKey(roomId) });
       const previous = qc.getQueryData<QuestionListResponse>(qaPublicQueryKey(roomId));
       flushSync(() => {
         qc.setQueryData<QuestionListResponse>(qaPublicQueryKey(roomId), (old) =>
-          applyOptimisticUpvote(old, questionId)
+          applyOptimisticVote(old, questionId, direction)
         );
       });
       return { previous };
@@ -74,7 +75,7 @@ export function RoomQaPanel({ roomId, qaOpen }: Props): React.JSX.Element {
       if (context?.previous) {
         qc.setQueryData(qaPublicQueryKey(roomId), context.previous);
       }
-      showError(formatUserFacingError(err, "按讚失敗"));
+      showError(formatUserFacingError(err, "投票失敗"));
     },
     onSettled: () => {
       setVotingId(null);
@@ -86,6 +87,7 @@ export function RoomQaPanel({ roomId, qaOpen }: Props): React.JSX.Element {
   }
 
   const items = questionsQuery.data?.items ?? [];
+  const downvoteEnabled = questionsQuery.data?.downvote_enabled !== false;
 
   return (
     <div className="space-y-6">
@@ -150,7 +152,10 @@ export function RoomQaPanel({ roomId, qaOpen }: Props): React.JSX.Element {
           <QaQuestionList
             items={items}
             votingId={votingId}
-            onVote={(questionId) => voteMutation.mutate(questionId)}
+            downvoteEnabled={downvoteEnabled}
+            onVote={(questionId, direction) =>
+              voteMutation.mutate({ questionId, direction })
+            }
           />
         )}
       </section>

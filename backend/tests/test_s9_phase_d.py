@@ -287,6 +287,93 @@ def test_delete_interaction_idempotent(
     assert second.status_code == 204, second.text
 
 
+def test_fe012_survey_multiple_choice_and_open_text(
+    client: TestClient, host_token: tuple[str, str]
+) -> None:
+    """FE-012：Survey 支援選擇題與開放文字子題。"""
+    token, _ = host_token
+    headers = _auth(token)
+    session = _live_session(client, headers)
+    room_id = session["default_room_id"]
+
+    survey = client.post(
+        f"/api/v1/rooms/{room_id}/interactions",
+        headers=headers,
+        json={"type": "survey", "title": "混合問卷"},
+    )
+    assert survey.status_code == 201, survey.text
+    survey_id = survey.json()["id"]
+
+    mc = client.post(
+        f"/api/v1/surveys/{survey_id}/questions",
+        headers=headers,
+        json={
+            "title": "最喜歡的環節",
+            "question_type": "multiple_choice",
+            "required": True,
+            "options": [
+                {"text": "開場", "order_no": 0},
+                {"text": "Q&A", "order_no": 1},
+            ],
+        },
+    )
+    assert mc.status_code == 201, mc.text
+    mc_child = mc.json()["child_interaction_id"]
+    assert len(mc.json()["options"]) == 2
+
+    ot = client.post(
+        f"/api/v1/surveys/{survey_id}/questions",
+        headers=headers,
+        json={
+            "title": "其他建議",
+            "question_type": "open_text",
+            "required": False,
+        },
+    )
+    assert ot.status_code == 201, ot.text
+    ot_child = ot.json()["child_interaction_id"]
+
+    listed = client.get(
+        f"/api/v1/surveys/{survey_id}/questions",
+        headers=headers,
+    )
+    assert listed.status_code == 200, listed.text
+    by_type = {q["question_type"]: q for q in listed.json()}
+    assert len(by_type["multiple_choice"]["options"]) == 2
+
+    client.patch(
+        f"/api/v1/interactions/{survey_id}",
+        headers=headers,
+        json={"status": "active"},
+    )
+
+    part_token, _ = _join(client, str(session["id"]))
+    part_headers = _auth(part_token)
+    submit = client.post(
+        f"/api/v1/surveys/{survey_id}/submit",
+        headers=part_headers,
+        json={
+            "answers": {
+                mc_child: {"option_ids": [by_type["multiple_choice"]["options"][0]["id"]]},
+                ot_child: "希望多一點互動",
+            },
+            "completed": True,
+        },
+    )
+    assert submit.status_code == 201, submit.text
+
+    results = client.get(
+        f"/api/v1/surveys/{survey_id}/results",
+        headers=headers,
+    )
+    assert results.status_code == 200, results.text
+    result_by_child = {
+        q["child_interaction_id"]: q for q in results.json()["questions"]
+    }
+    assert result_by_child[mc_child]["response_count"] == 1
+    assert result_by_child[ot_child]["response_count"] == 1
+
+
 def test_fe012_survey_submit(
     client: TestClient, host_token: tuple[str, str]
 ) -> None:
@@ -442,6 +529,153 @@ def test_start_question_after_quiz_activated(
     assert listed.status_code == 200, listed.text
     by_id = {item["id"]: item for item in listed.json()}
     assert by_id[quiz_id]["status"] == "locked"
+
+
+def test_quiz_reveal_question(
+    client: TestClient, host_token: tuple[str, str]
+) -> None:
+    """子題 reveal：狀態 revealed、result_visible、參與者可見正解。"""
+    token, _ = host_token
+    headers = _auth(token)
+    session = _live_session(client, headers)
+    room_id = str(session["default_room_id"])
+
+    quiz = client.post(
+        f"/api/v1/rooms/{room_id}/interactions",
+        headers=headers,
+        json={"type": "quiz", "title": "揭曉測試"},
+    )
+    assert quiz.status_code == 201, quiz.text
+    quiz_id = quiz.json()["id"]
+
+    client.patch(
+        f"/api/v1/interactions/{quiz_id}",
+        headers=headers,
+        json={"status": "active"},
+    )
+
+    q = client.post(
+        f"/api/v1/quizzes/{quiz_id}/questions",
+        headers=headers,
+        json={
+            "title": "1+2=?",
+            "explanation": "基礎加法",
+            "options": [
+                {"text": "3", "is_correct": True, "order_no": 0},
+                {"text": "4", "is_correct": False, "order_no": 1},
+            ],
+        },
+    )
+    assert q.status_code == 201, q.text
+    question = q.json()
+    question_id = question["id"]
+    correct_id = question["options"][0]["id"]
+
+    start = client.post(
+        f"/api/v1/quizzes/questions/{question_id}/actions",
+        headers=headers,
+        json={"action": "start_question"},
+    )
+    assert start.status_code == 200, start.text
+
+    part_token, _ = _join(client, str(session["id"]))
+    part_headers = _auth(part_token)
+
+    reveal = client.post(
+        f"/api/v1/quizzes/questions/{question_id}/actions",
+        headers=headers,
+        json={"action": "reveal"},
+    )
+    assert reveal.status_code == 200, reveal.text
+    assert reveal.json()["state"] == "revealed"
+    assert reveal.json()["result_visible"] is True
+
+    host_list = client.get(
+        f"/api/v1/quizzes/{quiz_id}/questions",
+        headers=headers,
+    )
+    assert host_list.status_code == 200, host_list.text
+    host_q = host_list.json()[0]
+    assert host_q["state"] == "revealed"
+    assert host_q["result_visible"] is True
+    assert host_q["options"][0]["is_correct"] is True
+
+    active = client.get(
+        f"/api/v1/quizzes/{quiz_id}/active-question",
+        headers=part_headers,
+    )
+    assert active.status_code == 200, active.text
+    part_q = active.json()
+    assert part_q is not None
+    assert part_q["state"] == "revealed"
+    assert part_q["result_visible"] is True
+    assert part_q["options"][0]["is_correct"] is True
+    assert part_q["options"][0]["id"] == correct_id
+    assert part_q["explanation"] == "基礎加法"
+
+    interactions = client.get(
+        f"/api/v1/rooms/{room_id}/interactions",
+        headers=headers,
+    )
+    assert interactions.status_code == 200, interactions.text
+    by_id = {item["id"]: item for item in interactions.json()}
+    assert by_id[quiz_id]["status"] == "active"
+
+
+def test_quiz_host_list_includes_correct_answer_when_pending(
+    client: TestClient, host_token: tuple[str, str]
+) -> None:
+    """Host 列出 pending 子題時應含 is_correct，供編輯頁還原正解。"""
+    token, _ = host_token
+    headers = _auth(token)
+    session = _live_session(client, headers)
+    room_id = str(session["default_room_id"])
+
+    quiz = client.post(
+        f"/api/v1/rooms/{room_id}/interactions",
+        headers=headers,
+        json={"type": "quiz", "title": "正解列表測試"},
+    )
+    assert quiz.status_code == 201, quiz.text
+    quiz_id = quiz.json()["id"]
+
+    q = client.post(
+        f"/api/v1/quizzes/{quiz_id}/questions",
+        headers=headers,
+        json={
+            "title": "1+2=?",
+            "options": [
+                {"text": "1", "is_correct": False, "order_no": 0},
+                {"text": "3", "is_correct": True, "order_no": 1},
+            ],
+        },
+    )
+    assert q.status_code == 201, q.text
+    created = q.json()
+    assert created["options"][1]["is_correct"] is True
+
+    listed = client.get(
+        f"/api/v1/quizzes/{quiz_id}/questions",
+        headers=headers,
+    )
+    assert listed.status_code == 200, listed.text
+    item = listed.json()[0]
+    assert item["state"] == "pending"
+    assert item["options"][0]["is_correct"] is False
+    assert item["options"][1]["is_correct"] is True
+
+    updated = client.patch(
+        f"/api/v1/quizzes/questions/{item['id']}",
+        headers=headers,
+        json={
+            "options": [
+                {"text": "1", "is_correct": False, "order_no": 0},
+                {"text": "3", "is_correct": True, "order_no": 1},
+            ],
+        },
+    )
+    assert updated.status_code == 200, updated.text
+    assert updated.json()["options"][1]["is_correct"] is True
 
 
 def test_quiz_close_active_question(

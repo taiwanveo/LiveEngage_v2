@@ -18,6 +18,10 @@ export function WorkbenchQuizPreview({ item }: Props): React.JSX.Element {
   });
 
   const active = questionsQuery.data?.find((q) => q.state === "active");
+  const revealed = questionsQuery.data?.find(
+    (q) => q.state === "revealed" && q.result_visible
+  );
+  const current = active ?? revealed;
 
   return (
     <ParticipantPreviewFrame
@@ -29,29 +33,40 @@ export function WorkbenchQuizPreview({ item }: Props): React.JSX.Element {
         <div className="le-card border-dashed p-6 text-center text-xs text-muted">
           等待 Quiz 開放
         </div>
-      ) : !active ? (
+      ) : !current ? (
         <div className="le-card border-dashed p-6 text-center text-xs text-muted">
           等待主持人開始子題
         </div>
       ) : (
         <div className="le-card p-4">
-          <p className="mb-1 text-[10px] text-muted">作答 · 進行中</p>
+          <p className="mb-1 text-[10px] text-muted">
+            {current.state === "revealed" ? "已揭曉答案" : "作答 · 進行中"}
+          </p>
           <h2 className="font-display text-sm font-semibold text-foreground">
-            {active.title}
+            {current.title}
           </h2>
           <ul className="mt-3 space-y-2">
-            {active.options.map((opt) => (
+            {current.options.map((opt) => {
+              const isCorrect = current.state === "revealed" && opt.is_correct;
+              return (
               <li key={opt.id}>
                 <button
                   type="button"
                   disabled
-                  className="le-btn-secondary w-full !justify-start !text-xs opacity-70"
+                  className={`le-btn-secondary w-full !justify-start !text-xs opacity-70 ${
+                    isCorrect ? "ring-2 ring-emerald-500" : ""
+                  }`}
                 >
                   {opt.text}
+                  {isCorrect ? " ✓" : ""}
                 </button>
               </li>
-            ))}
+            );
+            })}
           </ul>
+          {current.state === "revealed" && current.explanation ? (
+            <p className="mt-3 text-xs text-muted">{current.explanation}</p>
+          ) : null}
         </div>
       )}
     </ParticipantPreviewFrame>

@@ -69,7 +69,7 @@ export async function deleteQuizQuestion(questionId: string): Promise<void> {
 export async function quizAction(
   questionId: string,
   action: "start_question" | "reveal" | "hide" | "next" | "close"
-): Promise<{ question_id: string; state: string }> {
+): Promise<{ question_id: string; state: string; result_visible: boolean }> {
   return api(`/api/v1/quizzes/questions/${questionId}/actions`, {
     method: "POST",
     body: { action },
@@ -114,17 +114,25 @@ export async function setIdeaHidden(
   return hidden ? hideIdea(ideaId) : showIdea(ideaId);
 }
 
+export type SurveyQuestionType = "rating" | "multiple_choice" | "open_text";
+
 export interface SurveyQuestion {
   id: string;
   child_interaction_id: string;
   title: string | null;
-  question_type: string;
+  question_type: SurveyQuestionType | string;
   required: boolean;
+  options?: { id: string; text: string; order_no: number }[];
 }
 
 export async function addSurveyQuestion(
   surveyId: string,
-  payload: { title: string; question_type: string; required?: boolean }
+  payload: {
+    title: string;
+    question_type: SurveyQuestionType;
+    required?: boolean;
+    options?: { text: string; order_no: number; is_correct?: boolean }[];
+  }
 ): Promise<SurveyQuestion> {
   return api<SurveyQuestion>(`/api/v1/surveys/${surveyId}/questions`, {
     method: "POST",

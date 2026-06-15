@@ -29,14 +29,46 @@ export function applyOptimisticUpvote(
   data: QuestionListResponse | undefined,
   questionId: string
 ): QuestionListResponse | undefined {
+  return applyOptimisticVote(data, questionId, "up");
+}
+
+export function applyOptimisticVote(
+  data: QuestionListResponse | undefined,
+  questionId: string,
+  direction: "up" | "down"
+): QuestionListResponse | undefined {
   if (!data) return data;
   const target = data.items.find((q) => q.id === questionId);
-  if (!target || target.my_vote === "up") return data;
+  if (!target) return data;
+
+  let up = target.upvote_count;
+  let down = target.downvote_count;
+  let myVote = target.my_vote;
+
+  if (myVote === direction) {
+    if (direction === "up") up -= 1;
+    else down -= 1;
+    myVote = null;
+  } else if (myVote === null) {
+    if (direction === "up") up += 1;
+    else down += 1;
+    myVote = direction;
+  } else {
+    if (direction === "up") {
+      up += 1;
+      down -= 1;
+    } else {
+      up -= 1;
+      down += 1;
+    }
+    myVote = direction;
+  }
+
   return patchQuestionVotes(data, questionId, {
-    upvote_count: target.upvote_count + 1,
-    downvote_count: target.downvote_count,
-    score: target.score + 1,
-    my_vote: "up",
+    upvote_count: up,
+    downvote_count: down,
+    score: up - down,
+    my_vote: myVote,
   });
 }
 

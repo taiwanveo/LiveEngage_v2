@@ -15,7 +15,7 @@ class QaSettings(BaseModel):
     """Q&A 題型設定（存於 interactions.settings_jsonb；BE-004-FR4）。"""
 
     moderation_enabled: bool = False
-    downvote_enabled: bool = False
+    downvote_enabled: bool = True
     allow_participant_replies: bool = False
     max_question_length: int = Field(default=300, ge=50, le=1000)
     show_answered_separately: bool = True

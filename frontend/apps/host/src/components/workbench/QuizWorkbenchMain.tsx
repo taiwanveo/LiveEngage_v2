@@ -100,7 +100,13 @@ export function QuizWorkbenchMain({ roomId, item }: Props): React.JSX.Element {
         ["quiz-questions", interactionId],
         (old) =>
           old?.map((q) =>
-            q.id === variables.questionId ? { ...q, state: data.state } : q
+            q.id === variables.questionId
+              ? {
+                  ...q,
+                  state: data.state,
+                  result_visible: data.result_visible,
+                }
+              : q
           ) ?? old
       );
       showSuccess(QUIZ_ACTION_SUCCESS[variables.action]);

@@ -448,6 +448,11 @@ export function SessionWorkbenchPage({
                 title={connected ? "WS 已連線" : "WS 未連線"}
               />
             }
+            navControls={
+              <div className="flex w-full flex-wrap items-center justify-center gap-2">
+                {workbenchControls}
+              </div>
+            }
           />
         }
         sidebar={
@@ -468,15 +473,10 @@ export function SessionWorkbenchPage({
           />
         }
         main={
-          <div className="space-y-4">
-            <div className="flex flex-wrap items-center justify-center gap-2">
-              {workbenchControls}
-            </div>
-            <WorkbenchMainPanel
-              roomId={roomId}
-              item={selectedItem}
-            />
-          </div>
+          <WorkbenchMainPanel
+            roomId={roomId}
+            item={selectedItem}
+          />
         }
         preview={<WorkbenchPreviewPanel item={selectedItem} />}
       />

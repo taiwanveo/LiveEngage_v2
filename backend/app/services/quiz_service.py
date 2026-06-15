@@ -222,7 +222,7 @@ async def add_question(
     await db.refresh(qq)
     await db.refresh(child)
 
-    options = await _question_options(db, child.id, hide_correct=True)
+    options = await _question_options(db, child.id, hide_correct=False)
     return _to_question_public(qq, child, options)
 
 
@@ -231,9 +231,8 @@ async def list_questions(
     *,
     quiz_interaction_id: uuid.UUID,
     host: User,
-    hide_correct: bool = True,
 ) -> list[QuizQuestionPublic]:
-    """列出 Quiz 全部子題（Host）。"""
+    """列出 Quiz 全部子題（Host）；主持人端一律回傳 ``is_correct`` 供編輯。"""
     await _load_quiz_for_host(db, quiz_interaction_id, host)
     result = await db.execute(
         select(QuizQuestion, Interaction)
@@ -243,9 +242,7 @@ async def list_questions(
     )
     items: list[QuizQuestionPublic] = []
     for qq, child in result.all():
-        options = await _question_options(
-            db, child.id, hide_correct=hide_correct and qq.state != QuizQuestionState.REVEALED
-        )
+        options = await _question_options(db, child.id, hide_correct=False)
         items.append(_to_question_public(qq, child, options))
     return items
 
@@ -280,7 +277,9 @@ async def get_active_question_for_participant(
         .join(Interaction, QuizQuestion.child_interaction_id == Interaction.id)
         .where(
             QuizQuestion.quiz_interaction_id == quiz_interaction_id,
-            QuizQuestion.state == QuizQuestionState.ACTIVE,
+            QuizQuestion.state.in_(
+                [QuizQuestionState.ACTIVE, QuizQuestionState.REVEALED]
+            ),
         )
         .order_by(QuizQuestion.order_no)
         .limit(1)
@@ -289,7 +288,12 @@ async def get_active_question_for_participant(
     if row is None:
         return None
     qq, child = row[0], row[1]
-    options = await _question_options(db, child.id, hide_correct=True)
+    if qq.state == QuizQuestionState.REVEALED and not child.result_visible:
+        return None
+    hide_correct = not (
+        qq.state == QuizQuestionState.REVEALED and child.result_visible
+    )
+    options = await _question_options(db, child.id, hide_correct=hide_correct)
     return _to_question_public(qq, child, options)
 
 
@@ -350,7 +354,7 @@ async def update_question(
     await db.commit()
     await db.refresh(qq)
     await db.refresh(child)
-    options = await _question_options(db, child.id, hide_correct=True)
+    options = await _question_options(db, child.id, hide_correct=False)
     return _to_question_public(qq, child, options)
 
 
@@ -641,7 +645,8 @@ async def quiz_action(
             qq.state = QuizQuestionState.REVEALED
             child.result_visible = True
             child.status = InteractionStatus.LOCKED
-            _restore_quiz_parent_if_locked(quiz)
+            await db.flush()
+            await _restore_quiz_parent_if_locked_after_flush(db, room_id, quiz)
             correct_ids = await _get_correct_option_ids(db, child.id)
             await events.publish(
                 room_id,
@@ -750,7 +755,8 @@ async def quiz_action(
                 },
             )
         else:
-            _restore_quiz_parent_if_locked(quiz)
+            await db.flush()
+            await _restore_quiz_parent_if_locked_after_flush(db, room_id, quiz)
     else:
         raise AppError(ErrorCode.VALIDATION_ERROR, f"不支援的動作：{action}")
 
@@ -769,6 +775,7 @@ async def quiz_action(
         question_id=qq.id,
         state=qq.state,
         child_status=child.status,
+        result_visible=child.result_visible,
     )
 
 

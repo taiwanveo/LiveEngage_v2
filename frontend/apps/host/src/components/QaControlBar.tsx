@@ -41,7 +41,7 @@ export function QaControlBar({ roomId }: Props): React.JSX.Element {
         const created = await createInteraction(roomId, {
           type: "qa",
           title: "Q&A",
-          settings: { moderation_enabled: true },
+          settings: { moderation_enabled: true, downvote_enabled: true },
         });
         qaId = created.id;
       }

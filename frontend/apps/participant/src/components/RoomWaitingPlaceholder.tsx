@@ -9,7 +9,7 @@ interface Props {
 export function RoomWaitingPlaceholder({ message }: Props): React.JSX.Element {
   return (
     <div className="le-card border-dashed p-10 text-center">
-      <p className="text-lg font-medium text-foreground">{message}</p>
+      <p className="text-[17px] font-medium text-foreground">{message}</p>
     </div>
   );
 }

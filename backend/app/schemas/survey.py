@@ -31,6 +31,7 @@ class SurveyQuestionPublic(BaseModel):
     required: bool
     page_no: int
     order_no: int
+    options: list[PollOptionPublic] = Field(default_factory=list)
 
 
 class SurveyQuestionParticipantPublic(BaseModel):
