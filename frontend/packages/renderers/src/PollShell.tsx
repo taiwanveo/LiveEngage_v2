@@ -1,6 +1,6 @@
 import * as React from "react";
 import type { InteractionStatus, RenderMode } from "./types";
-import { modeLabel, statusLabel } from "./utils";
+import { modeLabel, presentStatusBadgeClass, statusLabel } from "./utils";
 
 interface PollShellProps {
   mode: RenderMode;
@@ -25,25 +25,21 @@ export function PollShell({
     <article
       className={
         isPresent
-          ? "rounded-2xl bg-slate-900 p-8 text-white shadow-xl"
+          ? "flex min-h-0 flex-1 flex-col text-white"
           : "le-card p-6"
       }
     >
-      <header className="mb-6 space-y-2">
+      <header className={isPresent ? "mb-6 shrink-0 space-y-2" : "mb-6 space-y-2"}>
         <div className="flex flex-wrap items-center gap-2">
+          {!isPresent ? (
+            <span className="rounded-full bg-surface-elevated px-3 py-1 text-xs font-medium text-muted">
+              {modeLabel(mode)}
+            </span>
+          ) : null}
           <span
             className={
               isPresent
-                ? "rounded-full bg-white/10 px-3 py-1 text-xs font-medium text-slate-200"
-                : "rounded-full bg-surface-elevated px-3 py-1 text-xs font-medium text-muted"
-            }
-          >
-            {modeLabel(mode)}
-          </span>
-          <span
-            className={
-              isPresent
-                ? "rounded-full bg-primary-500/20 px-3 py-1 text-xs font-medium text-primary-50"
+                ? presentStatusBadgeClass(status)
                 : "rounded-full bg-accent-muted px-3 py-1 text-xs font-medium text-accent"
             }
           >
@@ -71,7 +67,9 @@ export function PollShell({
           </p>
         ) : null}
       </header>
-      <div className="space-y-4">{children}</div>
+      <div className={isPresent ? "flex min-h-0 flex-1 flex-col space-y-4" : "space-y-4"}>
+        {children}
+      </div>
       {footer ? <footer className="mt-6">{footer}</footer> : null}
     </article>
   );

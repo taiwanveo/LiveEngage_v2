@@ -60,34 +60,34 @@ export function WordCloudPoll({
       }
     >
       {showResults ? (
-        <WordCloudDisplay words={results?.word_counts ?? []} large={mode === "present"} />
+        <div className={mode === "present" ? "flex min-h-0 flex-1 flex-col" : undefined}>
+          <WordCloudDisplay words={results?.word_counts ?? []} large={mode === "present"} />
+        </div>
       ) : mode === "preview" ? (
         <p className="text-sm text-slate-500">參與者將輸入關鍵字詞</p>
       ) : interactive && answerable ? (
-        <div className="space-y-3">
-          <div className="flex gap-2">
-            <input
-              type="text"
-              value={word}
-              maxLength={maxLen}
-              onChange={(e) => setWord(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  e.preventDefault();
-                  addWord();
-                }
-              }}
-              placeholder={`輸入詞彙（最多 ${maxLen} 字）`}
-              className="flex-1 rounded-lg border border-slate-300 px-3 py-2 text-sm"
-            />
-            <button
-              type="button"
-              onClick={addWord}
-              className="rounded-lg border border-slate-300 px-3 py-2 text-sm hover:bg-slate-50"
-            >
-              加入
-            </button>
-          </div>
+        <div className="w-full min-w-0 space-y-3">
+          <input
+            type="text"
+            value={word}
+            maxLength={maxLen}
+            onChange={(e) => setWord(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                addWord();
+              }
+            }}
+            placeholder={`輸入詞彙（最多 ${maxLen} 字）`}
+            className="box-border w-full min-w-0 rounded-lg border border-slate-300 px-3 py-2 text-sm"
+          />
+          <button
+            type="button"
+            onClick={addWord}
+            className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm hover:bg-slate-50"
+          >
+            加入
+          </button>
           {chips.length > 0 ? (
             <div className="flex flex-wrap gap-2">
               {chips.map((w, i) => (

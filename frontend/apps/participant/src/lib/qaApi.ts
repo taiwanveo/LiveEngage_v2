@@ -23,8 +23,17 @@ export interface QuestionPublic {
   score: number;
   highlighted: boolean;
   answered_at: string | null;
+  created_at: string;
   my_vote: "up" | "down" | null;
   replies?: QuestionReply[];
+}
+
+export interface VoteResult {
+  question_id: string;
+  upvote_count: number;
+  downvote_count: number;
+  score: number;
+  my_vote: "up" | "down" | null;
 }
 
 export interface QuestionListResponse {
@@ -55,8 +64,8 @@ export async function listQuestions(
 export async function voteQuestion(
   questionId: string,
   direction: "up" | "down"
-): Promise<void> {
-  await api(`/api/v1/questions/${questionId}/vote`, {
+): Promise<VoteResult> {
+  return api<VoteResult>(`/api/v1/questions/${questionId}/vote`, {
     method: "POST",
     body: { direction },
     idempotencyKey: newIdempotencyKey(),

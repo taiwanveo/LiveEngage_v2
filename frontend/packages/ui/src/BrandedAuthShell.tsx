@@ -4,7 +4,7 @@ import * as React from "react";
 import { AppHeader } from "./AppHeader";
 import { OrgBrandingProvider } from "./orgBranding";
 import type { PublicBranding } from "./orgBranding";
-import { brandedLogoUrl, brandedProductTitle } from "./siteBranding";
+import { brandedLogoUrl, brandedProductTitleLines } from "./siteBranding";
 
 interface Props {
   /** AppHeader 副標，例如「控場端（host）」 */
@@ -27,7 +27,7 @@ export function BrandedAuthShell({
   footer,
   headerBrand = "LiveEngage",
 }: Props): React.JSX.Element {
-  const productTitle = brandedProductTitle(branding);
+  const { primary, suffix } = brandedProductTitleLines(branding);
   const logoSrc = brandedLogoUrl(branding);
 
   return (
@@ -39,8 +39,9 @@ export function BrandedAuthShell({
           <div className="w-full max-w-md animate-slide-up">
             <div className="le-card-elevated p-8 md:p-10">
               <div className="mb-8 flex items-start justify-between gap-4 border-b border-border/60 pb-6">
-                <p className="font-display text-xl font-bold leading-snug tracking-tight text-foreground sm:text-2xl">
-                  {productTitle}
+                <p className="min-w-0 font-display text-xl font-bold leading-snug tracking-tight text-foreground sm:text-2xl">
+                  <span className="block">{primary}</span>
+                  <span className="block">{suffix}</span>
                 </p>
                 <img
                   src={logoSrc}

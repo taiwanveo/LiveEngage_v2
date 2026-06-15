@@ -139,8 +139,8 @@ function OrganizationSettings() {
           </div>
         )}
         <AdminFieldHint>
-          登入頁標題會顯示為「{'{組織名稱}'} 即時互動通」；若未設定組織名稱則預設為 LiveEngage
-          即時互動通。Logo 會套用在登入頁與加入頁。
+          登入頁標題第一行顯示組織名稱、第二行顯示「即時互動通」；若未設定組織名稱則第一行為
+          LiveEngage。Logo 會套用在登入頁與加入頁。
         </AdminFieldHint>
       </AdminFormField>
 

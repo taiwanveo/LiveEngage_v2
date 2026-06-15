@@ -1,10 +1,18 @@
-/** 參與者 Q&A：提問與瀏覽已核准問題。 */
+/** 參與者 Q&A：提問與瀏覽已核准問題（樂觀重排 + FLIP 動畫）。 */
 
 import * as React from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { flushSync } from "react-dom";
 import { formatUserFacingError } from "@liveengage/realtime";
 import { Modal, useSystemNotice } from "@liveengage/ui";
+import { QaQuestionList } from "./QaQuestionList";
+import {
+  applyOptimisticUpvote,
+  qaPublicQueryKey,
+  reconcileVoteResult,
+} from "../lib/qaCache";
 import { listQuestions, submitQuestion, voteQuestion } from "../lib/qaApi";
+import type { QuestionListResponse } from "../lib/qaApi";
 
 interface Props {
   roomId: string;
@@ -16,9 +24,10 @@ export function RoomQaPanel({ roomId }: Props): React.JSX.Element {
   const [content, setContent] = React.useState("");
   const [anonymous, setAnonymous] = React.useState(false);
   const [submitOk, setSubmitOk] = React.useState(false);
+  const [votingId, setVotingId] = React.useState<string | null>(null);
 
   const questionsQuery = useQuery({
-    queryKey: ["qa-public", roomId],
+    queryKey: qaPublicQueryKey(roomId),
     queryFn: () => listQuestions(roomId, "top"),
     refetchInterval: 8_000,
   });
@@ -29,7 +38,7 @@ export function RoomQaPanel({ roomId }: Props): React.JSX.Element {
     onSuccess: () => {
       setContent("");
       setSubmitOk(true);
-      void qc.invalidateQueries({ queryKey: ["qa-public", roomId] });
+      void qc.invalidateQueries({ queryKey: qaPublicQueryKey(roomId) });
     },
     onError: (err: unknown) => {
       setSubmitOk(false);
@@ -39,10 +48,30 @@ export function RoomQaPanel({ roomId }: Props): React.JSX.Element {
 
   const voteMutation = useMutation({
     mutationFn: (questionId: string) => voteQuestion(questionId, "up"),
-    onSuccess: () =>
-      void qc.invalidateQueries({ queryKey: ["qa-public", roomId] }),
-    onError: (err: unknown) => {
+    onMutate: async (questionId) => {
+      setVotingId(questionId);
+      await qc.cancelQueries({ queryKey: qaPublicQueryKey(roomId) });
+      const previous = qc.getQueryData<QuestionListResponse>(qaPublicQueryKey(roomId));
+      flushSync(() => {
+        qc.setQueryData<QuestionListResponse>(qaPublicQueryKey(roomId), (old) =>
+          applyOptimisticUpvote(old, questionId)
+        );
+      });
+      return { previous };
+    },
+    onSuccess: (result) => {
+      qc.setQueryData<QuestionListResponse>(qaPublicQueryKey(roomId), (old) =>
+        reconcileVoteResult(old, result)
+      );
+    },
+    onError: (err: unknown, _questionId, context) => {
+      if (context?.previous) {
+        qc.setQueryData(qaPublicQueryKey(roomId), context.previous);
+      }
       showError(formatUserFacingError(err, "按讚失敗"));
+    },
+    onSettled: () => {
+      setVotingId(null);
     },
   });
 
@@ -108,54 +137,11 @@ export function RoomQaPanel({ roomId }: Props): React.JSX.Element {
             尚無已核准問題，成為第一個發問的人吧！
           </p>
         ) : (
-          <ul className="space-y-3">
-            {items.map((q) => (
-              <li key={q.id} className="le-card p-4">
-                <div className="flex items-start gap-2">
-                  {q.highlighted ? (
-                    <span
-                      className="mt-0.5 shrink-0 text-base leading-none text-amber-500"
-                      title="這個問題已被活動主持人標記"
-                      aria-label="這個問題已被活動主持人標記"
-                      role="img"
-                    >
-                      ★
-                    </span>
-                  ) : null}
-                  <p className="min-w-0 flex-1 whitespace-pre-wrap text-sm text-foreground">
-                    {q.content}
-                  </p>
-                </div>
-                {q.status === "answered" ? (
-                  <span className="mt-1 inline-block rounded bg-success/15 px-2 py-0.5 text-xs text-success">
-                    已回答
-                  </span>
-                ) : null}
-                {(q.replies ?? []).length > 0 ? (
-                  <div className="mt-2 space-y-1 border-l-2 border-accent/30 pl-3">
-                    {(q.replies ?? []).map((r) => (
-                      <p key={r.id} className="text-xs text-muted">
-                        <span className="font-medium text-accent">主持人回覆：</span>
-                        {r.content}
-                      </p>
-                    ))}
-                  </div>
-                ) : null}
-                <div className="mt-2 flex flex-wrap items-center gap-3 text-xs text-muted">
-                  <span>{q.is_anonymous ? "匿名" : q.author_display ?? "—"}</span>
-                  <span>讚 {q.upvote_count}</span>
-                  <button
-                    type="button"
-                    disabled={voteMutation.isPending || q.my_vote === "up"}
-                    onClick={() => voteMutation.mutate(q.id)}
-                    className="le-btn-secondary !min-h-0 px-2 py-1 text-xs disabled:opacity-50"
-                  >
-                    {q.my_vote === "up" ? "已按讚" : "按讚"}
-                  </button>
-                </div>
-              </li>
-            ))}
-          </ul>
+          <QaQuestionList
+            items={items}
+            votingId={votingId}
+            onVote={(questionId) => voteMutation.mutate(questionId)}
+          />
         )}
       </section>
       {systemNoticeModal}

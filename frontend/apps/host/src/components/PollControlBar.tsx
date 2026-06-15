@@ -74,7 +74,7 @@ export function PollControlToggles({
         activeLabel="結束"
         inactiveLabel="開始"
         disabled={pending}
-        accent={running ? "success" : "default"}
+        accent={running ? "danger" : "default"}
         size={size}
         onClick={() => onToggle(running ? "stop" : "start")}
       />
@@ -95,20 +95,63 @@ export function PollControlToggles({
         onClick={() => onToggle(poll.result_visible ? "hide" : "reveal")}
       />
       {showReset ? (
-        <button
-          type="button"
+        <ControlAction
+          label="重設"
           disabled={pending}
+          size={size}
           onClick={() => onToggle("reset", true)}
-          className={
-            size === "compact"
-              ? "rounded-full border border-border px-2 py-0.5 text-[10px] text-muted hover:bg-surface-elevated hover:text-foreground disabled:opacity-50"
-              : "rounded-full border border-border px-3 py-1 text-xs text-muted hover:bg-surface-elevated hover:text-foreground disabled:opacity-50"
-          }
-        >
-          重置
-        </button>
+        />
       ) : null}
     </>
+  );
+}
+
+type ControlAccent = "default" | "success" | "danger";
+type ControlSize = "default" | "compact";
+
+function controlSizeClass(size: ControlSize): string {
+  return size === "compact"
+    ? "min-h-[24px] px-2 py-0.5 text-[10px]"
+    : "min-h-[32px] px-3 py-1 text-xs";
+}
+
+function controlDotClass(active: boolean, accent: ControlAccent, size: ControlSize): string {
+  const dim = size === "compact" ? "h-1 w-1" : "h-1.5 w-1.5";
+  if (!active) return `${dim} shrink-0 rounded-full bg-muted`;
+  if (accent === "success") return `${dim} shrink-0 rounded-full bg-success`;
+  if (accent === "danger") return `${dim} shrink-0 rounded-full bg-danger`;
+  return `${dim} shrink-0 rounded-full bg-accent`;
+}
+
+function controlInactiveClass(): string {
+  return "border-border bg-background text-foreground hover:border-accent/30 hover:bg-surface-elevated";
+}
+
+function controlActiveClass(accent: ControlAccent): string {
+  if (accent === "success") return "border-success/40 bg-success/10 text-success";
+  if (accent === "danger") return "border-danger/40 bg-danger/10 text-danger";
+  return "border-accent/40 bg-accent-muted text-accent";
+}
+
+/** 單次動作按鈕（外觀與未按下的 ControlToggle 一致，例如重設）。 */
+export function ControlAction(props: {
+  label: string;
+  disabled?: boolean;
+  size?: ControlSize;
+  onClick: () => void;
+}): React.JSX.Element {
+  const size = props.size ?? "default";
+
+  return (
+    <button
+      type="button"
+      disabled={props.disabled}
+      onClick={props.onClick}
+      className={`inline-flex items-center gap-1.5 rounded-full border font-medium transition disabled:opacity-50 ${controlSizeClass(size)} ${controlInactiveClass()}`}
+    >
+      <span className={controlDotClass(false, "default", size)} />
+      {props.label}
+    </button>
   );
 }
 
@@ -117,12 +160,13 @@ export function ControlToggle(props: {
   activeLabel: string;
   inactiveLabel: string;
   disabled?: boolean;
-  accent?: "default" | "success";
-  size?: "default" | "compact";
+  accent?: ControlAccent;
+  size?: ControlSize;
   onClick: () => void;
 }): React.JSX.Element {
   const label = props.active ? props.activeLabel : props.inactiveLabel;
-  const compact = props.size === "compact";
+  const size = props.size ?? "default";
+  const accent = props.accent ?? "default";
 
   return (
     <button
@@ -130,27 +174,11 @@ export function ControlToggle(props: {
       disabled={props.disabled}
       onClick={props.onClick}
       aria-pressed={props.active}
-      className={`inline-flex items-center gap-1.5 rounded-full border font-medium transition disabled:opacity-50 ${
-        compact ? "min-h-[24px] px-2 py-0.5 text-[10px]" : "min-h-[32px] px-3 py-1 text-xs"
-      } ${
-        props.active
-          ? props.accent === "success"
-            ? "border-success/40 bg-success/10 text-success"
-            : "border-accent/40 bg-accent-muted text-accent"
-          : "border-border bg-background text-muted hover:border-accent/30 hover:text-foreground"
+      className={`inline-flex items-center gap-1.5 rounded-full border font-medium transition disabled:opacity-50 ${controlSizeClass(size)} ${
+        props.active ? controlActiveClass(accent) : controlInactiveClass()
       }`}
     >
-      <span
-        className={`shrink-0 rounded-full ${
-          compact ? "h-1 w-1" : "h-1.5 w-1.5"
-        } ${
-          props.active
-            ? props.accent === "success"
-              ? "bg-success"
-              : "bg-accent"
-            : "bg-muted"
-        }`}
-      />
+      <span className={controlDotClass(props.active, accent, size)} />
       {label}
     </button>
   );

@@ -12,6 +12,7 @@ import { PollRenderersDemoPage } from "./pages/PollRenderersDemoPage";
 import { PresentPage } from "./pages/PresentPage";
 import { QaPresentPage } from "./pages/QaPresentPage";
 import { Sprint9PresentRouter } from "./pages/Sprint9PresentRouter";
+import { RoomOverviewPage } from "./pages/RoomOverviewPage";
 import { SessionsDashboardPage } from "./pages/SessionsDashboardPage";
 import { SsoCallbackPage, parseSsoCallbackHash } from "./pages/SsoCallbackPage";
 import { SessionWorkbenchPage } from "./pages/SessionWorkbenchPage";
@@ -34,6 +35,7 @@ type Route =
   | { name: "qa-present"; roomId: string }
   | { name: "sprint9-present"; roomId: string; interactionId: string }
   | { name: "sprint9"; roomId: string }
+  | { name: "overview"; roomId: string }
   | { name: "workbench"; roomId: string; pollId?: string | undefined }
   | { name: "sprint9-console"; roomId: string; interactionId: string }
   | { name: "quiz-edit"; roomId: string; quizId: string; questionId: string };
@@ -51,6 +53,9 @@ function parseHash(): Route {
 
   if (parts[0] === "rooms" && parts[1]) {
     const roomId = parts[1];
+    if (parts[2] === "overview") {
+      return { name: "overview", roomId };
+    }
     if (parts[2] === "workbench") {
       return { name: "workbench", roomId, pollId: parts[3] };
     }
@@ -176,6 +181,8 @@ export function App(): React.JSX.Element {
     switch (route.name) {
     case "dashboard":
       return <SessionsDashboardPage onLogout={logout} />;
+    case "overview":
+      return <RoomOverviewPage roomId={route.roomId} onLogout={logout} />;
     case "workbench":
       return (
         <SessionWorkbenchPage

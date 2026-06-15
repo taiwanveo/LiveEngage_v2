@@ -14,7 +14,9 @@ export {
   DEFAULT_PRODUCT_TITLE,
   brandedLogoUrl,
   brandedProductTitle,
+  brandedProductTitleLines,
   formatProductTitle,
+  productTitleLines,
   resolveBrandedLogoUrl,
 } from "./siteBranding";
 export { onLoginFieldKeyDown } from "./loginForm";

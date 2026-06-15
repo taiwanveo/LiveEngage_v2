@@ -18,11 +18,11 @@ interface Props {
 }
 
 export function JoinPage({ code }: Props): React.JSX.Element {
-  const { showError, systemNoticeModal } = useSystemNotice();
+  const { showError, showInfo, systemNoticeModal } = useSystemNotice();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [passcode, setPasscode] = useState("");
-  const [isAnonymous, setIsAnonymous] = useState(true);
+  const [isAnonymous, setIsAnonymous] = useState(false);
   const [ssoEnabled, setSsoEnabled] = useState(false);
 
   useEffect(() => {
@@ -153,6 +153,10 @@ export function JoinPage({ code }: Props): React.JSX.Element {
             className="space-y-4"
             onSubmit={(e) => {
               e.preventDefault();
+              if (!isAnonymous && !name.trim() && !session.require_name) {
+                showInfo("請輸入您的暱稱後加入", "加入活動");
+                return;
+              }
               joinMutation.mutate();
             }}
           >

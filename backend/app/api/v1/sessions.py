@@ -5,7 +5,7 @@ from __future__ import annotations
 import uuid
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, Depends, Query, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.client_ip import get_client_ip
@@ -23,7 +23,8 @@ from app.schemas.session import (
     SessionUpdateRequest,
 )
 from app.schemas.state import SessionStateResponse
-from app.services import room_service, session_service, state_service
+from app.schemas.overview import ParticipantListResponse, SessionOverviewResponse
+from app.services import overview_service, room_service, session_service, state_service
 
 router = APIRouter(prefix="/sessions", tags=["sessions"])
 
@@ -107,6 +108,40 @@ async def join_session(
         session_id=session_id,
         payload=payload,
         client_ip=get_client_ip(request),
+    )
+
+
+@router.get("/{session_id}/participants", response_model=ParticipantListResponse)
+async def list_session_participants(
+    session_id: uuid.UUID,
+    db: Annotated[AsyncSession, Depends(get_session)],
+    host: Annotated[User, Depends(get_current_user)],
+    cursor: str | None = None,
+    limit: int = Query(default=20, ge=1, le=100),
+) -> ParticipantListResponse:
+    """Host 參與者名單（分頁、mask_identity）。"""
+    return await overview_service.list_session_participants(
+        db,
+        session_id=session_id,
+        host=host,
+        cursor=cursor,
+        limit=limit,
+    )
+
+
+@router.get("/{session_id}/overview", response_model=SessionOverviewResponse)
+async def get_session_overview(
+    session_id: uuid.UUID,
+    db: Annotated[AsyncSession, Depends(get_session)],
+    host: Annotated[User, Depends(get_current_user)],
+    room_id: uuid.UUID | None = None,
+) -> SessionOverviewResponse:
+    """Host 單一活動即時總覽（KPI + active poll + top Q&A + quiz/survey 摘要）。"""
+    return await overview_service.get_session_overview(
+        db,
+        session_id=session_id,
+        host=host,
+        room_id=room_id,
     )
 
 

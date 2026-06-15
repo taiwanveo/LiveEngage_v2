@@ -3,11 +3,12 @@ import { AppHeader } from "@liveengage/ui";
 import { HostRoomHeaderActions } from "./HostRoomHeaderActions";
 import { HostSessionMeta } from "./HostSessionMeta";
 
-export type HostNavId = "moderation" | "polls" | "sprint9";
+export type HostNavId = "overview" | "moderation" | "polls" | "sprint9";
 
 export const HOST_DASHBOARD_HASH = "#/dashboard";
 
 const HOST_NAV: { id: HostNavId; segment: string; label: string }[] = [
+  { id: "overview", segment: "overview", label: "即時總覽" },
   { id: "moderation", segment: "moderation", label: "Q&A 審核" },
   { id: "polls", segment: "polls", label: "Poll 管理" },
   { id: "sprint9", segment: "sprint9", label: "Quiz 管理" },

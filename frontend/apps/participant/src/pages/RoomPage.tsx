@@ -11,6 +11,8 @@ import {
   POLL_STOPPED,
   POLL_LOCKED,
   POLL_UNLOCKED,
+  QUESTION_UPVOTED,
+  QUESTION_DOWNVOTED,
   QA_EVENT_TYPES,
   QUIZ_QUESTION_STARTED,
   SESSION_ENDED,
@@ -31,6 +33,7 @@ import {
   getParticipantContext,
 } from "../lib/participantAuth";
 import { getPoll, getPollResults, isPollType, submitPollResponse } from "../lib/pollApi";
+import { patchQaVoteFromWs } from "../lib/qaCache";
 import { getSessionState } from "../lib/sessionApi";
 import { submitQuizAnswer, getActiveQuizQuestion, type ActiveQuizQuestion } from "../lib/sprint9Api";
 import {
@@ -164,8 +167,14 @@ export function RoomPage(): React.JSX.Element {
 
   const handleWsEvent = useCallback(
     (event: WsEvent) => {
-      if (QA_EVENT_TYPES.has(event.type)) {
-        void queryClient.invalidateQueries({ queryKey: ["qa-public", ctx?.roomId] });
+      const roomId = ctx?.roomId;
+      if (
+        roomId &&
+        (event.type === QUESTION_UPVOTED || event.type === QUESTION_DOWNVOTED)
+      ) {
+        patchQaVoteFromWs(queryClient, roomId, event.payload);
+      } else if (QA_EVENT_TYPES.has(event.type) && roomId) {
+        void queryClient.invalidateQueries({ queryKey: ["qa-public", roomId] });
       }
       switch (event.type) {
         case SESSION_STARTED: {

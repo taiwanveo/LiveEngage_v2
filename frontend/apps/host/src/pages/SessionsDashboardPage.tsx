@@ -236,11 +236,19 @@ function SessionCard(props: {
 
       {roomId ? (
         <div className="mt-4 flex flex-wrap gap-2 border-t border-border pt-4">
+          {session.status === "live" ? (
+            <a
+              href={`#/rooms/${roomId}/overview`}
+              className="le-btn-primary !min-h-[36px] !px-4 !text-xs"
+            >
+              即時總覽
+            </a>
+          ) : null}
           <a href={`#/rooms/${roomId}/workbench`} className="le-btn-primary !min-h-[36px] !px-4 !text-xs">
             進入工作台
           </a>
-          <a href={`#/rooms/${roomId}/moderation`} className="le-nav-link !text-xs">
-            Q&amp;A 審核
+          <a href={`#/rooms/${roomId}/overview`} className="le-nav-link !text-xs">
+            即時總覽
           </a>
           <a href={`#/rooms/${roomId}/polls`} className="le-nav-link !text-xs">
             Poll 管理

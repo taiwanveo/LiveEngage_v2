@@ -35,7 +35,7 @@ import {
 } from "../lib/sessionApi";
 import { HOST_DASHBOARD_HASH } from "../components/HostShell";
 import { HostRoomHeaderActions } from "../components/HostRoomHeaderActions";
-import { ControlToggle, isPollRunning } from "../components/PollControlBar";
+import { ControlAction, ControlToggle, isPollRunning } from "../components/PollControlBar";
 import { presentAppUrl } from "../lib/presentUrl";
 import {
   applyHostPollActionSuccess,
@@ -246,7 +246,7 @@ export function SessionWorkbenchPage({ roomId, pollId, onLogout }: Props): React
                 activeLabel="結束"
                 inactiveLabel="開始"
                 disabled={!poll || actionMutation.isPending}
-                accent={running ? "success" : "default"}
+                accent={running ? "danger" : "default"}
                 size="compact"
                 onClick={() => runAction(running ? "stop" : "start")}
               />
@@ -287,14 +287,12 @@ export function SessionWorkbenchPage({ roomId, pollId, onLogout }: Props): React
                 size="compact"
                 onClick={() => runAction(poll?.result_visible ? "hide" : "reveal")}
               />
-              <button
-                type="button"
+              <ControlAction
+                label="重設"
                 disabled={!poll || actionMutation.isPending}
+                size="compact"
                 onClick={() => runAction("reset", true)}
-                className="rounded-full border border-border px-2 py-0.5 text-[10px] text-muted hover:bg-surface-elevated hover:text-foreground disabled:opacity-50"
-              >
-                重置
-              </button>
+              />
             </>
           }
           chromeFooterActions={
