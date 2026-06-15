@@ -4,15 +4,33 @@
 
 ---
 
-## SNAPSHOT（2026-06-15）
+## SNAPSHOT（2026-06-14）
 
 - **Repo**：https://github.com/ColdRighter/LiveEngage.git（master）
-- **最新 commit**：`37e4479` — 統一房間頂欄、Logo 回儀表板與 Poll/Quiz 操作列
-- **typecheck**：`host` build 通過
+- **最新 commit**：`9e7fd62` — 工作台/總覽頂欄 session 列與排序題手機操作
+- **typecheck**：`host`、`participant`、`renderers` 通過
 - **接手文件**：[`docs/服務架構.md`](docs/服務架構.md)
 - **api 健康**：https://le-api.zeabur.app/health
 
-### 本輪重點（Host 頂欄與管理列表 UX，37e4479）
+### 本輪重點（頂欄 session 列 + 排序題觸控，9e7fd62）
+
+| 區塊 | 內容 |
+|------|------|
+| **hostSessionHeader** | 工作台／即時總覽共用 `hostSessionMetaFromSession()`：日期、代碼、可見性、活動名、狀態徽章 |
+| **工作台頂欄** | 標題固定「工作台」；活動名稱（10px、主題色）顯示於狀態徽章左側 |
+| **即時總覽頂欄** | 比照工作台 `sessionMeta` 列；移除舊 `HostSessionMeta` 重複活動名行 |
+| **主題色** | `#代碼` 與活動名稱改 `text-accent` |
+| **排序題** | 修正觸控拖曳（pointer 事件綁握把）；右側 ↑↓ 箭頭微調（首尾僅單向） |
+
+### 部署（本輪）
+
+Git push `9e7fd62` 後 Zeabur 自動建置；需 redeploy：**host**（含 `ui`）、**participant**（含 `renderers`）；**api**／**worker** 無後端變更可略。
+
+---
+
+## SNAPSHOT（2026-06-15，歷史）
+
+- **最新 commit（舊）**：`37e4479` — 統一房間頂欄、Logo 回儀表板與 Poll/Quiz 操作列
 
 | 區塊 | 內容 |
 |------|------|
