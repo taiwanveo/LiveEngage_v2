@@ -7,12 +7,30 @@
 ## SNAPSHOT（2026-06-14）
 
 - **Repo**：https://github.com/ColdRighter/LiveEngage.git（master）
-- **最新 commit**：`9e7fd62` — 工作台/總覽頂欄 session 列與排序題手機操作
-- **typecheck**：`host`、`participant`、`renderers` 通過
+- **最新 commit**：`1547a3d` — 統一 Host 頂欄 session 列、工作台狀態膠囊與 Quiz 子題結束修復
+- **typecheck**：`host` 通過；後端 `test_quiz_close_active_question` 通過
 - **接手文件**：[`docs/服務架構.md`](docs/服務架構.md)
 - **api 健康**：https://le-api.zeabur.app/health
 
-### 本輪重點（頂欄 session 列 + 排序題觸控，9e7fd62）
+### 本輪重點（Host 頂欄統一 + Quiz 子題控場，1547a3d）
+
+| 區塊 | 內容 |
+|------|------|
+| **useHostRoomSessionMeta** | `HostShell` 自動解析 session 列；Q&A／Poll／Quiz 管理頁與工作台／總覽一致 |
+| **工作台頂欄** | 狀態徽章改為**活動** `session.status`（不再跟題目狀態） |
+| **互動題狀態膠囊** | `WorkbenchInteractionStatusBadge`：右上角膠囊（進行中 accent／已結束 muted） |
+| **Quiz 子題** | `close` 廣播 `quiz_question_closed` + `poll_stopped`；父 Quiz 結束時一併關閉子題 |
+| **Quiz UX** | 編輯按鈕始終顯示；子題按鈕逐列 pending，避免「結束」被全域鎖定 |
+
+### 部署（本輪）
+
+Git push `1547a3d` 後 Zeabur 自動建置；需 redeploy：**api**、**host**、**participant**（含 `realtime`／`renderers`）；**worker** 無 Celery 變更可略。
+
+---
+
+## SNAPSHOT（2026-06-14，歷史）
+
+- **最新 commit（舊）**：`9e7fd62` — 工作台/總覽頂欄 session 列與排序題手機操作
 
 | 區塊 | 內容 |
 |------|------|
