@@ -449,6 +449,9 @@ async def list_audit_logs(
 
 _BRANDING_KEY = "branding"
 
+# 種子／測試用預設組織名；站點品牌解析時優先略過
+_SEED_SITE_ORG_NAMES = frozenset({"demo org", "liveengage"})
+
 
 def _parse_branding(raw: dict[str, Any]) -> BrandingSettings:
     branding_raw = raw.get(_BRANDING_KEY) if isinstance(raw, dict) else {}
@@ -529,7 +532,13 @@ async def get_public_branding_by_code(
 
 
 async def _resolve_site_organization(db: AsyncSession) -> Organization | None:
-    """部署站點的預設組織（Admin 登入頁品牌）。"""
+    """部署站點的預設組織（Admin／Host 登入頁品牌）。
+
+    多組織時不可一律取 created_at 最早（常為 Demo Org），改優先：
+    1. SSO 預設 org
+    2. 已設定 Logo／品牌顯示名稱的 org
+    3. 非種子預設名稱、成員／活動較多的 org
+    """
     settings = get_settings()
     if settings.sso_default_org_id:
         try:
@@ -540,10 +549,34 @@ async def _resolve_site_organization(db: AsyncSession) -> Organization | None:
             org = await db.get(Organization, org_id)
             if org is not None:
                 return org
-    result = await db.execute(
-        select(Organization).order_by(Organization.created_at.asc()).limit(1)
+
+    result = await db.execute(select(Organization))
+    orgs = list(result.scalars().all())
+    if not orgs:
+        return None
+    if len(orgs) == 1:
+        return orgs[0]
+
+    user_count_rows = await db.execute(
+        select(User.org_id, func.count()).group_by(User.org_id)
     )
-    return result.scalar_one_or_none()
+    user_counts = {row[0]: int(row[1]) for row in user_count_rows.all()}
+
+    session_count_rows = await db.execute(
+        select(Session.org_id, func.count()).group_by(Session.org_id)
+    )
+    session_counts = {row[0]: int(row[1]) for row in session_count_rows.all()}
+
+    def _site_org_rank(org: Organization) -> tuple[int, int, int, int, int, dt.datetime]:
+        branding = _parse_branding(org.settings_jsonb or {})
+        has_logo = int(bool(branding.logo_url and branding.logo_url.strip()))
+        has_display = int(bool(branding.display_name and branding.display_name.strip()))
+        not_seed_name = int(org.name.strip().lower() not in _SEED_SITE_ORG_NAMES)
+        users = user_counts.get(org.id, 0)
+        sessions = session_counts.get(org.id, 0)
+        return (has_logo, has_display, not_seed_name, users, sessions, org.created_at)
+
+    return max(orgs, key=_site_org_rank)
 
 
 async def get_site_branding(db: AsyncSession) -> PublicBrandingResponse:

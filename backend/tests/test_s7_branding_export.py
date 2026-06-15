@@ -66,6 +66,22 @@ class TestS74Branding:
         assert "display_name" in data
         assert "logo_url" in data
 
+    def test_site_branding_prefers_configured_org(
+        self, client: TestClient, host_token: tuple[str, str]
+    ) -> None:
+        token, _ = host_token
+        logo_url = "https://cdn.example.com/brand-logo.png"
+        client.patch(
+            "/api/v1/admin/branding",
+            headers=_headers(token),
+            json={"logo_url": logo_url, "display_name": "站點品牌"},
+        )
+        site = client.get("/api/v1/branding/site")
+        assert site.status_code == 200, site.text
+        data = site.json()
+        assert data["logo_url"] == logo_url
+        assert data["display_name"] == "站點品牌"
+
 
 class TestS75Export:
     def test_create_and_download_export(
