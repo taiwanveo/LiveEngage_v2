@@ -14,8 +14,11 @@ depends_on = None
 
 
 def upgrade() -> None:
-    op.execute("ALTER TYPE user_role ADD VALUE IF NOT EXISTS 'host'")
-    op.execute("ALTER TYPE user_role ADD VALUE IF NOT EXISTS 'cohost'")
+    # PostgreSQL：新增 enum 值須先 commit，同一 transaction 內 UPDATE 會失敗
+    with op.get_context().autocommit_block():
+        op.execute("ALTER TYPE user_role ADD VALUE IF NOT EXISTS 'host'")
+    with op.get_context().autocommit_block():
+        op.execute("ALTER TYPE user_role ADD VALUE IF NOT EXISTS 'cohost'")
     op.execute("UPDATE users SET role = 'host' WHERE role = 'member'")
     op.execute("ALTER TABLE users ALTER COLUMN role SET DEFAULT 'host'::user_role")
 
