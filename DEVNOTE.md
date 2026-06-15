@@ -7,12 +7,26 @@
 ## SNAPSHOT（2026-06-15）
 
 - **Repo**：https://github.com/ColdRighter/LiveEngage.git（master）
-- **最新 commit**：`ab0e987` — 站點品牌 API 優先已設定 Logo 的組織
+- **最新 commit**：`24f4358` — 組織主色可選覆蓋主題、合併後台組織設定
 - **typecheck**：`ui`、`realtime`、`admin`、`host`、`participant` 通過
 - **接手文件**：[`docs/服務架構.md`](docs/服務架構.md)
 - **api 健康**：https://le-api.zeabur.app/health
 
-### 本輪重點（UI／登入／品牌）
+### 本輪重點（品牌／主題，24f4358）
+
+| 區塊 | 內容 |
+|------|------|
+| **主題配色** | `override_theme_colors` 預設 `false`；未勾選時五種主題（Slido／Light／Dark／Cursor／Claude）各自 accent |
+| **組織主色覆寫** | 後台核取方塊「使用組織主色覆蓋主題按鈕與連結配色」；勾選後 `syncBrandingThemeColors()` 寫入 `--le-accent` |
+| **公開顯示名稱** | `_public_branding_from_org`：一律 `org.name`，不再讀 `branding.display_name` |
+| **Admin 組織設定** | 「組織資料」與「品牌外觀」合併；移除「品牌顯示名稱」欄位；說明移至組織名稱下方 |
+| **Admin 已登入** | `AdminBrandingRoot` 載入 `/api/v1/branding/me` 套用 favicon／主題色 |
+
+### 部署（本輪）
+
+已 redeploy：**api**、**admin**、**host**、**participant**（`24f4358`）；**worker** 無程式變更可略。
+
+### 本輪重點（UI／登入／品牌，ab0e987）
 
 | 區塊 | 內容 |
 |------|------|
@@ -24,7 +38,7 @@
 | **Admin 側欄** | 寬度 240px → 120px |
 | **主題選單** | 更緊湊、分隔線、必要時可捲動 |
 
-### 部署（本輪）
+### 部署（ab0e987 輪）
 
 需 redeploy：**api**、**admin**、**host**、**participant**；**worker** 無程式變更可略。
 
@@ -59,6 +73,10 @@
 ---
 
 ## HISTORY
+
+### 2026-06-15 — 組織主色可選覆蓋主題、合併後台組織設定（24f4358）
+
+`override_theme_colors` 核取方塊；`orgBranding` 僅在勾選時覆寫 accent；公開品牌顯示名稱改組織名稱；Admin `OrganizationPage` 單一面板；`AdminBrandingRoot`。
 
 ### 2026-06-15 — 三端登入品牌、Modal／側欄／主題選單 UI
 
