@@ -7,7 +7,26 @@
 ## SNAPSHOT（2026-06-15）
 
 - **Repo**：https://github.com/ColdRighter/LiveEngage.git（master）
-- **最新 commit**：`ad2ba42` — 修復管理後台匯出下載連結
+- **最新 commit**：`92c9365` — CSV 匯出 DictWriter 欄位聯集修復
+- **typecheck**：`test_export_csv` 通過
+- **api 健康**：https://le-api.zeabur.app/health
+
+### 本輪重點（CSV 匯出 failed 修復）
+
+| 區塊 | 內容 |
+|------|------|
+| **根因** | `csv.DictWriter` 僅用第一列 `fieldnames`（session 僅 section/field/value）；participant 列含 `email`、question 列含 `status`/`upvotes` 時 Worker 拋 `ValueError` → status `failed` |
+| **修復** | `_export_fieldnames()` 聯集欄位 + `_write_csv_bytes()`；XLSX 表頭同步 |
+
+### 部署（本輪）
+
+需 redeploy：**api**、**worker**（Celery 執行 `build_export_bytes`）
+
+---
+
+## SNAPSHOT（2026-06-15，歷史）
+
+- **最新 commit（舊）**：`a0f4abf` — 匯出下載連結修復 + DEVNOTE
 - **typecheck**：`admin` 通過；`test_public_url` 2 passed
 - **接手文件**：[`docs/服務架構.md`](docs/服務架構.md)
 - **api 健康**：https://le-api.zeabur.app/health
