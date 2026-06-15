@@ -55,7 +55,7 @@ export function Sprint9HubPage({ roomId, onLogout }: Props): React.JSX.Element {
       }),
     onSuccess: (created) => {
       void qc.invalidateQueries({ queryKey: ["interactions", roomId] });
-      window.location.hash = `#/rooms/${roomId}/sprint9/${created.id}/console`;
+      window.location.hash = `#/rooms/${roomId}/workbench/${created.id}`;
     },
     onError: (err: unknown) => {
       showError(formatUserFacingError(err, "建立失敗"));
@@ -155,8 +155,8 @@ export function Sprint9HubPage({ roomId, onLogout }: Props): React.JSX.Element {
                       開放
                     </ListActionPrimary>
                   ) : null}
-                  <ListActionLink href={`#/rooms/${roomId}/sprint9/${item.id}/console`}>
-                    控制台
+                  <ListActionLink href={`#/rooms/${roomId}/workbench/${item.id}`}>
+                    工作台
                   </ListActionLink>
                   {["quiz", "ideas", "survey"].includes(item.type) ? (
                     <PresentListAction href={sprint9PresentUrl(roomId, item.id)} />

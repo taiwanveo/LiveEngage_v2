@@ -12,6 +12,7 @@ import { PollRenderersDemoPage } from "./pages/PollRenderersDemoPage";
 import { PresentPage } from "./pages/PresentPage";
 import { QaPresentPage } from "./pages/QaPresentPage";
 import { Sprint9PresentRouter } from "./pages/Sprint9PresentRouter";
+import { OverviewPresentPage } from "./pages/OverviewPresentPage";
 import { RoomOverviewPage } from "./pages/RoomOverviewPage";
 import { SessionsDashboardPage } from "./pages/SessionsDashboardPage";
 import { SsoCallbackPage, parseSsoCallbackHash } from "./pages/SsoCallbackPage";
@@ -35,8 +36,9 @@ type Route =
   | { name: "qa-present"; roomId: string }
   | { name: "sprint9-present"; roomId: string; interactionId: string }
   | { name: "sprint9"; roomId: string }
+  | { name: "overview-present"; roomId: string }
   | { name: "overview"; roomId: string }
-  | { name: "workbench"; roomId: string; pollId?: string | undefined }
+  | { name: "workbench"; roomId: string; interactionId?: string | undefined }
   | { name: "sprint9-console"; roomId: string; interactionId: string }
   | { name: "quiz-edit"; roomId: string; quizId: string; questionId: string };
 
@@ -54,10 +56,13 @@ function parseHash(): Route {
   if (parts[0] === "rooms" && parts[1]) {
     const roomId = parts[1];
     if (parts[2] === "overview") {
+      if (parts[3] === "present") {
+        return { name: "overview-present", roomId };
+      }
       return { name: "overview", roomId };
     }
     if (parts[2] === "workbench") {
-      return { name: "workbench", roomId, pollId: parts[3] };
+      return { name: "workbench", roomId, interactionId: parts[3] };
     }
     if (parts[2] === "moderation") {
       if (parts[3] === "present") {
@@ -147,6 +152,14 @@ export function App(): React.JSX.Element {
     );
   }
 
+  if (route.name === "overview-present" && authed) {
+    return (
+      <HostBrandingRoot>
+        <OverviewPresentPage roomId={route.roomId} />
+      </HostBrandingRoot>
+    );
+  }
+
   if (route.name === "qa-present" && authed) {
     return (
       <HostBrandingRoot>
@@ -187,7 +200,7 @@ export function App(): React.JSX.Element {
       return (
         <SessionWorkbenchPage
           roomId={route.roomId}
-          pollId={route.pollId}
+          interactionId={route.interactionId}
           onLogout={logout}
         />
       );

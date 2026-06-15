@@ -41,6 +41,11 @@ export {
 export type { ButtonProps, ButtonLinkProps, ButtonVariant, ButtonSize } from "./Button";
 export { PresentButton, PresentListAction } from "./PresentButton";
 export type { PresentButtonProps } from "./PresentButton";
+export {
+  PRESENT_IDEA_BODY_CLASS,
+  PRESENT_PAGE_TITLE_CLASS,
+  PRESENT_POLL_TITLE_CLASS,
+} from "./presentPage";
 export { PresentIcon, ShareIcon } from "./icons";
 export { openPresentWindow } from "./presentWindow";
 export { OrgBrandingProvider, OrgBrandMark, applyOrgBranding, clearBrandingColorOverrides, syncBrandingThemeColors, useOrgBranding } from "./orgBranding";

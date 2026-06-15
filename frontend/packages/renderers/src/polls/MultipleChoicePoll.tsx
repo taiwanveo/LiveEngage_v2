@@ -5,7 +5,7 @@ import { ResultBars } from "../present/ResultBars";
 import { ResultBarChart } from "../present/ResultBarChart";
 import { SubmitFooter } from "../SubmitFooter";
 import type { PollRendererProps } from "../types";
-import { canAnswer, readBool, shouldShowParticipantResults } from "../utils";
+import { canAnswer, readBool, shouldShowCorrectAnswer, shouldShowParticipantResults } from "../utils";
 
 export function MultipleChoicePoll({
   mode,
@@ -131,7 +131,7 @@ export function MultipleChoicePoll({
                     />
                   ) : null}
                   <span>{opt.text}</span>
-                  {opt.is_correct ? (
+                  {shouldShowCorrectAnswer(mode, poll) && opt.is_correct ? (
                     <span className="ml-auto text-xs text-emerald-600">正解</span>
                   ) : null}
                 </label>

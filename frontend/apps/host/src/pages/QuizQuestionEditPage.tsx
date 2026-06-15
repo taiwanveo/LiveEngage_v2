@@ -90,7 +90,7 @@ export function QuizQuestionEditPage({
     },
   });
 
-  const backHref = `#/rooms/${roomId}/sprint9/${quizId}/console`;
+  const backHref = `#/rooms/${roomId}/workbench/${quizId}`;
 
   const metaQuery = useQuery({
     queryKey: ["interactions", roomId],
@@ -154,7 +154,7 @@ export function QuizQuestionEditPage({
         breadcrumb={editBreadcrumb}
         titleAddon={
           <HostTitleLink href={backHref} variant="secondary">
-            返回控制台
+            返回工作台
           </HostTitleLink>
         }
       >
@@ -174,7 +174,7 @@ export function QuizQuestionEditPage({
       breadcrumb={editBreadcrumb}
       titleAddon={
         <HostTitleLink href={backHref} variant="secondary">
-          返回控制台
+          返回工作台
         </HostTitleLink>
       }
     >

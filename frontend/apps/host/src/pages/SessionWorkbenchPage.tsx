@@ -1,52 +1,62 @@
-/** Session 三欄工作台：互動清單｜控場｜Participant 預覽（Slido 風格）。 */
+/** Session 三欄工作台：Poll + Sprint9 統一控場（Slido 風格）。 */
 
 import * as React from "react";
 import { useCallback, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   formatUserFacingError,
+  IDEAS_EVENT_TYPES,
   POLL_EVENT_TYPES,
+  QA_EVENT_TYPES,
+  QUIZ_EVENT_TYPES,
   useRoomWebSocket,
   type WsEvent,
 } from "@liveengage/realtime";
-import { PollRenderer } from "@liveengage/renderers";
-import {
-  ParticipantPreviewFrame,
-  SessionToolbar,
-  WorkbenchLayout,
-  useSystemNotice,
-} from "@liveengage/ui";
+import { SessionToolbar, WorkbenchLayout, useSystemNotice } from "@liveengage/ui";
 import { getAccessToken } from "../lib/auth";
-import { createInteraction, listInteractions } from "../lib/interactionApi";
-import { getPoll, getPollResults, pollAction } from "../lib/pollApi";
+import {
+  createInteraction,
+  listInteractions,
+  updateInteractionStatus,
+} from "../lib/interactionApi";
+import { getPoll, pollAction } from "../lib/pollApi";
 import {
   isPollType,
-  POLL_TYPES,
-  pollTypeLabel,
-  interactionStatusLabel,
   type InteractionSummary,
   type PollAction,
-  type PollInteractionType,
 } from "../lib/pollTypes";
 import {
   listSessions,
   type SessionHost,
   type SessionVisibility,
 } from "../lib/sessionApi";
+import {
+  toInteractionCreateType,
+  workbenchInteractions,
+  isSprint9Type,
+  type WorkbenchCreateType,
+} from "../lib/workbenchTypes";
 import { HOST_DASHBOARD_HASH } from "../components/HostShell";
 import { HostRoomHeaderActions } from "../components/HostRoomHeaderActions";
 import { ControlAction, ControlToggle, isPollRunning } from "../components/PollControlBar";
-import { presentAppUrl } from "../lib/presentUrl";
+import { presentAppUrl, sprint9PresentUrl } from "../lib/presentUrl";
 import {
   applyHostPollActionSuccess,
   createSelfPollActionGuard,
   handleHostPollWsEvent,
-  POLL_RESULTS_BACKUP_REFETCH_MS,
 } from "../lib/pollActionCache";
+import { WorkbenchInteractionSidebar } from "../components/workbench/WorkbenchInteractionSidebar";
+import {
+  WorkbenchMainPanel,
+  WorkbenchPreviewPanel,
+} from "../components/workbench/WorkbenchMainPanel";
+import { useActiveQuizQuestionLabel } from "../components/workbench/QuizWorkbenchMain";
+import { QaModerationModal } from "../components/qa/QaModerationModal";
+import { useQaPendingCount } from "../components/qa/QaModerationPanel";
 
 interface Props {
   roomId: string;
-  pollId?: string | undefined;
+  interactionId?: string | undefined;
   onLogout: () => void;
 }
 
@@ -65,10 +75,11 @@ const STATUS_LABEL: Record<SessionHost["status"], string> = {
   archived: "已封存",
 };
 
-function pollToolbarStatus(poll: {
-  status: InteractionSummary["status"];
-}): { label: string; variant: "live" | "accent" | "muted" } {
-  switch (poll.status) {
+function itemToolbarStatus(item: InteractionSummary): {
+  label: string;
+  variant: "live" | "accent" | "muted";
+} {
+  switch (item.status) {
     case "active":
       return { label: "進行中", variant: "live" };
     case "locked":
@@ -80,12 +91,17 @@ function pollToolbarStatus(poll: {
   }
 }
 
-export function SessionWorkbenchPage({ roomId, pollId, onLogout }: Props): React.JSX.Element {
+export function SessionWorkbenchPage({
+  roomId,
+  interactionId,
+  onLogout,
+}: Props): React.JSX.Element {
   const qc = useQueryClient();
-  const { showError, systemNoticeModal } = useSystemNotice();
+  const { showError, showSuccess, systemNoticeModal } = useSystemNotice();
   const selfActionGuard = useRef(createSelfPollActionGuard());
-  const [newType, setNewType] = useState<PollInteractionType>("multiple_choice");
+  const [newType, setNewType] = useState<WorkbenchCreateType>("multiple_choice");
   const [newTitle, setNewTitle] = useState("");
+  const [qaModalOpen, setQaModalOpen] = useState(false);
 
   const sessionsQuery = useQuery({
     queryKey: ["host-sessions"],
@@ -102,31 +118,30 @@ export function SessionWorkbenchPage({ roomId, pollId, onLogout }: Props): React
     queryFn: () => listInteractions(roomId),
   });
 
-  const polls = useMemo(
-    () => (interactionsQuery.data ?? []).filter((i) => isPollType(i.type)),
+  const workbenchItems = useMemo(
+    () => workbenchInteractions(interactionsQuery.data),
     [interactionsQuery.data]
   );
 
-  const selectedPollId = pollId ?? polls[0]?.id ?? null;
+  const selectedId = interactionId ?? workbenchItems[0]?.id ?? null;
+  const selectedItem =
+    workbenchItems.find((i) => i.id === selectedId) ?? null;
 
   const pollQuery = useQuery({
-    queryKey: ["poll", selectedPollId],
-    queryFn: () => getPoll(selectedPollId!),
-    enabled: Boolean(selectedPollId),
-    refetchInterval: POLL_RESULTS_BACKUP_REFETCH_MS,
+    queryKey: ["poll", selectedId],
+    queryFn: () => getPoll(selectedId!),
+    enabled: Boolean(selectedItem && isPollType(selectedItem.type)),
   });
 
-  const resultsQuery = useQuery({
-    queryKey: ["poll-results", selectedPollId],
-    queryFn: () => getPollResults(selectedPollId!),
-    enabled: Boolean(selectedPollId),
-    refetchInterval: POLL_RESULTS_BACKUP_REFETCH_MS,
-  });
+  const pendingQaCount = useQaPendingCount(roomId);
+  const quizActiveLabel = useActiveQuizQuestionLabel(
+    selectedItem?.type === "quiz" ? selectedItem.id : null
+  );
 
   const createMutation = useMutation({
     mutationFn: () =>
       createInteraction(roomId, {
-        type: newType,
+        type: toInteractionCreateType(newType),
         ...(newTitle.trim() ? { title: newTitle.trim() } : {}),
       }),
     onSuccess: (created) => {
@@ -141,13 +156,13 @@ export function SessionWorkbenchPage({ roomId, pollId, onLogout }: Props): React
 
   const actionMutation = useMutation({
     mutationFn: ({ action, confirm }: { action: PollAction; confirm?: boolean }) =>
-      pollAction(selectedPollId!, action, confirm ?? false),
+      pollAction(selectedId!, action, confirm ?? false),
     onSuccess: (data, variables) => {
-      if (!selectedPollId) return;
-      selfActionGuard.current.mark(selectedPollId);
+      if (!selectedId) return;
+      selfActionGuard.current.mark(selectedId);
       applyHostPollActionSuccess(qc, {
         roomId,
-        pollId: selectedPollId,
+        pollId: selectedId,
         action: variables.action,
         data,
       });
@@ -157,17 +172,44 @@ export function SessionWorkbenchPage({ roomId, pollId, onLogout }: Props): React
     },
   });
 
+  const sprint9StatusMutation = useMutation({
+    mutationFn: (status: "active" | "stopped") =>
+      updateInteractionStatus(selectedId!, status),
+    onSuccess: () => {
+      showSuccess("狀態已更新");
+      void qc.invalidateQueries({ queryKey: ["interactions", roomId] });
+    },
+    onError: (err: unknown) => {
+      showError(formatUserFacingError(err, "操作失敗"));
+    },
+  });
+
   const handleWsEvent = useCallback(
     (event: WsEvent) => {
-      if (!selectedPollId || !POLL_EVENT_TYPES.has(event.type)) return;
-      handleHostPollWsEvent(qc, {
-        event,
-        pollId: selectedPollId,
-        roomId,
-        guard: selfActionGuard.current,
-      });
+      if (QA_EVENT_TYPES.has(event.type)) {
+        void qc.invalidateQueries({ queryKey: ["moderation", roomId] });
+      }
+      if (QUIZ_EVENT_TYPES.has(event.type) && selectedId) {
+        void qc.invalidateQueries({ queryKey: ["quiz-questions", selectedId] });
+        void qc.invalidateQueries({ queryKey: ["quiz-leaderboard", selectedId] });
+      }
+      if (IDEAS_EVENT_TYPES.has(event.type) && selectedId) {
+        void qc.invalidateQueries({ queryKey: ["ideas", selectedId] });
+      }
+      if (
+        selectedId &&
+        isPollType(selectedItem?.type ?? "") &&
+        POLL_EVENT_TYPES.has(event.type)
+      ) {
+        handleHostPollWsEvent(qc, {
+          event,
+          pollId: selectedId,
+          roomId,
+          guard: selfActionGuard.current,
+        });
+      }
     },
-    [qc, roomId, selectedPollId]
+    [qc, roomId, selectedId, selectedItem?.type]
   );
 
   const { connected } = useRoomWebSocket({
@@ -178,12 +220,12 @@ export function SessionWorkbenchPage({ roomId, pollId, onLogout }: Props): React
   });
 
   const poll = pollQuery.data;
-  const results = resultsQuery.data ?? null;
-  const selectedIndex = polls.findIndex((p) => p.id === selectedPollId);
+  const selectedIndex = workbenchItems.findIndex((p) => p.id === selectedId);
   const running = poll ? isPollRunning(poll.status) : false;
   const locked = poll?.status === "locked";
-  const toolbarStatus = poll
-    ? pollToolbarStatus(poll)
+
+  const toolbarStatus = selectedItem
+    ? itemToolbarStatus(selectedItem)
     : session
       ? {
           label: STATUS_LABEL[session.status],
@@ -191,25 +233,32 @@ export function SessionWorkbenchPage({ roomId, pollId, onLogout }: Props): React
         }
       : null;
 
-  const selectPoll = (id: string): void => {
+  const selectItem = (id: string): void => {
     window.location.hash = `#/rooms/${roomId}/workbench/${id}`;
   };
 
   const goPrev = (): void => {
-    if (selectedIndex > 0) selectPoll(polls[selectedIndex - 1]!.id);
+    if (selectedIndex > 0) selectItem(workbenchItems[selectedIndex - 1]!.id);
   };
 
   const goNext = (): void => {
-    if (selectedIndex >= 0 && selectedIndex < polls.length - 1) {
-      selectPoll(polls[selectedIndex + 1]!.id);
+    if (selectedIndex >= 0 && selectedIndex < workbenchItems.length - 1) {
+      selectItem(workbenchItems[selectedIndex + 1]!.id);
     }
   };
 
-  const runAction = (action: PollAction, needsConfirm?: boolean): void => {
-    if (!selectedPollId) return;
+  const runPollAction = (action: PollAction, needsConfirm?: boolean): void => {
+    if (!selectedId || !selectedItem || !isPollType(selectedItem.type)) return;
     if (needsConfirm && !window.confirm("確定要重置並清除所有作答？")) return;
     actionMutation.mutate({ action, confirm: needsConfirm ?? false });
   };
+
+  const presentHref = useMemo(() => {
+    if (!selectedId || !selectedItem) return undefined;
+    if (isPollType(selectedItem.type)) return presentAppUrl(roomId, selectedId);
+    if (isSprint9Type(selectedItem.type)) return sprint9PresentUrl(roomId, selectedId);
+    return undefined;
+  }, [roomId, selectedId, selectedItem]);
 
   const dateLabel = session
     ? new Date(session.created_at).toLocaleDateString("en-US", {
@@ -219,273 +268,171 @@ export function SessionWorkbenchPage({ roomId, pollId, onLogout }: Props): React
       })
     : "—";
 
-  return (
+  const navControls = (
     <>
-    <WorkbenchLayout
-      toolbar={
-        <SessionToolbar
-          title={session?.title ?? "Session 工作台"}
-          titleHref={HOST_DASHBOARD_HASH}
-          dateLabel={dateLabel}
-          code={session?.code ?? "—"}
-          visibilityLabel={session ? VISIBILITY_LABEL[session.visibility] : "—"}
-          {...(toolbarStatus
-            ? {
-                statusLabel: toolbarStatus.label,
-                statusBadgeVariant: toolbarStatus.variant,
-              }
-            : {})}
-          backLabel="← 回到活動列表"
-          onBack={() => {
-            window.location.hash = "#/dashboard";
-          }}
-          navControls={
-            <>
-              <ControlToggle
-                active={running}
-                activeLabel="結束"
-                inactiveLabel="開始"
-                disabled={!poll || actionMutation.isPending}
-                accent={running ? "danger" : "default"}
-                size="compact"
-                onClick={() => runAction(running ? "stop" : "start")}
-              />
-              <button
-                type="button"
-                disabled={selectedIndex <= 0}
-                onClick={goPrev}
-                className="le-btn-secondary !min-h-[24px] !px-2 !py-0.5 !text-[10px]"
-              >
-                上一題
-              </button>
-              <button
-                type="button"
-                disabled={selectedIndex < 0 || selectedIndex >= polls.length - 1}
-                onClick={goNext}
-                className="le-btn-secondary !min-h-[24px] !px-2 !py-0.5 !text-[10px]"
-              >
-                下一題
-              </button>
-              <span className="pl-0.5 text-[10px] tabular-nums text-muted">
-                {polls.length > 0 && selectedIndex >= 0
-                  ? `${selectedIndex + 1}/${polls.length}`
-                  : "—"}
-              </span>
-              <ControlToggle
-                active={locked}
-                activeLabel="解除鎖定"
-                inactiveLabel="鎖定"
-                disabled={!poll || actionMutation.isPending || !running}
-                size="compact"
-                onClick={() => runAction(locked ? "unlock" : "lock")}
-              />
-              <ControlToggle
-                active={Boolean(poll?.result_visible)}
-                activeLabel="隱藏答案"
-                inactiveLabel="揭曉答案"
-                disabled={!poll || actionMutation.isPending}
-                size="compact"
-                onClick={() => runAction(poll?.result_visible ? "hide" : "reveal")}
-              />
-              <ControlAction
-                label="重設"
-                disabled={!poll || actionMutation.isPending}
-                size="compact"
-                onClick={() => runAction("reset", true)}
-              />
-            </>
-          }
-          chromeFooterActions={
-            <HostRoomHeaderActions
-              roomId={roomId}
-              {...(selectedPollId
-                ? { presentHref: presentAppUrl(roomId, selectedPollId) }
-                : {})}
-            />
-          }
-          onLogout={onLogout}
-          extra={
-            <span
-              className={`le-status-dot ${connected ? "le-status-dot-live" : "bg-muted"}`}
-              title={connected ? "WS 已連線" : "WS 未連線"}
-            />
-          }
-        />
-      }
-      sidebar={
-        <InteractionSidebar
-          polls={polls}
-          selectedId={selectedPollId}
-          loading={interactionsQuery.isLoading}
-          newType={newType}
-          newTitle={newTitle}
-          creating={createMutation.isPending}
-          onNewType={setNewType}
-          onNewTitle={setNewTitle}
-          onCreate={() => createMutation.mutate()}
-          onSelect={selectPoll}
-        />
-      }
-      main={
-        <div className="space-y-4">
-          {!selectedPollId ? (
-            <EmptyMain message="請從左側建立或選擇一個 Poll。" />
-          ) : pollQuery.isLoading ? (
-            <EmptyMain message="載入 Poll…" />
-          ) : poll ? (
-            <>
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <div>
-                  <p className="text-xs font-medium text-muted">
-                    {pollTypeLabel(poll.type)}
-                  </p>
-                  <h2 className="font-display text-xl font-semibold text-foreground">
-                    {poll.title ?? "未命名題目"}
-                  </h2>
-                  <p className="mt-1 text-sm text-muted">
-                    狀態：{interactionStatusLabel(poll.status)}
-                    {poll.result_visible ? " · 結果已揭示" : ""}
-                  </p>
-                </div>
-                <a
-                  href={`#/rooms/${roomId}/polls/${poll.id}/builder`}
-                  className="le-btn-secondary !min-h-[36px] !text-xs"
-                >
-                  編輯題目
-                </a>
-              </div>
+      <button
+        type="button"
+        onClick={() => setQaModalOpen(true)}
+        className="le-btn-secondary relative !min-h-[24px] !px-2 !py-0.5 !text-[10px]"
+      >
+        Q&amp;A
+        {pendingQaCount > 0 ? (
+          <span className="absolute -right-1 -top-1 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-amber-500 px-1 text-[9px] font-bold text-white">
+            {pendingQaCount > 99 ? "99+" : pendingQaCount}
+          </span>
+        ) : null}
+      </button>
 
-              <div className="le-card overflow-hidden p-4">
-                <h3 className="mb-3 text-sm font-semibold text-foreground">投影預覽</h3>
-                <PollRenderer mode="present" poll={poll} results={results} />
-              </div>
-            </>
-          ) : (
-            <EmptyMain message="無法載入 Poll。" />
-          )}
-        </div>
-      }
-      preview={
-        <ParticipantPreviewFrame
-          stats={
-            poll ? (
-              <p className="text-[10px] font-semibold tabular-nums leading-tight text-foreground">
-                回應數{" "}
-                <span className="font-display text-xs text-accent">
-                  {results?.response_count ?? 0}
-                </span>
-              </p>
-            ) : undefined
-          }
-        >
-          {poll ? (
-            <PollRenderer
-              mode="answer"
-              poll={poll}
-              results={poll.result_visible ? results : null}
-              hostWorkbenchPreview
+      <button
+        type="button"
+        disabled={selectedIndex <= 0}
+        onClick={goPrev}
+        className="le-btn-secondary !min-h-[24px] !px-2 !py-0.5 !text-[10px]"
+      >
+        上一題
+      </button>
+      <button
+        type="button"
+        disabled={selectedIndex < 0 || selectedIndex >= workbenchItems.length - 1}
+        onClick={goNext}
+        className="le-btn-secondary !min-h-[24px] !px-2 !py-0.5 !text-[10px]"
+      >
+        下一題
+      </button>
+      <span className="pl-0.5 text-[10px] tabular-nums text-muted">
+        {workbenchItems.length > 0 && selectedIndex >= 0
+          ? `${selectedIndex + 1}/${workbenchItems.length}`
+          : "—"}
+      </span>
+
+      {selectedItem && isPollType(selectedItem.type) ? (
+        <>
+          <ControlToggle
+            active={running}
+            activeLabel="結束"
+            inactiveLabel="開始"
+            disabled={!poll || actionMutation.isPending}
+            accent={running ? "danger" : "default"}
+            size="compact"
+            onClick={() => runPollAction(running ? "stop" : "start")}
+          />
+          <ControlToggle
+            active={locked}
+            activeLabel="解除鎖定"
+            inactiveLabel="鎖定"
+            disabled={!poll || actionMutation.isPending || !running}
+            size="compact"
+            onClick={() => runPollAction(locked ? "unlock" : "lock")}
+          />
+          <ControlToggle
+            active={Boolean(poll?.result_visible)}
+            activeLabel="隱藏答案"
+            inactiveLabel="揭曉答案"
+            disabled={!poll || actionMutation.isPending}
+            size="compact"
+            onClick={() => runPollAction(poll?.result_visible ? "hide" : "reveal")}
+          />
+          <ControlAction
+            label="重設"
+            disabled={!poll || actionMutation.isPending}
+            size="compact"
+            onClick={() => runPollAction("reset", true)}
+          />
+        </>
+      ) : null}
+
+      {selectedItem && isSprint9Type(selectedItem.type) ? (
+        <>
+          {selectedItem.status !== "active" && selectedItem.status !== "locked" ? (
+            <ControlToggle
+              active={false}
+              activeLabel="結束"
+              inactiveLabel="開放"
+              disabled={sprint9StatusMutation.isPending}
+              size="compact"
+              onClick={() => sprint9StatusMutation.mutate("active")}
             />
           ) : (
-            <p className="text-center text-xs text-muted">選擇 Poll 以預覽參與者畫面</p>
+            <ControlToggle
+              active={true}
+              activeLabel="結束"
+              inactiveLabel="開放"
+              disabled={sprint9StatusMutation.isPending}
+              accent="danger"
+              size="compact"
+              onClick={() => sprint9StatusMutation.mutate("stopped")}
+            />
           )}
-        </ParticipantPreviewFrame>
-      }
-    />
-    {systemNoticeModal}
+        </>
+      ) : null}
+
+      {quizActiveLabel ? (
+        <span className="max-w-[120px] truncate text-[10px] text-muted" title={quizActiveLabel}>
+          {quizActiveLabel}
+        </span>
+      ) : null}
     </>
   );
-}
 
-function EmptyMain({ message }: { message: string }): React.JSX.Element {
   return (
-    <div className="flex min-h-[240px] items-center justify-center rounded-xl border border-dashed border-border bg-surface p-8 text-sm text-muted">
-      {message}
-    </div>
-  );
-}
-
-function InteractionSidebar(props: {
-  polls: InteractionSummary[];
-  selectedId: string | null;
-  loading: boolean;
-  newType: PollInteractionType;
-  newTitle: string;
-  creating: boolean;
-  onNewType: (t: PollInteractionType) => void;
-  onNewTitle: (v: string) => void;
-  onCreate: () => void;
-  onSelect: (id: string) => void;
-}): React.JSX.Element {
-  return (
-    <div className="flex h-full min-h-0 flex-col">
-      <div className="shrink-0 border-b border-border p-3">
-        <div className="flex items-center justify-between">
-          <h2 className="text-xs font-semibold text-foreground">互動項目</h2>
-        </div>
-        <div className="mt-2 space-y-1.5">
-          <select
-            value={props.newType}
-            onChange={(e) => props.onNewType(e.target.value as PollInteractionType)}
-            className="le-input w-full !py-1 !text-[11px]"
-          >
-            {POLL_TYPES.map((t) => (
-              <option key={t.value} value={t.value}>
-                {t.label}
-              </option>
-            ))}
-          </select>
-          <input
-            type="text"
-            value={props.newTitle}
-            onChange={(e) => props.onNewTitle(e.target.value)}
-            placeholder="題目標題（選填）"
-            className="le-input w-full !py-1 !text-[11px] placeholder:text-[10px]"
+    <>
+      <WorkbenchLayout
+        toolbar={
+          <SessionToolbar
+            title={session?.title ?? "活動工作台"}
+            titleHref={HOST_DASHBOARD_HASH}
+            dateLabel={dateLabel}
+            code={session?.code ?? "—"}
+            visibilityLabel={session ? VISIBILITY_LABEL[session.visibility] : "—"}
+            {...(toolbarStatus
+              ? {
+                  statusLabel: toolbarStatus.label,
+                  statusBadgeVariant: toolbarStatus.variant,
+                }
+              : {})}
+            backLabel="← 回到活動列表"
+            onBack={() => {
+              window.location.hash = "#/dashboard";
+            }}
+            navControls={navControls}
+            chromeFooterActions={
+              <HostRoomHeaderActions
+                roomId={roomId}
+                {...(presentHref ? { presentHref } : {})}
+              />
+            }
+            onLogout={onLogout}
+            extra={
+              <span
+                className={`le-status-dot ${connected ? "le-status-dot-live" : "bg-muted"}`}
+                title={connected ? "WS 已連線" : "WS 未連線"}
+              />
+            }
           />
-          <button
-            type="button"
-            className="le-btn-primary w-full !min-h-[32px] !py-1.5 !text-[11px]"
-            onClick={props.onCreate}
-            disabled={props.creating}
-          >
-            {props.creating ? "…" : "新增題目"}
-          </button>
-        </div>
-      </div>
-      <ul
-        className={`min-h-0 flex-1 p-1.5 pt-3 ${
-          props.polls.length >= 6 ? "overflow-y-auto" : "overflow-y-visible"
-        }`}
-      >
-        {props.loading ? (
-          <li className="p-3 text-center text-[11px] text-muted">載入中…</li>
-        ) : props.polls.length === 0 ? (
-          <li className="p-3 text-center text-[11px] text-muted">尚無 Poll</li>
-        ) : (
-          props.polls.map((item) => {
-            const active = item.id === props.selectedId;
-            return (
-              <li key={item.id} className="mb-1.5">
-                <button
-                  type="button"
-                  onClick={() => props.onSelect(item.id)}
-                  className={`w-full rounded-lg border px-2 py-2 text-left transition-colors ${
-                    active
-                      ? "border-accent bg-accent-muted shadow-sm"
-                      : "border-border bg-surface hover:border-accent/40"
-                  }`}
-                >
-                  <p className="truncate text-xs font-medium text-foreground">
-                    {item.title ?? "未命名題目"}
-                  </p>
-                  <p className="mt-0.5 text-[10px] text-muted">
-                    {pollTypeLabel(item.type)} · {interactionStatusLabel(item.status)}
-                  </p>
-                </button>
-              </li>
-            );
-          })
-        )}
-      </ul>
-    </div>
+        }
+        sidebar={
+          <WorkbenchInteractionSidebar
+            items={workbenchItems}
+            selectedId={selectedId}
+            loading={interactionsQuery.isLoading}
+            newType={newType}
+            newTitle={newTitle}
+            creating={createMutation.isPending}
+            onNewType={setNewType}
+            onNewTitle={setNewTitle}
+            onCreate={() => createMutation.mutate()}
+            onSelect={selectItem}
+          />
+        }
+        main={<WorkbenchMainPanel roomId={roomId} item={selectedItem} />}
+        preview={<WorkbenchPreviewPanel item={selectedItem} />}
+      />
+      <QaModerationModal
+        roomId={roomId}
+        open={qaModalOpen}
+        onClose={() => setQaModalOpen(false)}
+      />
+      {systemNoticeModal}
+    </>
   );
 }

@@ -144,8 +144,8 @@ export function PollHubPage({ roomId, onLogout }: Props): React.JSX.Element {
                   <ListActionLink href={`#/rooms/${roomId}/polls/${poll.id}/builder`}>
                     {editable ? "編輯" : "檢視"}
                   </ListActionLink>
-                  <ListActionLink href={`#/rooms/${roomId}/polls/${poll.id}/console`}>
-                    控制台
+                  <ListActionLink href={`#/rooms/${roomId}/workbench/${poll.id}`}>
+                    工作台
                   </ListActionLink>
                   <PresentListAction href={presentAppUrl(roomId, poll.id)} />
                   <ListActionLink href={`#/rooms/${roomId}/polls/${poll.id}/answer`}>

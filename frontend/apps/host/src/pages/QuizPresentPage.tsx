@@ -10,6 +10,7 @@ import {
   useRoomWebSocket,
   type WsEvent,
 } from "@liveengage/realtime";
+import { PRESENT_PAGE_TITLE_CLASS } from "@liveengage/ui";
 import { getAccessToken } from "../lib/auth";
 import { getQuizLeaderboard, listQuizQuestions, type QuizQuestion } from "../lib/sprint9Api";
 
@@ -83,7 +84,7 @@ export function QuizPresentPage({ roomId, quizId }: Props): React.JSX.Element {
             <QuizQuestionPresent question={activeQuestion} />
           ) : (
             <div className="flex flex-1 flex-col items-center justify-center text-center">
-              <p className="font-display text-3xl font-bold text-slate-300 md:text-4xl">
+              <p className={`${PRESENT_PAGE_TITLE_CLASS} text-slate-300`}>
                 快問快答
               </p>
               <p className="mt-4 text-lg text-slate-500">等待主持人出題…</p>

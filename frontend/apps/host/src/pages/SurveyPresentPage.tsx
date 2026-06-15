@@ -3,6 +3,7 @@
 import * as React from "react";
 import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { PRESENT_PAGE_TITLE_CLASS } from "@liveengage/ui";
 import { getSurveyResults } from "../lib/sprint9Api";
 import { interactionTypeLabel } from "../lib/pollTypes";
 
@@ -27,10 +28,8 @@ export function SurveyPresentPage({ surveyId, title }: Props): React.JSX.Element
 
   return (
     <div className="relative flex min-h-full flex-col bg-slate-950 text-slate-100">
-      <header className="border-b border-slate-800 px-8 py-6 md:px-12">
-        <h1 className="font-display text-3xl font-bold tracking-tight md:text-4xl">
-          {heading}
-        </h1>
+      <header className="border-b border-slate-800 px-8 py-4 md:px-12">
+        <h1 className={PRESENT_PAGE_TITLE_CLASS}>{heading}</h1>
         <p className="mt-2 text-sm text-slate-400">
           已完成 {submissionCount} 份 · {questions.length} 題
         </p>

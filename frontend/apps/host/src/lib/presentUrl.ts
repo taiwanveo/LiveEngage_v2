@@ -20,6 +20,11 @@ export function qaPresentUrl(roomId: string): string {
   return hostHashUrl(`/rooms/${roomId}/moderation/present`);
 }
 
+/** 即時總覽大螢幕投影。 */
+export function overviewPresentUrl(roomId: string): string {
+  return hostHashUrl(`/rooms/${roomId}/overview/present`);
+}
+
 /** Quiz 大螢幕投影（當前子題 + 排行榜）。 */
 export function quizPresentUrl(roomId: string, quizId: string): string {
   return sprint9PresentUrl(roomId, quizId);

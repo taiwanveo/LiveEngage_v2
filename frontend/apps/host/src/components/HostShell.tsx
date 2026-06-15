@@ -3,11 +3,12 @@ import { AppHeader } from "@liveengage/ui";
 import { HostRoomHeaderActions } from "./HostRoomHeaderActions";
 import { HostSessionMeta } from "./HostSessionMeta";
 
-export type HostNavId = "overview" | "moderation" | "polls" | "sprint9";
+export type HostNavId = "workbench" | "overview" | "moderation" | "polls" | "sprint9";
 
 export const HOST_DASHBOARD_HASH = "#/dashboard";
 
 const HOST_NAV: { id: HostNavId; segment: string; label: string }[] = [
+  { id: "workbench", segment: "workbench", label: "工作台" },
   { id: "overview", segment: "overview", label: "即時總覽" },
   { id: "moderation", segment: "moderation", label: "Q&A 審核" },
   { id: "polls", segment: "polls", label: "Poll 管理" },
@@ -26,7 +27,7 @@ interface HostShellProps {
   activeNav?: HostNavId;
   /** 投影目標 URL（Poll / Q&A / Quiz） */
   presentHref?: string | undefined;
-  /** 標題列下方麵包屑（Poll／Quiz 管理等） */
+  /** 標題列下方麵包屑（固定於 header 內，捲動時仍可見） */
   breadcrumb?: React.ReactNode;
 }
 
@@ -53,6 +54,7 @@ export function HostShell({
         maxWidth="7xl"
         onLogout={onLogout}
         actions={actions}
+        subRow={breadcrumb}
         chromeFooterActions={
           <HostRoomHeaderActions
             roomId={roomId}
@@ -65,12 +67,7 @@ export function HostShell({
           active: activeNav === item.id,
         }))}
       />
-      <div className="relative z-10 mx-auto max-w-7xl px-4 sm:px-6">
-        {breadcrumb ? (
-          <div className="border-b border-border/60 pb-3 pt-4">{breadcrumb}</div>
-        ) : null}
-        <div className="py-6">{children}</div>
-      </div>
+      <div className="relative z-10 mx-auto max-w-7xl px-4 py-6 sm:px-6">{children}</div>
     </main>
   );
 }

@@ -61,6 +61,15 @@ export function shouldShowParticipantResults(
   return true;
 }
 
+/** 是否顯示選項正解標記（預覽／編輯模式除外，須已揭曉結果）。 */
+export function shouldShowCorrectAnswer(
+  mode: RenderMode,
+  poll: Pick<PollDetail, "result_visible">
+): boolean {
+  if (mode === "preview") return true;
+  return poll.result_visible;
+}
+
 export function readBool(
   settings: Record<string, unknown>,
   key: string,

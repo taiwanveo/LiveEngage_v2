@@ -52,7 +52,7 @@ export function LoginPage({ onLoggedIn }: Props): React.JSX.Element {
     <>
       <BrandedAuthShell
         appTagline="控場端（host）"
-        title="活動主持控制台"
+        title="活動主持工作台"
         subtitle="主持人入口 — 建立活動、控場 Poll、審核 Q&A"
         branding={brandingQuery.data ?? null}
         footer="登入後可建立活動、複製參與連結，並進入 Q&A 審核或 Poll 控場。"

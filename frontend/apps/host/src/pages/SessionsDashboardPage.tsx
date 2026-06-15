@@ -247,8 +247,8 @@ function SessionCard(props: {
           <a href={`#/rooms/${roomId}/workbench`} className="le-btn-primary !min-h-[36px] !px-4 !text-xs">
             進入工作台
           </a>
-          <a href={`#/rooms/${roomId}/overview`} className="le-nav-link !text-xs">
-            即時總覽
+          <a href={`#/rooms/${roomId}/moderation`} className="le-nav-link !text-xs">
+            Q&amp;A 審核
           </a>
           <a href={`#/rooms/${roomId}/polls`} className="le-nav-link !text-xs">
             Poll 管理

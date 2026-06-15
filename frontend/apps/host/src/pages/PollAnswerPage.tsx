@@ -76,7 +76,7 @@ export function PollAnswerPage({
           segments={[
             {
               label: pollQuery.isLoading ? "載入中…" : pollTitle,
-              href: `#/rooms/${roomId}/polls/${pollId}/console`,
+              href: `#/rooms/${roomId}/workbench/${pollId}`,
             },
             { label: "參與者預覽" },
           ]}

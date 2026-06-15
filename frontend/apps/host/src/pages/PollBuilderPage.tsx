@@ -174,7 +174,7 @@ export function PollBuilderPage({
           segments={[
             {
               label: isLoading ? "載入中…" : pollTitle,
-              href: `#/rooms/${roomId}/polls/${pollId}/console`,
+              href: `#/rooms/${roomId}/workbench/${pollId}`,
             },
             { label: "編輯" },
           ]}
@@ -186,10 +186,10 @@ export function PollBuilderPage({
             href={`#/rooms/${roomId}/workbench/${pollId}`}
             variant="secondary"
           >
-            回到工作台
+            活動工作台
           </HostTitleLink>
-          <HostTitleLink href={`#/rooms/${roomId}/polls/${pollId}/console`} variant="primary">
-            前往控制台
+          <HostTitleLink href={`#/rooms/${roomId}/workbench/${pollId}`} variant="primary">
+            本題工作台
           </HostTitleLink>
         </HostTitleActions>
       }

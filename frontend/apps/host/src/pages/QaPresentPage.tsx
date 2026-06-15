@@ -4,6 +4,7 @@ import * as React from "react";
 import { useCallback } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { QA_EVENT_TYPES, useRoomWebSocket, type WsEvent } from "@liveengage/realtime";
+import { PRESENT_PAGE_TITLE_CLASS } from "@liveengage/ui";
 import { getAccessToken } from "../lib/auth";
 import { listPublicQuestions } from "../lib/qaApi";
 import type { QuestionPublic } from "../types";
@@ -51,10 +52,8 @@ export function QaPresentPage({ roomId }: Props): React.JSX.Element {
         />
       </div>
 
-      <header className="border-b border-slate-800 px-8 py-6 md:px-12">
-        <h1 className="font-display text-3xl font-bold tracking-tight md:text-4xl">
-          Q&amp;A
-        </h1>
+      <header className="border-b border-slate-800 px-8 py-4 md:px-12">
+        <h1 className={PRESENT_PAGE_TITLE_CLASS}>Q&amp;A</h1>
         <p className="mt-2 text-sm text-slate-400">
           熱門問題 · {items.length} 則
         </p>

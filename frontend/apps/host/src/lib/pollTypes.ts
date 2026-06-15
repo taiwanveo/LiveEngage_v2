@@ -110,6 +110,23 @@ export function quizQuestionStateLabel(state: string): string {
   return QUIZ_QUESTION_STATE_LABEL[state] ?? state;
 }
 
+/** Sprint 9 互動工作台頁標題（對齊 Poll 工作台命名）。 */
+export function interactionWorkbenchTitle(type: string): string {
+  switch (type) {
+    case "quiz":
+      return "Quiz 工作台";
+    case "ideas":
+      return "Ideas 工作台";
+    case "survey":
+      return "Survey 工作台";
+    default:
+      return "工作台";
+  }
+}
+
+/** @deprecated 請改用 interactionWorkbenchTitle */
+export const interactionConsoleTitle = interactionWorkbenchTitle;
+
 /** 「題型 · 狀態」摘要列 */
 export function interactionMetaLine(
   type: string,

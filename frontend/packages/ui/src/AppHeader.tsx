@@ -25,6 +25,8 @@ interface Props {
   onLogout?: () => void;
   /** 登出列下方（例如 Host 投影／分享） */
   chromeFooterActions?: React.ReactNode;
+  /** 標題列下方固定列（例如 Host 麵包屑） */
+  subRow?: React.ReactNode;
   /** 登出按鈕文字（Participant 可用「離開」） */
   logoutLabel?: string;
   maxWidth?: "2xl" | "4xl" | "6xl" | "7xl" | "full";
@@ -92,6 +94,7 @@ export function AppHeader({
   actions,
   onLogout,
   chromeFooterActions,
+  subRow,
   logoutLabel = "登出",
   maxWidth = "7xl",
 }: Props): React.JSX.Element {
@@ -151,6 +154,17 @@ export function AppHeader({
           {...(chromeFooterActions ? { footerActions: chromeFooterActions } : {})}
         />
       </div>
+      {subRow ? (
+        <div className={`border-t border-border/60 ${APP_HEADER_PADDING} pb-2.5 pt-2`}>
+          <div
+            className={
+              maxWidth === "full" ? "w-full" : `mx-auto w-full ${MAX_W[maxWidth]}`
+            }
+          >
+            {subRow}
+          </div>
+        </div>
+      ) : null}
     </header>
   );
 }

@@ -49,7 +49,7 @@ export function PollShell({
         <h2
           className={
             isPresent
-              ? "text-3xl font-bold tracking-tight md:text-4xl"
+              ? "text-[1.625rem] font-bold tracking-tight md:text-[2rem]"
               : "text-xl font-semibold text-foreground"
           }
         >
