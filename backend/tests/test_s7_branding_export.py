@@ -58,6 +58,14 @@ class TestS74Branding:
         assert data["primary_color"] == "#112233"
         assert data["display_name"] == "公開品牌"
 
+    def test_site_branding_public(self, client: TestClient) -> None:
+        resp = client.get("/api/v1/branding/site")
+        assert resp.status_code == 200, resp.text
+        data = resp.json()
+        assert "primary_color" in data
+        assert "display_name" in data
+        assert "logo_url" in data
+
 
 class TestS75Export:
     def test_create_and_download_export(

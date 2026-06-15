@@ -17,6 +17,7 @@ from typing import Any
 from sqlalchemy import func, outerjoin, select, union
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.config import get_settings
 from app.core.errors import AppError, ErrorCode
 from app.core.ids import uuid7
 from app.core.security import hash_secret
@@ -521,6 +522,43 @@ async def get_public_branding_by_code(
     branding = _parse_branding(org.settings_jsonb or {})
     return PublicBrandingResponse(
         display_name=branding.display_name or org.name,
+        logo_url=branding.logo_url,
+        favicon_url=branding.favicon_url,
+        primary_color=branding.primary_color,
+    )
+
+
+async def _resolve_site_organization(db: AsyncSession) -> Organization | None:
+    """部署站點的預設組織（Admin 登入頁品牌）。"""
+    settings = get_settings()
+    if settings.sso_default_org_id:
+        try:
+            org_id = uuid.UUID(settings.sso_default_org_id)
+        except ValueError:
+            org_id = None
+        if org_id is not None:
+            org = await db.get(Organization, org_id)
+            if org is not None:
+                return org
+    result = await db.execute(
+        select(Organization).order_by(Organization.created_at.asc()).limit(1)
+    )
+    return result.scalar_one_or_none()
+
+
+async def get_site_branding(db: AsyncSession) -> PublicBrandingResponse:
+    """公開站點品牌（Admin 登入頁，無需認證）。"""
+    org = await _resolve_site_organization(db)
+    if org is None:
+        return PublicBrandingResponse(
+            display_name=None,
+            logo_url=None,
+            favicon_url=None,
+            primary_color="#2563eb",
+        )
+    branding = _parse_branding(org.settings_jsonb or {})
+    return PublicBrandingResponse(
+        display_name=branding.display_name or org.name or None,
         logo_url=branding.logo_url,
         favicon_url=branding.favicon_url,
         primary_color=branding.primary_color,

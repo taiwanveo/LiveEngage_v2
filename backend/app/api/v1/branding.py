@@ -36,3 +36,11 @@ async def get_branding_by_code(
     return await admin_service.get_public_branding_by_code(
         db, code, client_ip=get_client_ip(request)
     )
+
+
+@router.get("/site", response_model=PublicBrandingResponse)
+async def get_site_branding(
+    db: Annotated[AsyncSession, Depends(get_session)],
+) -> PublicBrandingResponse:
+    """站點預設組織品牌（Admin 登入頁，公開）。"""
+    return await admin_service.get_site_branding(db)

@@ -7,12 +7,28 @@
 ## SNAPSHOT（2026-06-15）
 
 - **Repo**：https://github.com/ColdRighter/LiveEngage.git（master）
-- **最新 commit**：`e634fe4` — api migration 修復（enum autocommit）
-- **typecheck**：`host`、`participant`、`admin` 通過
-- **接手文件**：[`docs/服務架構.md`](docs/服務架構.md) — api / host / participant / admin / worker 分工
-- **api 健康**：https://le-api.zeabur.app/health → `{"status":"ok"}`
+- **最新 commit**：（本輪 push）— 三端登入品牌、UI 修正、公開 branding API
+- **typecheck**：`ui`、`realtime`、`admin`、`host`、`participant` 通過
+- **接手文件**：[`docs/服務架構.md`](docs/服務架構.md)
+- **api 健康**：https://le-api.zeabur.app/health
 
-### 本輪重點（api 502 / 後台無法登入）
+### 本輪重點（UI／登入／品牌）
+
+| 區塊 | 內容 |
+|------|------|
+| **三端登入品牌** | `BrandedAuthShell`：組織名稱＋Logo；預設 LiveEngage 即時互動通／Logo |
+| **公開 API** | `GET /api/v1/branding/site`（Admin／Host 登入頁） |
+| **Host 文案** | 「Host 控制台」→「活動主持控制台」 |
+| **Enter 登入** | Admin／Host 登入表單 Enter 提交 |
+| **Modal** | 最大高度＋內容捲動，修正編輯成員按鈕被裁切 |
+| **Admin 側欄** | 寬度 240px → 120px |
+| **主題選單** | 更緊湊、分隔線、必要時可捲動 |
+
+### 部署（本輪）
+
+需 redeploy：**api**、**admin**、**host**、**participant**；**worker** 無程式變更可略。
+
+### 本輪重點（api 502，已修）
 
 | 問題 | 根因 | 修復 |
 |------|------|------|
@@ -43,6 +59,10 @@
 ---
 
 ## HISTORY
+
+### 2026-06-15 — 三端登入品牌、Modal／側欄／主題選單 UI
+
+`BrandedAuthShell`、`/branding/site`、Enter 登入、Modal 捲動、Admin 側欄半寬、ThemeSwitcher 緊湊化。
 
 ### 2026-06-15 — api 502 修復（ea460f7 + e634fe4）
 

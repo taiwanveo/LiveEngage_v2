@@ -9,7 +9,7 @@ import {
   setParticipantSession,
 } from "../lib/participantAuth";
 import { joinSession, resolveSessionByCode } from "../lib/sessionApi";
-import { AuthCard, OrgBrandingProvider, useSystemNotice } from "@liveengage/ui";
+import { AUTH_INPUT_CLASS, BrandedAuthShell, useSystemNotice } from "@liveengage/ui";
 import { fetchSsoConfig, ssoAuthorizeUrl } from "../lib/authApi";
 import { fetchBrandingByCode } from "../lib/brandingApi";
 
@@ -116,116 +116,117 @@ export function JoinPage({ code }: Props): React.JSX.Element {
   const notLive = session.status !== "live";
 
   return (
-    <OrgBrandingProvider branding={brandingQuery.data ?? null}>
-    <AuthCard
-      appTagline="參與者（participant）"
-      title={session.title}
-      subtitle={`狀態：${statusLabel(session.status)}`}
-      footer={
-        <a href="#/join" className="text-accent hover:underline">
-          使用其他代碼
-        </a>
-      }
-    >
-      <p className="-mt-4 mb-2 font-mono text-xs text-muted">{session.code}</p>
-
-      {notLive ? (
-        <div className="rounded-xl border border-warning/30 bg-warning/10 px-4 py-3 text-sm text-warning">
-          活動尚未開始，請等待主持人開放後再試。
-        </div>
-      ) : needsSso && !ssoEnabled ? (
-        <div className="rounded-xl border border-warning/30 bg-warning/10 px-4 py-3 text-sm text-warning">
-          此活動需 SSO 登入，但目前尚未啟用 SSO。請聯絡活動主持人。
-        </div>
-      ) : needsSso && ssoEnabled ? (
-        <div className="space-y-4">
-          <p className="text-sm text-muted">此活動需使用組織 SSO 登入後才能加入。</p>
-          <a
-            href={ssoAuthorizeUrl("participant", `join/${code}`)}
-            className="le-btn-primary w-full"
-          >
-            使用 SSO 登入
+    <>
+      <BrandedAuthShell
+        appTagline="參與者（participant）"
+        title={session.title}
+        subtitle={`狀態：${statusLabel(session.status)}`}
+        branding={brandingQuery.data ?? null}
+        footer={
+          <a href="#/join" className="text-accent hover:underline">
+            使用其他代碼
           </a>
-        </div>
-      ) : (
-        <form
-          className="space-y-4"
-          onSubmit={(e) => {
-            e.preventDefault();
-            joinMutation.mutate();
-          }}
-        >
-          {needsPasscode ? (
-            <label className="block space-y-1.5 text-sm">
-              <span className="font-medium text-foreground">Passcode</span>
-              <input
-                type="password"
-                value={passcode}
-                onChange={(e) => setPasscode(e.target.value)}
-                className="le-input"
-                required
-              />
-            </label>
-          ) : null}
+        }
+      >
+        <p className="-mt-4 mb-2 font-mono text-xs text-muted">{session.code}</p>
 
-          {session.require_name ? (
-            <label className="block space-y-1.5 text-sm">
-              <span className="font-medium text-foreground">姓名</span>
-              <input
-                type="text"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                className="le-input"
-                required
-              />
-            </label>
-          ) : (
-            <label className="block space-y-1.5 text-sm">
-              <span className="font-medium text-foreground">暱稱（選填）</span>
-              <input
-                type="text"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                className="le-input"
-              />
-            </label>
-          )}
-
-          {session.require_email ? (
-            <label className="block space-y-1.5 text-sm">
-              <span className="font-medium text-foreground">Email</span>
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="le-input"
-                required
-              />
-            </label>
-          ) : null}
-
-          <label className="flex items-center gap-2 text-sm text-foreground">
-            <input
-              type="checkbox"
-              checked={isAnonymous}
-              onChange={(e) => setIsAnonymous(e.target.checked)}
-              className="h-4 w-4 rounded border-border accent-accent"
-            />
-            匿名參與
-          </label>
-
-          <button
-            type="submit"
-            disabled={joinMutation.isPending}
-            className="le-btn-primary w-full"
+        {notLive ? (
+          <div className="rounded-xl border border-warning/30 bg-warning/10 px-4 py-3 text-sm text-warning">
+            活動尚未開始，請等待主持人開放後再試。
+          </div>
+        ) : needsSso && !ssoEnabled ? (
+          <div className="rounded-xl border border-warning/30 bg-warning/10 px-4 py-3 text-sm text-warning">
+            此活動需 SSO 登入，但目前尚未啟用 SSO。請聯絡活動主持人。
+          </div>
+        ) : needsSso && ssoEnabled ? (
+          <div className="space-y-4">
+            <p className="text-sm text-muted">此活動需使用組織 SSO 登入後才能加入。</p>
+            <a
+              href={ssoAuthorizeUrl("participant", `join/${code}`)}
+              className="le-btn-primary w-full"
+            >
+              使用 SSO 登入
+            </a>
+          </div>
+        ) : (
+          <form
+            className="space-y-4"
+            onSubmit={(e) => {
+              e.preventDefault();
+              joinMutation.mutate();
+            }}
           >
-            {joinMutation.isPending ? "加入中…" : "加入活動"}
-          </button>
-        </form>
-      )}
+            {needsPasscode ? (
+              <label className="block space-y-1.5 text-sm">
+                <span className="font-medium text-foreground">Passcode</span>
+                <input
+                  type="password"
+                  value={passcode}
+                  onChange={(e) => setPasscode(e.target.value)}
+                  className={AUTH_INPUT_CLASS}
+                  required
+                />
+              </label>
+            ) : null}
+
+            {session.require_name ? (
+              <label className="block space-y-1.5 text-sm">
+                <span className="font-medium text-foreground">姓名</span>
+                <input
+                  type="text"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  className={AUTH_INPUT_CLASS}
+                  required
+                />
+              </label>
+            ) : (
+              <label className="block space-y-1.5 text-sm">
+                <span className="font-medium text-foreground">暱稱（選填）</span>
+                <input
+                  type="text"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  className={AUTH_INPUT_CLASS}
+                />
+              </label>
+            )}
+
+            {session.require_email ? (
+              <label className="block space-y-1.5 text-sm">
+                <span className="font-medium text-foreground">Email</span>
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className={AUTH_INPUT_CLASS}
+                  required
+                />
+              </label>
+            ) : null}
+
+            <label className="flex items-center gap-2 text-sm text-foreground">
+              <input
+                type="checkbox"
+                checked={isAnonymous}
+                onChange={(e) => setIsAnonymous(e.target.checked)}
+                className="h-4 w-4 rounded border-border accent-accent"
+              />
+              匿名參與
+            </label>
+
+            <button
+              type="submit"
+              disabled={joinMutation.isPending}
+              className="le-btn-primary w-full"
+            >
+              {joinMutation.isPending ? "加入中…" : "加入活動"}
+            </button>
+          </form>
+        )}
+      </BrandedAuthShell>
       {systemNoticeModal}
-    </AuthCard>
-    </OrgBrandingProvider>
+    </>
   );
 }
 

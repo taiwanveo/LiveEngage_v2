@@ -67,7 +67,7 @@ export function ThemeSwitcher({
         <ul
           role="listbox"
           aria-label="主題列表"
-          className="absolute right-0 z-50 mt-2 w-64 animate-slide-up overflow-hidden rounded-2xl border border-border bg-surface-elevated p-1.5 shadow-elevated"
+          className="absolute right-0 z-50 mt-2 w-60 max-h-[min(calc(100dvh-5rem),17.5rem)] animate-slide-up divide-y divide-border overflow-y-auto overscroll-contain rounded-xl border border-border bg-surface-elevated shadow-elevated"
         >
           {THEMES.map((t) => {
             const selected = t.id === theme;
@@ -79,24 +79,24 @@ export function ThemeSwitcher({
                     setTheme(t.id as ThemeId);
                     setOpen(false);
                   }}
-                  className={`flex w-full items-start gap-3 rounded-xl px-3 py-2.5 text-left transition-colors ${
-                    selected
-                      ? "bg-accent-muted ring-1 ring-accent/20"
-                      : "hover:bg-surface"
+                  className={`flex w-full items-center gap-2.5 px-2.5 py-2 text-left transition-colors ${
+                    selected ? "bg-accent-muted" : "hover:bg-surface"
                   }`}
                 >
                   <span
-                    className="mt-0.5 flex h-8 w-8 shrink-0 overflow-hidden rounded-lg border border-border"
+                    className="flex h-6 w-6 shrink-0 overflow-hidden rounded-md border border-border"
                     aria-hidden
                   >
                     <span className="h-full w-1/2" style={{ background: t.preview.bg }} />
                     <span className="h-full w-1/2" style={{ background: t.preview.accent }} />
                   </span>
-                  <span>
-                    <span className="block text-sm font-semibold text-foreground">
+                  <span className="min-w-0">
+                    <span className="block text-sm font-medium leading-tight text-foreground">
                       {t.label}
                     </span>
-                    <span className="block text-xs text-muted">{t.description}</span>
+                    <span className="mt-0.5 block text-[11px] leading-snug text-muted">
+                      {t.description}
+                    </span>
                   </span>
                 </button>
               </li>

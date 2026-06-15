@@ -120,6 +120,7 @@ function BrandingSettings() {
   const [faviconUrl, setFaviconUrl] = useState("");
   const [primaryColor, setPrimaryColor] = useState("#2563eb");
   const [customDomain, setCustomDomain] = useState("");
+  const [displayName, setDisplayName] = useState("");
 
   useEffect(() => {
     if (data?.branding) {
@@ -127,6 +128,7 @@ function BrandingSettings() {
       setFaviconUrl(data.branding.favicon_url ?? "");
       setPrimaryColor(data.branding.primary_color);
       setCustomDomain(data.branding.custom_domain ?? "");
+      setDisplayName(data.branding.display_name ?? "");
     }
   }, [data]);
 
@@ -137,7 +139,7 @@ function BrandingSettings() {
         favicon_url: faviconUrl || null,
         primary_color: primaryColor,
         custom_domain: customDomain || null,
-        display_name: null,
+        display_name: displayName.trim() || null,
       }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["admin-branding"] });
@@ -153,8 +155,20 @@ function BrandingSettings() {
     <AdminPanel className="space-y-4 p-6">
       <AdminSectionTitle className="mb-2">品牌外觀</AdminSectionTitle>
       <p className="mb-4 text-xs text-muted">
-        Logo、主色等設定會套用在 Host 頂欄與 Participant 加入頁（依活動代碼載入）。
+        Logo、主色等設定會套用在管理後台登入頁、Host 頂欄與 Participant 加入頁。
       </p>
+
+      <AdminFormField label="品牌顯示名稱（選填）">
+        <input
+          className={adminInputClass}
+          value={displayName}
+          onChange={(e) => setDisplayName(e.target.value)}
+          placeholder="留空則使用「組織資料」中的組織名稱"
+        />
+        <AdminFieldHint>
+          登入頁標題會顯示為「{'{名稱}'} 即時互動通」；皆未設定時預設為 LiveEngage 即時互動通。
+        </AdminFieldHint>
+      </AdminFormField>
 
       <AdminFormField label="Logo URL">
         <input

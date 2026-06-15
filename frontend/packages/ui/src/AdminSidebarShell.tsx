@@ -36,15 +36,15 @@ export function AdminSidebarShell({
       />
 
       <div className="flex min-h-0 flex-1">
-        <aside className="flex w-60 shrink-0 flex-col border-r border-border/80 bg-surface/90 backdrop-blur-xl">
-          <nav className="flex-1 space-y-1 p-3 pt-4" aria-label="管理導覽">
+        <aside className="flex w-[7.5rem] shrink-0 flex-col border-r border-border/80 bg-surface/90 backdrop-blur-xl">
+          <nav className="flex-1 space-y-1 p-2 pt-4" aria-label="管理導覽">
             {navItems.map((item) => {
               const isActive = item.id === activeId;
               return (
                 <a
                   key={item.id}
                   href={item.href}
-                  className={`block rounded-xl px-3 py-2.5 text-sm transition-colors ${
+                  className={`block rounded-xl px-2 py-2 text-sm transition-colors ${
                     isActive
                       ? "le-nav-link-active font-semibold"
                       : "le-nav-link !min-h-0 w-full"

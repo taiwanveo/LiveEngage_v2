@@ -1,7 +1,8 @@
 import * as React from "react";
 import { useEffect, useState } from "react";
-import { formatUserFacingError } from "@liveengage/realtime";
-import { AuthCard, useSystemNotice } from "@liveengage/ui";
+import { useQuery } from "@tanstack/react-query";
+import { formatUserFacingError, fetchSiteBranding } from "@liveengage/realtime";
+import { AUTH_INPUT_CLASS, BrandedAuthShell, onLoginFieldKeyDown, useSystemNotice } from "@liveengage/ui";
 import { fetchSsoConfig, login, ssoAuthorizeUrl } from "../lib/authApi";
 import { setAuthTokens } from "../lib/auth";
 
@@ -17,6 +18,12 @@ export function LoginPage({ onLoggedIn }: Props): React.JSX.Element {
   const [ssoEnabled, setSsoEnabled] = useState(false);
   const [ssoLabel, setSsoLabel] = useState("使用 SSO 登入");
 
+  const brandingQuery = useQuery({
+    queryKey: ["site-branding"],
+    queryFn: fetchSiteBranding,
+    staleTime: 60_000,
+  });
+
   useEffect(() => {
     void fetchSsoConfig()
       .then((cfg) => {
@@ -28,6 +35,7 @@ export function LoginPage({ onLoggedIn }: Props): React.JSX.Element {
 
   async function onSubmit(e: React.FormEvent): Promise<void> {
     e.preventDefault();
+    if (loading) return;
     setLoading(true);
     try {
       const res = await login(email, password);
@@ -42,54 +50,57 @@ export function LoginPage({ onLoggedIn }: Props): React.JSX.Element {
 
   return (
     <>
-    <AuthCard
-      appTagline="控場端（host）"
-      title="Host 控制台"
-      subtitle="主持人入口 — 建立活動、控場 Poll、審核 Q&A"
-      footer="登入後可建立活動、複製參與連結，並進入 Q&A 審核或 Poll 控場。"
-    >
-      <form onSubmit={onSubmit} className="space-y-5">
-        <label className="block space-y-1.5">
-          <span className="text-sm font-medium text-foreground">Email</span>
-          <input
-            type="email"
-            required
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            className="le-input"
-            autoComplete="email"
-          />
-        </label>
+      <BrandedAuthShell
+        appTagline="控場端（host）"
+        title="活動主持控制台"
+        subtitle="主持人入口 — 建立活動、控場 Poll、審核 Q&A"
+        branding={brandingQuery.data ?? null}
+        footer="登入後可建立活動、複製參與連結，並進入 Q&A 審核或 Poll 控場。"
+      >
+        <form onSubmit={onSubmit} className="space-y-5">
+          <label className="block space-y-1.5">
+            <span className="text-sm font-medium text-foreground">Email</span>
+            <input
+              type="email"
+              required
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              onKeyDown={(e) => onLoginFieldKeyDown(e, loading)}
+              className={AUTH_INPUT_CLASS}
+              autoComplete="email"
+            />
+          </label>
 
-        <label className="block space-y-1.5">
-          <span className="text-sm font-medium text-foreground">密碼（password）</span>
-          <input
-            type="password"
-            required
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            className="le-input"
-            autoComplete="current-password"
-          />
-        </label>
+          <label className="block space-y-1.5">
+            <span className="text-sm font-medium text-foreground">密碼</span>
+            <input
+              type="password"
+              required
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              onKeyDown={(e) => onLoginFieldKeyDown(e, loading)}
+              className={AUTH_INPUT_CLASS}
+              autoComplete="current-password"
+            />
+          </label>
 
-        <button type="submit" disabled={loading} className="le-btn-primary w-full">
-          {loading ? "登入中…（signing in）" : "登入（sign in）"}
-        </button>
+          <button type="submit" disabled={loading} className="le-btn-primary w-full">
+            {loading ? "登入中…" : "登入"}
+          </button>
 
-        {ssoEnabled ? (
-          <>
-            <div className="relative py-1 text-center text-xs text-muted">
-              <span className="bg-surface-elevated px-2">或</span>
-            </div>
-            <a href={ssoAuthorizeUrl("host")} className="le-btn-secondary w-full">
-              {ssoLabel}
-            </a>
-          </>
-        ) : null}
-      </form>
-    </AuthCard>
-    {systemNoticeModal}
+          {ssoEnabled ? (
+            <>
+              <div className="relative py-1 text-center text-xs text-muted">
+                <span className="bg-surface-elevated px-2">或</span>
+              </div>
+              <a href={ssoAuthorizeUrl("host")} className="le-btn-secondary w-full">
+                {ssoLabel}
+              </a>
+            </>
+          ) : null}
+        </form>
+      </BrandedAuthShell>
+      {systemNoticeModal}
     </>
   );
 }

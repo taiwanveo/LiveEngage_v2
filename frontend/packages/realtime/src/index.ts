@@ -1,4 +1,6 @@
 export { apiUrl, getApiBase, wsUrl } from "./apiBase";
+export { fetchSiteBranding } from "./siteBrandingApi";
+export type { SiteBranding } from "./siteBrandingApi";
 export {
   formatUserFacingError,
   isNetworkFailure,
