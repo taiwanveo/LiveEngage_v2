@@ -55,7 +55,6 @@ export function LoginPage({ onLoggedIn }: Props): React.JSX.Element {
         title="活動主持工作台"
         subtitle="建立活動、編輯互動項目、主持活動"
         branding={brandingQuery.data ?? null}
-        footer="登入後可建立活動、複製參與連結，並進入 Q&A 審核或 Poll 控場。"
       >
         <form onSubmit={onSubmit} className="space-y-5">
           <label className="block space-y-1.5">

@@ -26,7 +26,7 @@ export function CodeEntryPage(): React.JSX.Element {
     <BrandedAuthShell
       appTagline="互動會場（participant）"
       title="加入活動"
-      subtitle="請輸入活動主辦方提供的活動代碼（例如 ABC123）以加入活動"
+      subtitle="請輸入活動主辦方提供的活動代碼（例如 ABC123）"
       branding={brandingQuery.data ?? null}
     >
       <form onSubmit={handleSubmit} className="space-y-4">

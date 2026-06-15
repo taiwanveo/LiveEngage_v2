@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { ThemeSwitcher } from "./ThemeSwitcher";
-import { OrgBrandMark, useOrgBranding } from "./orgBranding";
+import { OrgBrandMark } from "./orgBranding";
 
 interface NavItem {
   href: string;
@@ -91,8 +91,6 @@ export function AppHeader({
   maxWidth = "7xl",
 }: Props): React.JSX.Element {
   const hasNav = Boolean(navItems?.length || actions);
-  const orgBranding = useOrgBranding();
-  const showOrgLogo = Boolean(orgBranding?.logo_url);
 
   return (
     <header className="sticky top-0 z-40 border-b border-border/80 bg-surface/80 backdrop-blur-xl">
@@ -103,15 +101,13 @@ export function AppHeader({
           }`}
         >
           <div className="min-w-0">
-            {showOrgLogo ? (
-              <div className="mb-1">
-                <OrgBrandMark
-                  fallback="LiveEngage"
-                  className="font-display text-xs font-semibold tracking-wide text-muted"
-                  {...(brandHref ? { href: brandHref } : {})}
-                />
-              </div>
-            ) : null}
+            <div className="mb-1">
+              <OrgBrandMark
+                fallback="LiveEngage"
+                className="font-display text-xs font-semibold tracking-wide text-muted"
+                {...(brandHref ? { href: brandHref } : {})}
+              />
+            </div>
             <div className="flex items-center justify-between gap-x-3 gap-y-1">
               <h1 className="min-w-0 font-display text-lg font-bold tracking-tight text-foreground">
                 <BrandText brand={brand} />

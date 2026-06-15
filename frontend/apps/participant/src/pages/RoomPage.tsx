@@ -24,6 +24,10 @@ import {
 } from "@liveengage/realtime";
 import { PollRenderer } from "@liveengage/renderers";
 import { RoomIdeasPanel } from "../components/RoomIdeasPanel";
+import {
+  RoomWaitingPlaceholder,
+  ROOM_INTERACTION_WAIT_MESSAGE,
+} from "../components/RoomWaitingPlaceholder";
 import { ParticipantShareActions } from "../components/ParticipantShareActions";
 import { RoomQaPanel } from "../components/RoomQaPanel";
 import { RoomSurveyPanel } from "../components/RoomSurveyPanel";
@@ -113,6 +117,14 @@ export function RoomPage(): React.JSX.Element {
     if (!ctx || !stateQuery.data) return null;
     const hit = stateQuery.data.active_interactions.find(
       (i) => i.room_id === ctx.roomId && i.type === "survey" && i.status === "active"
+    );
+    return hit?.id ?? null;
+  }, [ctx, stateQuery.data]);
+
+  const activeQaId = useMemo(() => {
+    if (!ctx || !stateQuery.data) return null;
+    const hit = stateQuery.data.active_interactions.find(
+      (i) => i.room_id === ctx.roomId && i.type === "qa" && i.status === "active"
     );
     return hit?.id ?? null;
   }, [ctx, stateQuery.data]);
@@ -358,7 +370,7 @@ export function RoomPage(): React.JSX.Element {
             <TabButton active={tab === "quiz"} onClick={() => setTab("quiz")} live={Boolean(quizQuestion)}>
               知識評量（Quiz）與回饋
             </TabButton>
-            <TabButton active={tab === "qa"} onClick={() => setTab("qa")}>
+            <TabButton active={tab === "qa"} onClick={() => setTab("qa")} live={Boolean(activeQaId)}>
               發問（Q&amp;A）
             </TabButton>
             {activeIdeasBoardId ? (
@@ -381,7 +393,7 @@ export function RoomPage(): React.JSX.Element {
 
       <div className="relative z-10 mx-auto max-w-2xl px-4 py-6">
         {tab === "qa" ? (
-          <RoomQaPanel roomId={ctx.roomId} />
+          <RoomQaPanel roomId={ctx.roomId} qaOpen={Boolean(activeQaId)} />
         ) : tab === "ideas" && activeIdeasBoardId ? (
           <RoomIdeasPanel boardId={activeIdeasBoardId} />
         ) : tab === "survey" && activeSurveyId ? (
@@ -427,12 +439,7 @@ export function RoomPage(): React.JSX.Element {
             </Modal>
           </div>
           ) : (
-            <div className="le-card border-dashed p-10 text-center">
-              <p className="text-lg font-medium text-foreground">等待知識評量開始</p>
-              <p className="mt-2 text-sm text-muted">
-                主持人啟動 Quiz 後，題目會自動出現在此頁
-              </p>
-            </div>
+            <RoomWaitingPlaceholder message={ROOM_INTERACTION_WAIT_MESSAGE} />
           )
         ) : (
           <>
@@ -448,12 +455,7 @@ export function RoomPage(): React.JSX.Element {
             {stateQuery.isLoading ? (
               <p className="text-center text-sm text-muted">載入活動狀態…</p>
             ) : !activePollId ? (
-              <div className="le-card border-dashed p-10 text-center">
-                <p className="text-lg font-medium text-foreground">等待投票開始</p>
-                <p className="mt-2 text-sm text-muted">
-                  主持人啟動 Poll 後，題目會自動出現在此頁
-                </p>
-              </div>
+              <RoomWaitingPlaceholder message={ROOM_INTERACTION_WAIT_MESSAGE} />
             ) : poll ? (
               <PollRenderer
                 mode="answer"

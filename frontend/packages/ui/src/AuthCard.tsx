@@ -31,13 +31,7 @@ export function AuthCard({
         <div className="w-full max-w-md animate-slide-up">
           <div className="le-card-elevated p-8 md:p-10">
             <header className="mb-8 space-y-2">
-              {orgBranding?.logo_url ? (
-                <OrgBrandMark fallback="LiveEngage" className="mb-2" />
-              ) : (
-                <p className="font-mono text-xs uppercase tracking-[0.2em] text-accent">
-                  {orgLabel}
-                </p>
-              )}
+              <OrgBrandMark fallback="LiveEngage" className="mb-2" />
               <h1 className="font-display text-3xl font-bold tracking-tight text-foreground">
                 {title}
               </h1>

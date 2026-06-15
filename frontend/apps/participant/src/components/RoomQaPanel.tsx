@@ -7,6 +7,10 @@ import { formatUserFacingError } from "@liveengage/realtime";
 import { Modal, useSystemNotice } from "@liveengage/ui";
 import { QaQuestionList } from "./QaQuestionList";
 import {
+  RoomWaitingPlaceholder,
+  ROOM_QA_WAIT_MESSAGE,
+} from "./RoomWaitingPlaceholder";
+import {
   applyOptimisticUpvote,
   qaPublicQueryKey,
   reconcileVoteResult,
@@ -16,9 +20,10 @@ import type { QuestionListResponse } from "../lib/qaApi";
 
 interface Props {
   roomId: string;
+  qaOpen: boolean;
 }
 
-export function RoomQaPanel({ roomId }: Props): React.JSX.Element {
+export function RoomQaPanel({ roomId, qaOpen }: Props): React.JSX.Element {
   const qc = useQueryClient();
   const { showError, systemNoticeModal } = useSystemNotice();
   const [content, setContent] = React.useState("");
@@ -29,6 +34,7 @@ export function RoomQaPanel({ roomId }: Props): React.JSX.Element {
   const questionsQuery = useQuery({
     queryKey: qaPublicQueryKey(roomId),
     queryFn: () => listQuestions(roomId, "top"),
+    enabled: qaOpen,
     refetchInterval: 8_000,
   });
 
@@ -75,12 +81,16 @@ export function RoomQaPanel({ roomId }: Props): React.JSX.Element {
     },
   });
 
+  if (!qaOpen) {
+    return <RoomWaitingPlaceholder message={ROOM_QA_WAIT_MESSAGE} />;
+  }
+
   const items = questionsQuery.data?.items ?? [];
 
   return (
     <div className="space-y-6">
       <section className="le-card p-5">
-        <h2 className="text-lg font-semibold text-foreground">向主持人提問</h2>
+        <h2 className="text-lg font-semibold text-foreground">發問問題</h2>
         <form
           className="mt-4 space-y-3"
           onSubmit={(e) => {

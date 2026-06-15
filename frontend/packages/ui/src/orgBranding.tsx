@@ -1,6 +1,7 @@
 /** 組織品牌：favicon、Logo；可選覆寫主題 accent 色。 */
 
 import * as React from "react";
+import { brandedLogoUrl } from "./siteBranding";
 
 export interface PublicBranding {
   display_name: string | null;
@@ -113,20 +114,18 @@ export function OrgBrandMark({
 }): React.JSX.Element {
   const branding = useOrgBranding();
   const name = branding?.display_name?.trim() || fallback;
+  const logoSrc = brandedLogoUrl(branding);
 
-  const inner =
-    branding?.logo_url ? (
-      <span className={`inline-flex items-center gap-2 ${className}`.trim()}>
-        <img
-          src={branding.logo_url}
-          alt={name}
-          className="h-7 max-w-[140px] object-contain object-left"
-        />
-        <span className="sr-only">{name}</span>
-      </span>
-    ) : (
-      <span className={className}>{name}</span>
-    );
+  const inner = (
+    <span className={`inline-flex items-center gap-2 ${className}`.trim()}>
+      <img
+        src={logoSrc}
+        alt={name}
+        className="h-7 max-w-[140px] object-contain object-left"
+      />
+      <span className="sr-only">{name}</span>
+    </span>
+  );
 
   if (href) {
     return (
