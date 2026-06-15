@@ -7,38 +7,39 @@
 ## SNAPSHOT（2026-06-15）
 
 - **Repo**：https://github.com/ColdRighter/LiveEngage.git（master）
-- **最新 commit**：`10cc916` — Quiz 子題開始修復、後台成員編輯、cohost Quiz UI
+- **最新 commit**：見本輪 push — 五大服務架構文件
 - **typecheck**：`host`、`participant`、`admin` 通過
-- **整合測試**：`test_start_question_after_quiz_activated`、`test_fe011_quiz_submit_and_leaderboard` 通過（需 `LE_DATABASE_URL`）
+- **接手文件**：[`docs/服務架構.md`](docs/服務架構.md) — api / host / participant / admin / worker 分工
 
-### 本輪重點
+### 本輪重點（文件）
+
+| 文件 | 內容 |
+|------|------|
+| **docs/服務架構.md** | 新增：五大服務職責、api vs worker、本地開發對照 |
+| **AGENTS / README / docs/README** | 入口連結與過時描述修正 |
+| **RUNBOOK / Zeabur 指引** | 改為五服務、交叉引用 |
+
+### 本輪重點（功能，10cc916）
 
 | 區塊 | 內容 |
 |------|------|
-| **Quiz 子題開始** | 父 Quiz 已「開放」時 `start_question` 不再觸發 `uq_interactions_active_room`；父 `active`→`locked`，子題佔 active 名額，結束後恢復 |
-| **參與者 reconnect** | `state_service` 含 `locked` Quiz 父題、排除 Quiz 子題 MC；`RoomPage` 以 active/locked 找 Quiz |
-| **後台帳號管理** | `PATCH /admin/members/{id}` 支援姓名／密碼／角色；Admin「編輯」對話框 |
-| **助理主持人 UI** | Quiz 控制台隱藏新增子題／編輯／刪除（對齊 Poll Hub） |
-
-### Quiz 父／子狀態（控場時）
-
-| 階段 | 父 Quiz | 子題 child |
-|------|---------|------------|
-| 已開放、等待子題 | `active` | `idle` |
-| 子題進行中 | `locked` | `active` |
-| 揭曉／子題結束 | `active` | `locked` / `stopped` |
+| **Quiz 子題開始** | 父 Quiz 已「開放」時 `start_question` 不再觸發 unique index 衝突 |
+| **後台帳號管理** | 成員編輯（姓名／密碼／角色） |
+| **cohost Quiz UI** | 控制台隱藏新增／編輯／刪除子題 |
 
 ### 部署
 
-需 redeploy：**api**、**host**、**participant**、**admin**（api 啟動時自動 `alembic upgrade head`）。
+需 redeploy：**api**、**host**、**participant**、**admin**（功能變更）；文件-only push 無需 redeploy。
 
 ---
 
 ## HISTORY
 
-### 2026-06-15 — Quiz 子題開始 + 後台成員編輯 + cohost Quiz UI
+### 2026-06-15 — 五大服務架構文件
 
-`quiz_service._yield_room_active_slot_to_quiz_child`；`state_service` locked Quiz；Admin `updateMember`；Sprint9ConsolePage `canEditHostContent`。
+新增 `docs/服務架構.md`；更新 AGENTS、README、RUNBOOK、Zeabur 指引索引。
+
+### 2026-06-15 — Quiz 子題開始 + 後台成員編輯 + cohost Quiz UI（10cc916）
 
 ### 2026-06-15 — 組織品牌 + 角色（3a36bec）
 
