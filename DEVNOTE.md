@@ -4,13 +4,34 @@
 
 ---
 
-## SNAPSHOT（2026-06-14）
+## SNAPSHOT（2026-06-15）
 
 - **Repo**：https://github.com/ColdRighter/LiveEngage.git（master）
-- **最新 commit**：`073bba4` — 統一活動工作台、Q&A Modal、即時總覽投影
-- **typecheck**：`host` build 通過（`npm run typecheck` + `vite build`）
+- **最新 commit**：`32912f0` — 工作台強化、排序題統計與可設定評分尺度
+- **typecheck**：後端 rating 測試 3 passed；前端含 renderers 變更
 - **接手文件**：[`docs/服務架構.md`](docs/服務架構.md)
 - **api 健康**：https://le-api.zeabur.app/health
+
+### 本輪重點（工作台強化 + 評分尺度，32912f0）
+
+| 區塊 | 內容 |
+|------|------|
+| **評分尺度** | 主持人於 Poll 編輯頁設定 `min_value`／`max_value`（最高 100）；max≤5 按鈕、6–10 下拉、>10 數字輸入 |
+| **排序題** | `RankingSortableList` 拖曳作答；`ranking_order_counts` 排列組合統計；`ResultRankingOrders` 結果頁 |
+| **工作台 UX** | 左欄 HTML5 拖曳排序（`PUT …/interactions/reorder`）；雙擊標題編輯 `WorkbenchInteractionTitle` |
+| **頂欄** | `SessionToolbar` 房間導覽；`AppHeader` 狀態徽章右上；儀表板按鈕順序調整 |
+| **Poll** | 揭曉後顯示正解；工作台刪除題目 Modal；問卷新增評分題修復 |
+| **後端** | `RatingSettings` 區間驗證；`test_interaction_reorder`；rating 自訂尺度測試 |
+
+### 部署（本輪）
+
+Git push `32912f0` 後 Zeabur 自動建置；需 redeploy：**api**、**host**、**participant**（renderers 共用）；**worker** 無 Celery 任務變更可略；**admin** 無變更可略。
+
+---
+
+## SNAPSHOT（2026-06-14，歷史）
+
+- **最新 commit（舊）**：`073bba4` — 統一活動工作台、Q&A Modal、即時總覽投影
 
 ### 本輪重點（統一工作台 + 總覽投影，073bba4）
 
@@ -105,6 +126,10 @@ Git push `073bba4` 後 Zeabur 自動建置；本輪僅 **host**（含 `renderers
 ---
 
 ## HISTORY
+
+### 2026-06-15 — 工作台強化、排序題統計與可設定評分尺度（32912f0）
+
+評分題主持人可設 min/max 與三種作答 UI；排序題拖曳 + 排列統計；工作台拖曳排序與標題編輯；頂欄導覽與正解顯示等多項 Host UX。
 
 ### 2026-06-14 — 統一活動工作台、Q&A Modal、即時總覽投影（073bba4）
 
