@@ -153,7 +153,7 @@ function BrandingSettings() {
     <AdminPanel className="space-y-4 p-6">
       <AdminSectionTitle className="mb-2">品牌外觀</AdminSectionTitle>
       <p className="mb-4 text-xs text-muted">
-        Logo、主色等設定將透過公開 API 套用在參與者加入頁（依活動代碼載入）。
+        Logo、主色等設定會套用在 Host 頂欄與 Participant 加入頁（依活動代碼載入）。
       </p>
 
       <AdminFormField label="Logo URL">

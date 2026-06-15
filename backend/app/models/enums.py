@@ -6,11 +6,18 @@ from enum import StrEnum
 
 
 class UserRole(StrEnum):
-    """users.role"""
+    """users.role
+
+    - ``host``：主持人（原 ``member``，JWT 可能仍帶 legacy ``member``）
+    - ``cohost``：助理主持人（可控場，不可編輯／刪除 Poll／Quiz 結構）
+    - ``guest``：已廢止邀請，僅保留 DB 相容
+    """
 
     OWNER = "owner"
     ADMIN = "admin"
-    MEMBER = "member"
+    HOST = "host"
+    MEMBER = "member"  # legacy；讀取時 normalize 為 HOST
+    COHOST = "cohost"
     GUEST = "guest"
 
 

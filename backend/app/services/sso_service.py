@@ -329,7 +329,7 @@ async def _resolve_user(
         name=name,
         password_hash=None,
         sso_provider="oidc",
-        role=UserRole.MEMBER,
+        role=UserRole.HOST,
     )
     db.add(user)
     await db.flush()

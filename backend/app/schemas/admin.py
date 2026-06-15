@@ -46,7 +46,7 @@ class MemberUpdateRequest(BaseModel):
 class MemberInviteRequest(BaseModel):
     email: EmailStr
     name: str | None = Field(default=None, max_length=255)
-    role: UserRole = UserRole.MEMBER
+    role: UserRole = UserRole.HOST
     password: str = Field(min_length=8, max_length=128)
 
 

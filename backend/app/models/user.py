@@ -30,5 +30,5 @@ class User(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     role: Mapped[UserRole] = mapped_column(
         pg_enum(UserRole, "user_role"),
         nullable=False,
-        default=UserRole.MEMBER,
+        default=UserRole.HOST,
     )

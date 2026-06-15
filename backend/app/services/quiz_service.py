@@ -17,6 +17,7 @@ from sqlalchemy import update as sa_update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.errors import AppError, ErrorCode
+from app.core.host_permissions import assert_can_edit_content
 from app.core.ids import uuid7
 from app.models.enums import InteractionStatus, InteractionType, QuizQuestionState
 from app.models.interaction import Interaction
@@ -150,6 +151,7 @@ async def add_question(
     payload: QuizQuestionCreateRequest,
 ) -> QuizQuestionPublic:
     """新增 Quiz 子題：建立 child multiple_choice + 選項 + QuizQuestion。"""
+    assert_can_edit_content(host)
     quiz, room_id = await _load_quiz_for_host(db, quiz_interaction_id, host)
 
     max_order = await db.execute(
@@ -320,6 +322,7 @@ async def update_question(
     payload: QuizQuestionUpdateRequest,
 ) -> QuizQuestionPublic:
     """更新 Quiz 子題（僅 pending）。"""
+    assert_can_edit_content(host)
     qq = await _load_quiz_question(db, question_id)
     if qq.state != QuizQuestionState.PENDING:
         raise AppError(
@@ -362,6 +365,7 @@ async def delete_question(
     host: User,
 ) -> None:
     """刪除 Quiz 子題（僅 pending）。"""
+    assert_can_edit_content(host)
     qq = await _load_quiz_question(db, question_id)
     if qq.state != QuizQuestionState.PENDING:
         raise AppError(

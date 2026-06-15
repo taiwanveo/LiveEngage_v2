@@ -21,6 +21,7 @@ from sqlalchemy.engine import CursorResult
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.errors import AppError, ErrorCode
+from app.core.host_permissions import assert_can_edit_content
 from app.core.ids import uuid7
 from app.models.enums import InteractionStatus, InteractionType
 from app.models.interaction import Interaction
@@ -611,6 +612,7 @@ async def upsert_poll_options(
     option_payloads: list[dict[str, Any]],
 ) -> list[PollOptionPublic]:
     """取代當前 poll 所有選項（Builder UI 儲存）；Host-only。"""
+    assert_can_edit_content(host)
     _, _ = await _load_poll_for_host(db, interaction_id, host)
 
     # 刪舊選項

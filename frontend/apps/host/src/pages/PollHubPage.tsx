@@ -12,6 +12,7 @@ import {
 } from "@liveengage/ui";
 import { HostRoomHubBreadcrumb } from "../components/HostBreadcrumb";
 import { HostShell } from "../components/HostShell";
+import { canEditHostContent } from "../lib/auth";
 import { createInteraction, deleteInteraction, listInteractions } from "../lib/interactionApi";
 import { presentAppUrl } from "../lib/presentUrl";
 import {
@@ -29,6 +30,7 @@ interface Props {
 export function PollHubPage({ roomId, onLogout }: Props): React.JSX.Element {
   const queryClient = useQueryClient();
   const { showError, systemNoticeModal } = useSystemNotice();
+  const editable = canEditHostContent();
   const [newType, setNewType] = useState<PollInteractionType>("multiple_choice");
   const [newTitle, setNewTitle] = useState("");
 
@@ -75,6 +77,7 @@ export function PollHubPage({ roomId, onLogout }: Props): React.JSX.Element {
       activeNav="polls"
       breadcrumb={<HostRoomHubBreadcrumb roomId={roomId} currentLabel="Poll 管理" />}
     >
+      {editable ? (
       <section className="le-card mb-8 p-6">
         <h2 className="mb-4 text-sm font-semibold text-foreground">建立新 Poll</h2>
         <div className="flex flex-wrap gap-3">
@@ -106,6 +109,7 @@ export function PollHubPage({ roomId, onLogout }: Props): React.JSX.Element {
           </button>
         </div>
       </section>
+      ) : null}
 
       <section className="le-card overflow-hidden">
         <header className="border-b border-border px-4 py-3">
@@ -138,7 +142,7 @@ export function PollHubPage({ roomId, onLogout }: Props): React.JSX.Element {
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
                   <ListActionLink href={`#/rooms/${roomId}/polls/${poll.id}/builder`}>
-                    編輯
+                    {editable ? "編輯" : "檢視"}
                   </ListActionLink>
                   <ListActionLink href={`#/rooms/${roomId}/polls/${poll.id}/console`}>
                     控制台
@@ -147,6 +151,7 @@ export function PollHubPage({ roomId, onLogout }: Props): React.JSX.Element {
                   <ListActionLink href={`#/rooms/${roomId}/polls/${poll.id}/answer`}>
                     參與者預覽
                   </ListActionLink>
+                  {editable ? (
                   <ListActionDanger
                     disabled={poll.status === "active" || deleteMutation.isPending}
                     title={
@@ -167,6 +172,7 @@ export function PollHubPage({ roomId, onLogout }: Props): React.JSX.Element {
                   >
                     刪除
                   </ListActionDanger>
+                  ) : null}
                 </div>
               </li>
             ))

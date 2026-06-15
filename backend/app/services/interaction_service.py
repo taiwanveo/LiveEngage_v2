@@ -12,6 +12,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.errors import AppError, ErrorCode
+from app.core.host_permissions import assert_can_access_host, assert_can_edit_content
 from app.core.ids import uuid7
 from app.models.enums import InteractionStatus, InteractionType
 from app.models.interaction import Interaction
@@ -39,6 +40,7 @@ async def ensure_room_access(
 
 async def _load_room_for_host(db: AsyncSession, room_id: uuid.UUID, host: User) -> Room:
     """載入房間並驗證 host 有權操作（同 org 或活動 host）。"""
+    assert_can_access_host(host)
     result = await db.execute(
         select(Room, Session)
         .join(Session, Room.session_id == Session.id)
@@ -97,6 +99,7 @@ async def create_interaction(
     payload: InteractionCreateRequest,
 ) -> InteractionResponse:
     """建立互動項目（BE-002）。"""
+    assert_can_edit_content(host)
     await _load_room_for_host(db, room_id, host)
 
     max_order = await db.execute(
@@ -133,6 +136,15 @@ async def update_interaction(
     """更新互動項目（標題／狀態／設定）。"""
     interaction = await _load_interaction_for_host(db, interaction_id, host)
     room_id = interaction.room_id
+
+    structural = (
+        payload.title is not None
+        or payload.description is not None
+        or payload.settings is not None
+        or payload.result_visible is not None
+    )
+    if structural:
+        assert_can_edit_content(host)
 
     if payload.title is not None:
         interaction.title = payload.title
@@ -296,6 +308,7 @@ async def delete_interaction(
     host: User,
 ) -> None:
     """刪除互動項目（須非 active；Quiz／Survey 一併清除子題）。"""
+    assert_can_edit_content(host)
     interaction = await _load_interaction_for_host(db, interaction_id, host)
     if interaction.status == InteractionStatus.ACTIVE:
         raise AppError(

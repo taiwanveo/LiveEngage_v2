@@ -163,17 +163,23 @@ async def invite_member(
     payload: MemberInviteRequest,
 ) -> MemberResponse:
     """邀請（建立）新成員（BE-008）。"""
+    if payload.role == UserRole.GUEST:
+        raise AppError(
+            ErrorCode.VALIDATION_ERROR,
+            "訪客帳號已停用；參與者請使用活動 QR Code 加入",
+        )
     exists = await db.execute(select(User).where(User.email == str(payload.email)))
     if exists.scalar_one_or_none() is not None:
         raise AppError(ErrorCode.VALIDATION_ERROR, "此 Email 已存在")
 
+    invite_role = UserRole.HOST if payload.role == UserRole.MEMBER else payload.role
     new_user = User(
         id=uuid7(),
         org_id=actor.org_id,
         email=str(payload.email),
         name=payload.name,
         password_hash=hash_secret(payload.password),
-        role=payload.role,
+        role=invite_role,
     )
     db.add(new_user)
     await audit_service.log(
@@ -182,7 +188,7 @@ async def invite_member(
         action="invite_member",
         target_type="user",
         target_id=new_user.id,
-        details={"email": str(payload.email), "role": payload.role.value},
+        details={"email": str(payload.email), "role": invite_role.value},
     )
     await db.commit()
     await db.refresh(new_user)
@@ -203,16 +209,22 @@ async def update_member_role(
         raise AppError(ErrorCode.NOT_FOUND, "找不到成員")
     if target.role == UserRole.OWNER and payload.role != UserRole.OWNER:
         raise AppError(ErrorCode.FORBIDDEN, "不可降低 Owner 角色")
+    if payload.role == UserRole.GUEST:
+        raise AppError(
+            ErrorCode.VALIDATION_ERROR,
+            "訪客帳號已停用；參與者請使用活動 QR Code 加入",
+        )
+    new_role = UserRole.HOST if payload.role == UserRole.MEMBER else payload.role
 
     old_role = target.role
-    target.role = payload.role
+    target.role = new_role
     await audit_service.log(
         db,
         actor=actor,
         action="update_member_role",
         target_type="user",
         target_id=target.id,
-        details={"from": old_role.value, "to": payload.role.value},
+        details={"from": old_role.value, "to": new_role.value},
     )
     await db.commit()
     await db.refresh(target)
@@ -428,6 +440,18 @@ def _parse_branding(raw: dict[str, Any]) -> BrandingSettings:
 async def get_branding(db: AsyncSession, actor: User) -> BrandingResponse:
     org = await _get_org_or_403(db, actor)
     return BrandingResponse(org_id=org.id, branding=_parse_branding(org.settings_jsonb or {}))
+
+
+async def get_branding_for_user(db: AsyncSession, actor: User) -> PublicBrandingResponse:
+    """已登入 Host／Admin 使用者讀取自身組織品牌。"""
+    org = await _get_org_or_403(db, actor)
+    branding = _parse_branding(org.settings_jsonb or {})
+    return PublicBrandingResponse(
+        display_name=branding.display_name or org.name,
+        logo_url=branding.logo_url,
+        favicon_url=branding.favicon_url,
+        primary_color=branding.primary_color,
+    )
 
 
 async def update_branding(

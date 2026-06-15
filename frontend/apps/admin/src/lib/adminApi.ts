@@ -17,7 +17,7 @@ export interface MemberData {
   id: string;
   email: string;
   name: string | null;
-  role: "owner" | "admin" | "member" | "guest";
+  role: "owner" | "admin" | "host" | "member" | "cohost" | "guest";
   created_at: string;
 }
 

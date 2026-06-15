@@ -45,3 +45,21 @@ export function hasValidSession(): boolean {
   if (!isAccessTokenExpired(access)) return true;
   return Boolean(getRefreshToken());
 }
+
+/** JWT 內的 role（legacy ``member`` 視同 ``host``）。 */
+export function getHostRole(): string | null {
+  const token = getAccessToken();
+  if (!token) return null;
+  try {
+    const payload = JSON.parse(atob(token.split(".")[1] ?? "")) as { role?: string };
+    return typeof payload.role === "string" ? payload.role : null;
+  } catch {
+    return null;
+  }
+}
+
+export function canEditHostContent(): boolean {
+  const role = getHostRole();
+  if (!role || role === "guest" || role === "cohost") return false;
+  return role === "member" || role === "host" || role === "admin" || role === "owner";
+}

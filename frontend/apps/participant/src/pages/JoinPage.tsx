@@ -9,8 +9,9 @@ import {
   setParticipantSession,
 } from "../lib/participantAuth";
 import { joinSession, resolveSessionByCode } from "../lib/sessionApi";
+import { AuthCard, OrgBrandingProvider, useSystemNotice } from "@liveengage/ui";
 import { fetchSsoConfig, ssoAuthorizeUrl } from "../lib/authApi";
-import { AuthCard, useSystemNotice } from "@liveengage/ui";
+import { fetchBrandingByCode } from "../lib/brandingApi";
 
 interface Props {
   code: string;
@@ -33,6 +34,12 @@ export function JoinPage({ code }: Props): React.JSX.Element {
   const sessionQuery = useQuery({
     queryKey: ["session-by-code", code],
     queryFn: () => resolveSessionByCode(code),
+  });
+
+  const brandingQuery = useQuery({
+    queryKey: ["participant-branding", code],
+    queryFn: () => fetchBrandingByCode(code),
+    enabled: Boolean(code),
   });
 
   const session = sessionQuery.data;
@@ -109,6 +116,7 @@ export function JoinPage({ code }: Props): React.JSX.Element {
   const notLive = session.status !== "live";
 
   return (
+    <OrgBrandingProvider branding={brandingQuery.data ?? null}>
     <AuthCard
       appTagline="參與者（participant）"
       title={session.title}
@@ -217,6 +225,7 @@ export function JoinPage({ code }: Props): React.JSX.Element {
       )}
       {systemNoticeModal}
     </AuthCard>
+    </OrgBrandingProvider>
   );
 }
 

@@ -30,6 +30,8 @@ export { PresentButton, PresentListAction } from "./PresentButton";
 export type { PresentButtonProps } from "./PresentButton";
 export { PresentIcon, ShareIcon } from "./icons";
 export { openPresentWindow } from "./presentWindow";
+export { OrgBrandingProvider, OrgBrandMark, applyOrgBranding, useOrgBranding } from "./orgBranding";
+export type { PublicBranding } from "./orgBranding";
 export { ThemeProvider, useTheme, initTheme } from "./ThemeProvider";
 export { ThemeSwitcher } from "./ThemeSwitcher";
 export { THEMES, THEME_STORAGE_KEY, DEFAULT_THEME, isThemeId } from "./theme";

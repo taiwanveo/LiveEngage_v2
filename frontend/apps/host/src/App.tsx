@@ -19,6 +19,7 @@ import { QuizQuestionEditPage } from "./pages/QuizQuestionEditPage";
 import { Sprint9ConsolePage } from "./pages/Sprint9ConsolePage";
 import { Sprint9HubPage } from "./pages/Sprint9HubPage";
 import { hasValidSession, clearAccessToken } from "./lib/auth";
+import { HostBrandingRoot } from "./components/HostBrandingRoot";
 
 type Route =
   | { name: "login" }
@@ -134,19 +135,29 @@ export function App(): React.JSX.Element {
   }
 
   if (route.name === "poll-present" && authed) {
-    return <PresentPage roomId={route.roomId} pollId={route.pollId} />;
+    return (
+      <HostBrandingRoot>
+        <PresentPage roomId={route.roomId} pollId={route.pollId} />
+      </HostBrandingRoot>
+    );
   }
 
   if (route.name === "qa-present" && authed) {
-    return <QaPresentPage roomId={route.roomId} />;
+    return (
+      <HostBrandingRoot>
+        <QaPresentPage roomId={route.roomId} />
+      </HostBrandingRoot>
+    );
   }
 
   if (route.name === "sprint9-present" && authed) {
     return (
-      <Sprint9PresentRouter
-        roomId={route.roomId}
-        interactionId={route.interactionId}
-      />
+      <HostBrandingRoot>
+        <Sprint9PresentRouter
+          roomId={route.roomId}
+          interactionId={route.interactionId}
+        />
+      </HostBrandingRoot>
     );
   }
 
@@ -161,7 +172,8 @@ export function App(): React.JSX.Element {
     );
   }
 
-  switch (route.name) {
+  const authedContent = (() => {
+    switch (route.name) {
     case "dashboard":
       return <SessionsDashboardPage onLogout={logout} />;
     case "workbench":
@@ -221,5 +233,8 @@ export function App(): React.JSX.Element {
       );
     default:
       return <SessionsDashboardPage onLogout={logout} />;
-  }
+    }
+  })();
+
+  return <HostBrandingRoot>{authedContent}</HostBrandingRoot>;
 }

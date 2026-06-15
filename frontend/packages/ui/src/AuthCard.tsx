@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { AppHeader } from "./AppHeader";
+import { OrgBrandMark, useOrgBranding } from "./orgBranding";
 
 interface Props {
   title: string;
@@ -19,17 +20,24 @@ export function AuthCard({
   children,
   footer,
 }: Props): React.JSX.Element {
+  const orgBranding = useOrgBranding();
+  const orgLabel = orgBranding?.display_name?.trim() || "LiveEngage";
+
   return (
     <main className="le-page-bg flex min-h-full flex-col">
-      <AppHeader brand="LiveEngage" tagline={appTagline} maxWidth="2xl" />
+      <AppHeader brand={orgLabel} tagline={appTagline} maxWidth="2xl" />
 
       <div className="relative z-10 flex flex-1 items-center justify-center px-4 py-8">
         <div className="w-full max-w-md animate-slide-up">
           <div className="le-card-elevated p-8 md:p-10">
             <header className="mb-8 space-y-2">
-              <p className="font-mono text-xs uppercase tracking-[0.2em] text-accent">
-                LiveEngage
-              </p>
+              {orgBranding?.logo_url ? (
+                <OrgBrandMark fallback="LiveEngage" className="mb-2" />
+              ) : (
+                <p className="font-mono text-xs uppercase tracking-[0.2em] text-accent">
+                  {orgLabel}
+                </p>
+              )}
               <h1 className="font-display text-3xl font-bold tracking-tight text-foreground">
                 {title}
               </h1>

@@ -25,15 +25,23 @@ import {
 const ROLE_LABELS: Record<string, string> = {
   owner: "擁有者",
   admin: "管理員",
-  member: "成員",
-  guest: "訪客",
+  host: "主持人",
+  member: "主持人", // legacy JWT／DB
+  cohost: "助理主持人",
+  guest: "訪客（已停用）",
 };
+
+const INVITE_ROLES = [
+  { value: "host", label: "主持人" },
+  { value: "cohost", label: "助理主持人" },
+  { value: "admin", label: "管理員" },
+] as const;
 
 function InviteForm({ onDone }: { onDone: () => void }) {
   const { showError, systemNoticeModal } = useSystemNotice();
   const [email, setEmail] = useState("");
   const [name, setName] = useState("");
-  const [role, setRole] = useState("member");
+  const [role, setRole] = useState("host");
   const [password, setPassword] = useState("");
 
   const mutation = useMutation({
@@ -53,7 +61,7 @@ function InviteForm({ onDone }: { onDone: () => void }) {
 
   return (
     <div className="space-y-3 rounded-xl border border-dashed border-border bg-surface-elevated/30 p-4">
-      <AdminSectionTitle>邀請新成員</AdminSectionTitle>
+      <AdminSectionTitle>邀請新使用者</AdminSectionTitle>
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <AdminFormField label="Email">
           <input
@@ -87,9 +95,11 @@ function InviteForm({ onDone }: { onDone: () => void }) {
             value={role}
             onChange={(e) => setRole(e.target.value)}
           >
-            <option value="member">成員</option>
-            <option value="admin">管理員</option>
-            <option value="guest">訪客</option>
+            {INVITE_ROLES.map((r) => (
+              <option key={r.value} value={r.value}>
+                {r.label}
+              </option>
+            ))}
           </select>
         </AdminFormField>
       </div>
@@ -144,17 +154,15 @@ function MemberRow({ member }: { member: MemberData }) {
         ) : (
           <select
             className="rounded border border-border bg-surface px-2 py-1 text-sm text-foreground disabled:opacity-50"
-            value={selectedRole}
+            value={selectedRole === "member" ? "host" : selectedRole}
             onChange={(e) => onRoleChange(e.target.value)}
             disabled={saving}
           >
-            {Object.entries(ROLE_LABELS)
-              .filter(([r]) => r !== "owner")
-              .map(([r, l]) => (
-                <option key={r} value={r}>
-                  {l}
-                </option>
-              ))}
+            {INVITE_ROLES.map((r) => (
+              <option key={r.value} value={r.value}>
+                {r.label}
+              </option>
+            ))}
           </select>
         )}
       </td>

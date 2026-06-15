@@ -20,14 +20,17 @@ from app.core.tokens import (
 )
 from app.models.enums import UserRole
 from app.models.user import User
+from app.core.host_permissions import normalize_role
 
 bearer_scheme = HTTPBearer(auto_error=False)
 
 _ROLE_RANK: dict[UserRole, int] = {
     UserRole.GUEST: 0,
-    UserRole.MEMBER: 1,
-    UserRole.ADMIN: 2,
-    UserRole.OWNER: 3,
+    UserRole.COHOST: 1,
+    UserRole.HOST: 2,
+    UserRole.MEMBER: 2,  # legacy JWT
+    UserRole.ADMIN: 3,
+    UserRole.OWNER: 4,
 }
 
 
@@ -79,7 +82,7 @@ def require_role(min_role: UserRole) -> Callable[..., object]:
     async def _dependency(
         claims: Annotated[AccessTokenClaims, Depends(get_current_user_claims)],
     ) -> AccessTokenClaims:
-        if _ROLE_RANK[claims.role] < _ROLE_RANK[min_role]:
+        if _ROLE_RANK[normalize_role(claims.role)] < _ROLE_RANK[normalize_role(min_role)]:
             raise AppError(ErrorCode.FORBIDDEN, "權限不足")
         return claims
 

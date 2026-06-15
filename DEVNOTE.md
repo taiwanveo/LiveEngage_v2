@@ -32,7 +32,7 @@
 
 ## HISTORY
 
-### 2026-06-15 — UI 按鈕設計系統（待 commit hash）
+### 2026-06-15 — UI 按鈕設計系統（e3b1b1b）
 
 `Button`／`PresentButton`；Poll／Quiz 投影統一；頂欄投影精簡並另開新視窗。
 
