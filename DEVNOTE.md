@@ -4,15 +4,40 @@
 
 ---
 
-## SNAPSHOT（2026-06-14）
+## SNAPSHOT（2026-06-15）
 
 - **Repo**：https://github.com/ColdRighter/LiveEngage.git（master）
-- **最新 commit**：`0a3866d` — 工作台與管理頁 UX 強化、點子隱藏切換與刪除修復
-- **typecheck**：`host` 通過；後端 `test_s9_phase_d` 新增 hide/show、子題列表過濾、DELETE 冪等測試通過
+- **最新 commit**：`231abab` — 品牌 Logo、參與者會場等待文案與登入頁精簡
+- **typecheck**：`ui`／`host`／`admin`／`participant` 通過
 - **接手文件**：[`docs/服務架構.md`](docs/服務架構.md)
 - **api 健康**：https://le-api.zeabur.app/health
 
-### 本輪重點（工作台／管理頁／後端修復，0a3866d）
+### 本輪重點（品牌／參與者 UX／文案，231abab）
+
+| 區塊 | 內容 |
+|------|------|
+| **預設 Logo** | `OrgBrandMark` 未設定組織 Logo 時 fallback `/liveengage-logo.png`；`AppHeader` 左上角一律顯示 Logo（Admin／Host／Participant 共用 `@liveengage/ui`） |
+| **參與者等待** | 新增 `RoomWaitingPlaceholder`；Poll／Quiz 統一「目前互動尚未開始，請等候活動主持人啟動互動項目」 |
+| **Q&A 未開放** | `qaOpen` 閘道：未 active 不顯示表單，顯示「目前尚未開放發問，請等候活動主持人啟動Q&A」；標題改「發問問題」；頁籤 live 指示 |
+| **Host 登入** | 移除 `BrandedAuthShell` `footer`（含分隔線與底部說明文字） |
+| **Participant 首頁** | 活動代碼副標移除「以加入活動」 |
+
+### 部署（本輪）
+
+Git push `231abab` 後 Zeabur 自動建置；需 redeploy：**host**、**participant**、**admin**（皆含 `ui`）；**api**／**worker** 無後端變更可略。
+
+| 服務 | URL |
+|------|-----|
+| api | https://le-api.zeabur.app |
+| host | https://le-host.zeabur.app |
+| participant | https://le-participant.zeabur.app |
+| admin | https://le-admin.zeabur.app |
+
+---
+
+## SNAPSHOT（2026-06-14，歷史）
+
+- **最新 commit（舊）**：`0a3866d` — 工作台與管理頁 UX 強化、點子隱藏切換與刪除修復
 
 | 區塊 | 內容 |
 |------|------|
@@ -27,7 +52,7 @@
 | **文案** | 「活動儀表板」→「活動列表」；Logo hover「回到活動列表」 |
 | **參與者會場** | 頂欄單行「LiveEngage 互動會場：{活動名}」；頁籤 Poll／Quiz／Q&A；Q&A「問題列表」文案 |
 
-### 部署（本輪）
+### 部署（本輪，歷史）
 
 Git push `0a3866d` 後 Zeabur 自動建置；需 redeploy：**api**（ideas／interaction／quiz）、**host**、**participant**（含 `realtime`）；**worker** 無 Celery 變更可略。
 
