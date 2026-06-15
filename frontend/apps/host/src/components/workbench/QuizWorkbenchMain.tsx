@@ -21,12 +21,12 @@ import {
   type QuizQuestion,
 } from "../../lib/sprint9Api";
 import {
-  interactionMetaLine,
   interactionTypeLabel,
   quizQuestionStateLabel,
   type InteractionSummary,
 } from "../../lib/pollTypes";
 import { Sprint9ActivateBanner } from "./Sprint9ActivateBanner";
+import { WorkbenchInteractionStatusBadge } from "./WorkbenchInteractionStatusBadge";
 import { WorkbenchInteractionTitle } from "./WorkbenchInteractionTitle";
 
 interface Props {
@@ -43,6 +43,10 @@ const QUIZ_ACTION_SUCCESS: Record<"start_question" | "reveal" | "close", string>
 export function QuizWorkbenchMain({ roomId, item }: Props): React.JSX.Element {
   const qc = useQueryClient();
   const [quizTitle, setQuizTitle] = useState("");
+  const [pendingAction, setPendingAction] = useState<{
+    questionId: string;
+    action: "start_question" | "reveal" | "close";
+  } | null>(null);
   const { showError, showSuccess } = useSystemNotice();
   const editable = canEditHostContent();
   const interactionId = item.id;
@@ -84,6 +88,9 @@ export function QuizWorkbenchMain({ roomId, item }: Props): React.JSX.Element {
       questionId: string;
       action: "start_question" | "reveal" | "close";
     }) => quizAction(questionId, action),
+    onMutate: (variables) => {
+      setPendingAction({ questionId: variables.questionId, action: variables.action });
+    },
     onSuccess: (data, variables) => {
       qc.setQueryData<QuizQuestion[]>(
         ["quiz-questions", interactionId],
@@ -93,9 +100,12 @@ export function QuizWorkbenchMain({ roomId, item }: Props): React.JSX.Element {
           ) ?? old
       );
       showSuccess(QUIZ_ACTION_SUCCESS[variables.action]);
+      void qc.invalidateQueries({ queryKey: ["quiz-questions", interactionId] });
+      void qc.invalidateQueries({ queryKey: ["interactions", roomId] });
       void qc.invalidateQueries({ queryKey: ["quiz-leaderboard", interactionId] });
     },
     onError: (err: unknown) => showError(formatUserFacingError(err)),
+    onSettled: () => setPendingAction(null),
   });
 
   const deleteQuestionMutation = useMutation({
@@ -109,15 +119,17 @@ export function QuizWorkbenchMain({ roomId, item }: Props): React.JSX.Element {
 
   return (
     <div className="space-y-4">
-      <div>
-        <p className="text-xs font-medium text-muted">{interactionTypeLabel(item.type)}</p>
-        <WorkbenchInteractionTitle
-          roomId={roomId}
-          interactionId={item.id}
-          title={item.title}
-          placeholder="未命名 Quiz"
-        />
-        <p className="mt-1 text-sm text-muted">{interactionMetaLine(item.type, item.status)}</p>
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0 flex-1">
+          <p className="text-xs font-medium text-muted">{interactionTypeLabel(item.type)}</p>
+          <WorkbenchInteractionTitle
+            roomId={roomId}
+            interactionId={item.id}
+            title={item.title}
+            placeholder="未命名 Quiz"
+          />
+        </div>
+        <WorkbenchInteractionStatusBadge status={item.status} />
       </div>
 
       <Sprint9ActivateBanner roomId={roomId} item={item} />
@@ -151,7 +163,9 @@ export function QuizWorkbenchMain({ roomId, item }: Props): React.JSX.Element {
             const canStart = q.state === "pending";
             const canReveal = q.state === "active";
             const canClose = q.state === "active" || q.state === "revealed";
-            const busy = actionMutation.isPending;
+            const rowBusy =
+              pendingAction?.questionId === q.id && actionMutation.isPending;
+            const editHref = `#/rooms/${roomId}/sprint9/${interactionId}/questions/${q.id}/edit`;
 
             return (
               <li
@@ -163,41 +177,48 @@ export function QuizWorkbenchMain({ roomId, item }: Props): React.JSX.Element {
                   <p className="text-xs text-muted">狀態：{quizQuestionStateLabel(q.state)}</p>
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
-                  {editable && q.state === "pending" ? (
+                  {editable ? (
                     <ListActionLink
-                      href={`#/rooms/${roomId}/sprint9/${interactionId}/questions/${q.id}/edit`}
+                      href={editHref}
+                      title={
+                        q.state === "pending"
+                          ? "編輯子題"
+                          : "檢視子題（僅待開始可修改）"
+                      }
                     >
                       編輯
                     </ListActionLink>
                   ) : null}
                   <ListActionPrimary
-                    disabled={!canStart || busy}
+                    disabled={!canStart || rowBusy}
                     onClick={() =>
                       actionMutation.mutate({ questionId: q.id, action: "start_question" })
                     }
                   >
-                    {busy && canStart ? "處理中…" : "開始"}
+                    {rowBusy && pendingAction?.action === "start_question"
+                      ? "處理中…"
+                      : "開始"}
                   </ListActionPrimary>
                   <Button
                     variant="muted"
                     size="sm"
-                    disabled={!canReveal || busy}
+                    disabled={!canReveal || rowBusy}
                     onClick={() =>
                       actionMutation.mutate({ questionId: q.id, action: "reveal" })
                     }
                   >
-                    揭曉
+                    {rowBusy && pendingAction?.action === "reveal" ? "處理中…" : "揭曉"}
                   </Button>
                   {canClose ? (
                     <Button
                       variant="secondary"
                       size="sm"
-                      disabled={busy}
+                      disabled={rowBusy}
                       onClick={() =>
                         actionMutation.mutate({ questionId: q.id, action: "close" })
                       }
                     >
-                      結束
+                      {rowBusy && pendingAction?.action === "close" ? "處理中…" : "結束"}
                     </Button>
                   ) : null}
                   {editable && q.state === "pending" ? (

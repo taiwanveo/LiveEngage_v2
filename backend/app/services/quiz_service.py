@@ -458,6 +458,51 @@ def _restore_quiz_parent_if_locked(parent_quiz: Interaction) -> None:
         parent_quiz.status = InteractionStatus.ACTIVE
 
 
+async def _restore_quiz_parent_if_locked_after_flush(
+    db: AsyncSession, room_id: uuid.UUID, parent_quiz: Interaction
+) -> None:
+    """子題 child 已 flush 為非 active 後，安全恢復父 Quiz 為 active。"""
+    if parent_quiz.status != InteractionStatus.LOCKED:
+        return
+    other_active = await db.execute(
+        select(Interaction.id)
+        .where(
+            Interaction.room_id == room_id,
+            Interaction.status == InteractionStatus.ACTIVE,
+        )
+        .limit(1)
+    )
+    if other_active.scalar_one_or_none() is not None:
+        return
+    parent_quiz.status = InteractionStatus.ACTIVE
+
+
+async def close_active_quiz_questions_for_parent(
+    db: AsyncSession, quiz_interaction_id: uuid.UUID
+) -> None:
+    """父 Quiz 結束時，一併關閉進行中／已揭曉的子題。"""
+    now = dt.datetime.now(dt.UTC)
+    result = await db.execute(
+        select(QuizQuestion).where(
+            QuizQuestion.quiz_interaction_id == quiz_interaction_id,
+            QuizQuestion.state.in_(
+                [QuizQuestionState.ACTIVE, QuizQuestionState.REVEALED]
+            ),
+        )
+    )
+    for qq in result.scalars().all():
+        qq.state = QuizQuestionState.CLOSED
+        await db.execute(
+            sa_update(Interaction)
+            .where(Interaction.id == qq.child_interaction_id)
+            .values(
+                status=InteractionStatus.STOPPED,
+                stopped_at=now,
+                updated_at=now,
+            )
+        )
+
+
 async def _close_active_siblings(
     db: AsyncSession, quiz_interaction_id: uuid.UUID, except_id: uuid.UUID | None
 ) -> None:
@@ -576,7 +621,23 @@ async def quiz_action(
         qq.state = QuizQuestionState.CLOSED
         child.status = InteractionStatus.STOPPED
         child.stopped_at = now
-        _restore_quiz_parent_if_locked(quiz)
+        child.updated_at = now
+        await db.flush()
+        await _restore_quiz_parent_if_locked_after_flush(db, room_id, quiz)
+        await events.publish(
+            room_id,
+            events.QUIZ_QUESTION_CLOSED,
+            {
+                "quiz_id": str(quiz.id),
+                "question_id": str(qq.id),
+                "state": QuizQuestionState.CLOSED.value,
+            },
+        )
+        await events.publish(
+            room_id,
+            events.POLL_STOPPED,
+            {"poll_id": str(child.id)},
+        )
 
     elif action == QuizAction.NEXT:
         if qq.state in (QuizQuestionState.ACTIVE, QuizQuestionState.REVEALED):

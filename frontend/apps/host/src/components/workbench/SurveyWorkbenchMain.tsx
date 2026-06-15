@@ -12,11 +12,11 @@ import {
   listSurveyQuestions,
 } from "../../lib/sprint9Api";
 import {
-  interactionMetaLine,
   interactionTypeLabel,
   type InteractionSummary,
 } from "../../lib/pollTypes";
 import { Sprint9ActivateBanner } from "./Sprint9ActivateBanner";
+import { WorkbenchInteractionStatusBadge } from "./WorkbenchInteractionStatusBadge";
 import { WorkbenchInteractionTitle } from "./WorkbenchInteractionTitle";
 
 interface Props {
@@ -68,15 +68,17 @@ export function SurveyWorkbenchMain({ roomId, item }: Props): React.JSX.Element 
 
   return (
     <div className="space-y-4">
-      <div>
-        <p className="text-xs font-medium text-muted">{interactionTypeLabel(item.type)}</p>
-        <WorkbenchInteractionTitle
-          roomId={roomId}
-          interactionId={item.id}
-          title={item.title}
-          placeholder="問卷"
-        />
-        <p className="mt-1 text-sm text-muted">{interactionMetaLine(item.type, item.status)}</p>
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0 flex-1">
+          <p className="text-xs font-medium text-muted">{interactionTypeLabel(item.type)}</p>
+          <WorkbenchInteractionTitle
+            roomId={roomId}
+            interactionId={item.id}
+            title={item.title}
+            placeholder="問卷"
+          />
+        </div>
+        <WorkbenchInteractionStatusBadge status={item.status} />
       </div>
 
       <Sprint9ActivateBanner roomId={roomId} item={item} />

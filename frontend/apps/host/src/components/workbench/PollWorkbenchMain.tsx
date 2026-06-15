@@ -9,9 +9,9 @@ import { PollRenderer, type PollDetail, type PollResults } from "@liveengage/ren
 import { canEditHostContent } from "../../lib/auth";
 import { deleteInteraction } from "../../lib/interactionApi";
 import {
-  interactionStatusLabel,
   pollTypeLabel,
 } from "../../lib/pollTypes";
+import { WorkbenchInteractionStatusBadge } from "./WorkbenchInteractionStatusBadge";
 import { WorkbenchInteractionTitle } from "./WorkbenchInteractionTitle";
 
 interface Props {
@@ -51,8 +51,8 @@ export function PollWorkbenchMain({
 
   return (
     <>
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <div>
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0 flex-1">
           <p className="text-xs font-medium text-muted">{pollTypeLabel(poll.type)}</p>
           <WorkbenchInteractionTitle
             roomId={roomId}
@@ -60,12 +60,13 @@ export function PollWorkbenchMain({
             title={poll.title}
             placeholder="未命名題目"
           />
-          <p className="mt-1 text-sm text-muted">
-            狀態：{interactionStatusLabel(poll.status)}
-            {poll.result_visible ? " · 結果已揭示" : ""}
-          </p>
+          {poll.result_visible ? (
+            <p className="mt-1 text-xs text-muted">結果已揭示</p>
+          ) : null}
         </div>
-        <div className="flex flex-wrap items-center gap-3">
+        <div className="flex shrink-0 flex-col items-end gap-2">
+          <WorkbenchInteractionStatusBadge status={poll.status} />
+          <div className="flex flex-wrap items-center justify-end gap-3">
           <a
             href={`#/rooms/${roomId}/polls/${poll.id}/builder`}
             className="le-btn-secondary !min-h-[36px] !text-xs"
@@ -87,6 +88,7 @@ export function PollWorkbenchMain({
               刪除題目
             </button>
           ) : null}
+          </div>
         </div>
       </div>
       <div className="le-card overflow-hidden p-4">

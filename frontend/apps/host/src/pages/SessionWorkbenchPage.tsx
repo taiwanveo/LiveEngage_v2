@@ -28,9 +28,11 @@ import {
 } from "../lib/pollTypes";
 import {
   listSessions,
-  type SessionHost,
-  type SessionVisibility,
 } from "../lib/sessionApi";
+import {
+  SESSION_VISIBILITY_LABEL,
+  sessionStatusBadge,
+} from "../lib/hostSessionHeader";
 import {
   applyWorkbenchOrder,
   toInteractionCreateType,
@@ -60,37 +62,6 @@ interface Props {
   roomId: string;
   interactionId?: string | undefined;
   onLogout: () => void;
-}
-
-const VISIBILITY_LABEL: Record<SessionVisibility, string> = {
-  public: "公開",
-  hidden: "隱藏",
-  passcode: "密碼加入",
-  sso: "SSO 登入",
-  restricted: "限制加入",
-};
-
-const STATUS_LABEL: Record<SessionHost["status"], string> = {
-  draft: "草稿",
-  live: "進行中",
-  ended: "已結束",
-  archived: "已封存",
-};
-
-function itemToolbarStatus(item: InteractionSummary): {
-  label: string;
-  variant: "live" | "accent" | "muted";
-} {
-  switch (item.status) {
-    case "active":
-      return { label: "進行中", variant: "live" };
-    case "locked":
-      return { label: "已鎖定", variant: "accent" };
-    case "stopped":
-      return { label: "已結束", variant: "muted" };
-    default:
-      return { label: "閒置", variant: "muted" };
-  }
 }
 
 export function SessionWorkbenchPage({
@@ -254,14 +225,7 @@ export function SessionWorkbenchPage({
   const running = poll ? isPollRunning(poll.status) : false;
   const locked = poll?.status === "locked";
 
-  const toolbarStatus = selectedItem
-    ? itemToolbarStatus(selectedItem)
-    : session
-      ? {
-          label: STATUS_LABEL[session.status],
-          variant: session.status === "live" ? ("live" as const) : ("muted" as const),
-        }
-      : null;
+  const sessionHeaderStatus = session ? sessionStatusBadge(session) : null;
 
   const selectItem = (id: string): void => {
     window.location.hash = `#/rooms/${roomId}/workbench/${id}`;
@@ -428,12 +392,12 @@ export function SessionWorkbenchPage({
             sessionMeta={{
               dateLabel,
               code: session?.code ?? "—",
-              visibilityLabel: session ? VISIBILITY_LABEL[session.visibility] : "—",
+              visibilityLabel: session ? SESSION_VISIBILITY_LABEL[session.visibility] : "—",
               activityLabel: session?.title ?? (sessionsQuery.isLoading ? "載入中…" : "—"),
-              ...(toolbarStatus
+              ...(sessionHeaderStatus
                 ? {
-                    statusLabel: toolbarStatus.label,
-                    statusBadgeVariant: toolbarStatus.variant,
+                    statusLabel: sessionHeaderStatus.label,
+                    statusBadgeVariant: sessionHeaderStatus.variant,
                   }
                 : {}),
             }}

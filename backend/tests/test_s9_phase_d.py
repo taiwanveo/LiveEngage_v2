@@ -310,6 +310,75 @@ def test_start_question_after_quiz_activated(
     assert by_id[quiz_id]["status"] == "locked"
 
 
+def test_quiz_close_active_question(
+    client: TestClient, host_token: tuple[str, str]
+) -> None:
+    """子題 close：進行中 → 已結束，父 Quiz 由 locked 恢復 active。"""
+    token, _ = host_token
+    headers = _auth(token)
+    session = _live_session(client, headers)
+    room_id = str(session["default_room_id"])
+
+    quiz = client.post(
+        f"/api/v1/rooms/{room_id}/interactions",
+        headers=headers,
+        json={"type": "quiz", "title": "關閉測試"},
+    )
+    assert quiz.status_code == 201, quiz.text
+    quiz_id = quiz.json()["id"]
+
+    activate = client.patch(
+        f"/api/v1/interactions/{quiz_id}",
+        headers=headers,
+        json={"status": "active"},
+    )
+    assert activate.status_code == 200, activate.text
+
+    q = client.post(
+        f"/api/v1/quizzes/{quiz_id}/questions",
+        headers=headers,
+        json={
+            "title": "2+2=?",
+            "options": [
+                {"text": "3", "is_correct": False, "order_no": 0},
+                {"text": "4", "is_correct": True, "order_no": 1},
+            ],
+        },
+    )
+    assert q.status_code == 201, q.text
+    question_id = q.json()["id"]
+
+    start = client.post(
+        f"/api/v1/quizzes/questions/{question_id}/actions",
+        headers=headers,
+        json={"action": "start_question"},
+    )
+    assert start.status_code == 200, start.text
+
+    close = client.post(
+        f"/api/v1/quizzes/questions/{question_id}/actions",
+        headers=headers,
+        json={"action": "close"},
+    )
+    assert close.status_code == 200, close.text
+    assert close.json()["state"] == "closed"
+
+    listed = client.get(
+        f"/api/v1/quizzes/{quiz_id}/questions",
+        headers=headers,
+    )
+    assert listed.status_code == 200, listed.text
+    assert listed.json()[0]["state"] == "closed"
+
+    interactions = client.get(
+        f"/api/v1/rooms/{room_id}/interactions",
+        headers=headers,
+    )
+    assert interactions.status_code == 200, interactions.text
+    by_id = {item["id"]: item for item in interactions.json()}
+    assert by_id[quiz_id]["status"] == "active"
+
+
 def test_ai001_unavailable_without_key(
     client: TestClient, host_token: tuple[str, str], monkeypatch: pytest.MonkeyPatch
 ) -> None:

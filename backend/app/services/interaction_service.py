@@ -223,6 +223,15 @@ async def update_interaction(
                 await db.flush()
                 _apply_status_transition(interaction, InteractionStatus.ACTIVE)
             elif payload.status != InteractionStatus.ACTIVE:
+                if (
+                    interaction.type == InteractionType.QUIZ
+                    and payload.status == InteractionStatus.STOPPED
+                ):
+                    from app.services import quiz_service
+
+                    await quiz_service.close_active_quiz_questions_for_parent(
+                        db, interaction.id
+                    )
                 _apply_status_transition(interaction, payload.status)
 
         if payload.settings is not None:

@@ -55,10 +55,12 @@ export const QA_EVENT_TYPES = new Set([
 
 /** Quiz 事件（Sprint 9；BE-007 / FE-011） */
 export const QUIZ_QUESTION_STARTED = "quiz_question_started";
+export const QUIZ_QUESTION_CLOSED = "quiz_question_closed";
 export const QUIZ_LEADERBOARD_UPDATED = "quiz_leaderboard_updated";
 
 export const QUIZ_EVENT_TYPES = new Set([
   QUIZ_QUESTION_STARTED,
+  QUIZ_QUESTION_CLOSED,
   QUIZ_LEADERBOARD_UPDATED,
 ]);
 
