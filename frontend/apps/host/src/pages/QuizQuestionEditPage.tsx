@@ -1,4 +1,4 @@
-/** Quiz 子題編輯（對齊 Poll Builder；僅 pending 可編輯）。 */
+/** Quiz 子題編輯（對齊 Poll Builder；各狀態皆可編輯內容）。 */
 
 import * as React from "react";
 import { useEffect, useState } from "react";
@@ -144,27 +144,6 @@ export function QuizQuestionEditPage({
     );
   }
 
-  if (question.state !== "pending") {
-    return (
-      <HostShell
-        title="編輯 Quiz 子題"
-        roomId={roomId}
-        onLogout={onLogout}
-        activeNav="sprint9"
-        breadcrumb={editBreadcrumb}
-        titleAddon={
-          <HostTitleLink href={backHref} variant="secondary">
-            返回工作台
-          </HostTitleLink>
-        }
-      >
-        <p className="text-sm text-warning">
-          此子題狀態為「{quizQuestionStateLabel(question.state)}」，僅待開始的子題可編輯。
-        </p>
-      </HostShell>
-    );
-  }
-
   return (
     <HostShell
       title="編輯 Quiz 子題"
@@ -178,6 +157,12 @@ export function QuizQuestionEditPage({
         </HostTitleLink>
       }
     >
+      {question.state !== "pending" ? (
+        <p className="mb-4 text-sm text-warning">
+          此子題狀態為「{quizQuestionStateLabel(question.state)}
+          」。若已有參與者作答，修改題目或選項可能與既有紀錄不一致；重新「開始」會清除此子題作答並重算排行榜。
+        </p>
+      ) : null}
       <section className="le-card mx-auto max-w-2xl space-y-4 p-6">
         <label className="block space-y-1 text-sm">
           <span className="font-medium text-foreground">題目</span>

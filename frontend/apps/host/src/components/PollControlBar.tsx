@@ -162,11 +162,14 @@ export function ControlToggle(props: {
   disabled?: boolean;
   accent?: ControlAccent;
   size?: ControlSize;
+  /** 預設顯示狀態圓點；Sprint9「開放」等按鈕可關閉 */
+  showDot?: boolean;
   onClick: () => void;
 }): React.JSX.Element {
   const label = props.active ? props.activeLabel : props.inactiveLabel;
   const size = props.size ?? "default";
   const accent = props.accent ?? "default";
+  const showDot = props.showDot ?? true;
 
   return (
     <button
@@ -178,7 +181,7 @@ export function ControlToggle(props: {
         props.active ? controlActiveClass(accent) : controlInactiveClass()
       }`}
     >
-      <span className={controlDotClass(props.active, accent, size)} />
+      {showDot ? <span className={controlDotClass(props.active, accent, size)} /> : null}
       {label}
     </button>
   );

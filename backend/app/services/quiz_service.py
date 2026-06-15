@@ -139,6 +139,7 @@ def _to_question_public(
         order_no=qq.order_no,
         state=qq.state,
         started_at=qq.started_at,
+        result_visible=child.result_visible,
         options=options,
     )
 
@@ -321,14 +322,9 @@ async def update_question(
     host: User,
     payload: QuizQuestionUpdateRequest,
 ) -> QuizQuestionPublic:
-    """更新 Quiz 子題（僅 pending）。"""
+    """更新 Quiz 子題（各狀態皆可編輯內容）。"""
     assert_can_edit_content(host)
     qq = await _load_quiz_question(db, question_id)
-    if qq.state != QuizQuestionState.PENDING:
-        raise AppError(
-            ErrorCode.POLL_INVALID_STATE,
-            "僅待開始的子題可編輯",
-        )
     await _load_quiz_for_host(db, qq.quiz_interaction_id, host)
     child = await _get_child_interaction(db, qq.child_interaction_id)
 
@@ -555,6 +551,54 @@ async def _publish_leaderboard(
     )
 
 
+async def _clear_question_responses(
+    db: AsyncSession, question_id: uuid.UUID
+) -> None:
+    await db.execute(
+        delete(QuizResponse).where(QuizResponse.quiz_question_id == question_id)
+    )
+
+
+async def _publish_question_started(
+    db: AsyncSession,
+    *,
+    quiz: Interaction,
+    qq: QuizQuestion,
+    child: Interaction,
+    room_id: uuid.UUID,
+) -> None:
+    options = await _question_options(db, child.id, hide_correct=True)
+    await events.publish(
+        room_id,
+        events.QUIZ_QUESTION_STARTED,
+        {
+            "quiz_id": str(quiz.id),
+            "question": _to_question_public(qq, child, options).model_dump(
+                mode="json"
+            ),
+        },
+    )
+
+
+async def _restart_closed_question(
+    db: AsyncSession,
+    *,
+    qq: QuizQuestion,
+    child: Interaction,
+    quiz: Interaction,
+    room_id: uuid.UUID,
+) -> None:
+    """已結束子題重新開始：清除作答、重設計時並切換為目前進行中子題。"""
+    await _clear_question_responses(db, qq.id)
+    child.stopped_at = None
+    child.result_visible = False
+    await _close_active_siblings(db, qq.quiz_interaction_id, except_id=qq.id)
+    await _yield_room_active_slot_to_quiz_child(
+        db, room_id=room_id, parent_quiz=quiz, child_id=child.id
+    )
+    await _start_child_poll(db, child, qq)
+
+
 async def quiz_action(
     db: AsyncSession,
     *,
@@ -569,46 +613,72 @@ async def quiz_action(
     action = request.action
 
     if action == QuizAction.START_QUESTION:
-        if qq.state != QuizQuestionState.PENDING:
+        if qq.state == QuizQuestionState.PENDING:
+            await _close_active_siblings(db, qq.quiz_interaction_id, except_id=qq.id)
+            await _yield_room_active_slot_to_quiz_child(
+                db, room_id=room_id, parent_quiz=quiz, child_id=child.id
+            )
+            await _start_child_poll(db, child, qq)
+            await _publish_question_started(
+                db, quiz=quiz, qq=qq, child=child, room_id=room_id
+            )
+        elif qq.state == QuizQuestionState.CLOSED:
+            await _restart_closed_question(
+                db, qq=qq, child=child, quiz=quiz, room_id=room_id
+            )
+            await _publish_question_started(
+                db, quiz=quiz, qq=qq, child=child, room_id=room_id
+            )
+            await _publish_leaderboard(db, qq.quiz_interaction_id, room_id)
+        else:
             raise AppError(
                 ErrorCode.POLL_INVALID_STATE,
-                f"start_question 僅允許 pending 狀態（目前 {qq.state}）",
+                f"start_question 僅允許 pending 或 closed（目前 {qq.state}）",
             )
-        await _close_active_siblings(db, qq.quiz_interaction_id, except_id=qq.id)
-        await _yield_room_active_slot_to_quiz_child(
-            db, room_id=room_id, parent_quiz=quiz, child_id=child.id
-        )
-        await _start_child_poll(db, child, qq)
-        options = await _question_options(db, child.id, hide_correct=True)
-        await events.publish(
-            room_id,
-            events.QUIZ_QUESTION_STARTED,
-            {
-                "quiz_id": str(quiz.id),
-                "question": _to_question_public(qq, child, options).model_dump(
-                    mode="json"
-                ),
-            },
-        )
 
     elif action == QuizAction.REVEAL:
-        if qq.state != QuizQuestionState.ACTIVE:
+        if qq.state == QuizQuestionState.ACTIVE:
+            qq.state = QuizQuestionState.REVEALED
+            child.result_visible = True
+            child.status = InteractionStatus.LOCKED
+            _restore_quiz_parent_if_locked(quiz)
+            correct_ids = await _get_correct_option_ids(db, child.id)
+            await events.publish(
+                room_id,
+                events.POLL_RESULT_REVEALED,
+                {
+                    "poll_id": str(child.id),
+                    "correct_option_ids": [str(oid) for oid in correct_ids],
+                },
+            )
+        elif qq.state == QuizQuestionState.REVEALED and not child.result_visible:
+            child.result_visible = True
+            correct_ids = await _get_correct_option_ids(db, child.id)
+            await events.publish(
+                room_id,
+                events.POLL_RESULT_REVEALED,
+                {
+                    "poll_id": str(child.id),
+                    "correct_option_ids": [str(oid) for oid in correct_ids],
+                },
+            )
+        else:
             raise AppError(
                 ErrorCode.POLL_INVALID_STATE,
-                f"reveal 僅允許 active 狀態（目前 {qq.state}）",
+                f"reveal 僅允許 active 或已揭曉但隱藏中（目前 {qq.state}）",
             )
-        qq.state = QuizQuestionState.REVEALED
-        child.result_visible = True
-        child.status = InteractionStatus.LOCKED
-        _restore_quiz_parent_if_locked(quiz)
-        correct_ids = await _get_correct_option_ids(db, child.id)
+
+    elif action == QuizAction.HIDE:
+        if qq.state != QuizQuestionState.REVEALED:
+            raise AppError(
+                ErrorCode.POLL_INVALID_STATE,
+                f"hide 僅允許 revealed 狀態（目前 {qq.state}）",
+            )
+        child.result_visible = False
         await events.publish(
             room_id,
-            events.POLL_RESULT_REVEALED,
-            {
-                "poll_id": str(child.id),
-                "correct_option_ids": [str(oid) for oid in correct_ids],
-            },
+            events.POLL_RESULT_HIDDEN,
+            {"poll_id": str(child.id)},
         )
 
     elif action == QuizAction.CLOSE:

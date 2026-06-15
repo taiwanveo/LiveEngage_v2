@@ -17,7 +17,7 @@ export function WorkbenchIdeasPreview({ item }: Props): React.JSX.Element {
     refetchInterval: 4_000,
   });
 
-  const ideas = ideasQuery.data?.items ?? [];
+  const ideas = (ideasQuery.data?.items ?? []).filter((idea) => !idea.is_hidden);
 
   return (
     <ParticipantPreviewFrame stats={<p className="text-[10px] text-muted">預覽模式</p>}>

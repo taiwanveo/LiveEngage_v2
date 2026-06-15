@@ -111,3 +111,13 @@ async def hide_idea(
 ) -> IdeaPublic:
     """Host 隱藏點子。"""
     return await ideas_service.hide_idea(db, idea_id=idea_id, host=host)
+
+
+@router.post("/ideas/{idea_id}/show", response_model=IdeaPublic)
+async def show_idea(
+    idea_id: uuid.UUID,
+    db: Annotated[AsyncSession, Depends(get_session)],
+    host: Annotated[User, Depends(get_current_user)],
+) -> IdeaPublic:
+    """Host 取消隱藏點子。"""
+    return await ideas_service.show_idea(db, idea_id=idea_id, host=host)

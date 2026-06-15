@@ -7,7 +7,7 @@ import datetime as dt
 import uuid
 from typing import cast
 
-from sqlalchemy import func, select, delete
+from sqlalchemy import func, select, delete, union_all
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -76,17 +76,29 @@ async def _load_interaction_for_host(
     return interaction
 
 
+def _child_interaction_ids_subquery():
+    """Quiz／Survey 子題對應的 Poll 互動 id（不應出現在 Host 列表）。"""
+    return union_all(
+        select(QuizQuestion.child_interaction_id),
+        select(SurveyQuestion.child_interaction_id),
+    ).subquery()
+
+
 async def list_room_interactions(
     db: AsyncSession,
     *,
     room_id: uuid.UUID,
     host: User,
 ) -> list[InteractionResponse]:
-    """列出房間內所有互動項目（Host Builder / 控制台）。"""
+    """列出房間內互動項目（Host Builder / 控制台；排除 Quiz／Survey 子題）。"""
     await _load_room_for_host(db, room_id, host)
+    child_ids_sq = _child_interaction_ids_subquery()
     result = await db.execute(
         select(Interaction)
         .where(Interaction.room_id == room_id)
+        .where(
+            Interaction.id.not_in(select(child_ids_sq.c.child_interaction_id))
+        )
         .order_by(Interaction.order_no, Interaction.created_at)
     )
     return [_to_response(i) for i in result.scalars().all()]
@@ -116,7 +128,18 @@ async def reorder_workbench_interactions(
         select(Interaction).where(Interaction.room_id == room_id)
     )
     all_items = list(result.scalars().all())
-    workbench = [i for i in all_items if _is_workbench_interaction_type(i.type)]
+    child_rows = await db.execute(
+        union_all(
+            select(QuizQuestion.child_interaction_id),
+            select(SurveyQuestion.child_interaction_id),
+        )
+    )
+    child_ids = {row[0] for row in child_rows.all()}
+    workbench = [
+        i
+        for i in all_items
+        if _is_workbench_interaction_type(i.type) and i.id not in child_ids
+    ]
     expected_ids = {i.id for i in workbench}
 
     if set(ordered_ids) != expected_ids:
@@ -368,10 +391,18 @@ async def delete_interaction(
     interaction_id: uuid.UUID,
     host: User,
 ) -> None:
-    """刪除互動項目（須非 active；Quiz／Survey 一併清除子題）。"""
+    """刪除互動項目（須非 active／locked；Quiz／Survey 一併清除子題）。"""
     assert_can_edit_content(host)
-    interaction = await _load_interaction_for_host(db, interaction_id, host)
-    if interaction.status == InteractionStatus.ACTIVE:
+    try:
+        interaction = await _load_interaction_for_host(db, interaction_id, host)
+    except AppError as exc:
+        if exc.code == ErrorCode.NOT_FOUND:
+            return
+        raise
+    if interaction.status in (
+        InteractionStatus.ACTIVE,
+        InteractionStatus.LOCKED,
+    ):
         raise AppError(
             ErrorCode.POLL_INVALID_STATE,
             "進行中的互動須先停止後才能刪除",

@@ -17,7 +17,6 @@ import { WorkbenchSurveyPreview } from "./previews/WorkbenchSurveyPreview";
 interface Props {
   roomId: string;
   item: InteractionSummary | null;
-  onInteractionDeleted?: (deletedId: string) => void;
 }
 
 function EmptyMain({ message }: { message: string }): React.JSX.Element {
@@ -31,7 +30,6 @@ function EmptyMain({ message }: { message: string }): React.JSX.Element {
 export function WorkbenchMainPanel({
   roomId,
   item,
-  onInteractionDeleted,
 }: Props): React.JSX.Element {
   const pollQuery = useQuery({
     queryKey: ["poll", item?.id],
@@ -61,7 +59,6 @@ export function WorkbenchMainPanel({
           roomId={roomId}
           poll={poll}
           results={resultsQuery.data ?? null}
-          onDeleted={() => onInteractionDeleted?.(poll.id)}
         />
       </div>
     );

@@ -40,6 +40,7 @@ QUIZ_LEADERBOARD_UPDATED = "quiz_leaderboard_updated"
 # Ideas 事件型別（Sprint 9；FE-013）
 IDEA_SUBMITTED = "idea_submitted"
 IDEA_REACTED = "idea_reacted"
+IDEA_VISIBILITY_CHANGED = "idea_visibility_changed"
 
 # Session 事件（活動生命週期）
 SESSION_STARTED = "session_started"

@@ -12,6 +12,7 @@ export interface QuizQuestion {
   speed_bonus: boolean;
   explanation: string | null;
   state: string;
+  result_visible?: boolean;
   options: { id: string; text: string; order_no: number; is_correct?: boolean | null }[];
 }
 
@@ -67,7 +68,7 @@ export async function deleteQuizQuestion(questionId: string): Promise<void> {
 
 export async function quizAction(
   questionId: string,
-  action: "start_question" | "reveal" | "next" | "close"
+  action: "start_question" | "reveal" | "hide" | "next" | "close"
 ): Promise<{ question_id: string; state: string }> {
   return api(`/api/v1/quizzes/questions/${questionId}/actions`, {
     method: "POST",
@@ -100,6 +101,17 @@ export async function listIdeas(
 
 export async function hideIdea(ideaId: string): Promise<IdeaPublic> {
   return api(`/api/v1/ideas/${ideaId}/hide`, { method: "POST" });
+}
+
+export async function showIdea(ideaId: string): Promise<IdeaPublic> {
+  return api(`/api/v1/ideas/${ideaId}/show`, { method: "POST" });
+}
+
+export async function setIdeaHidden(
+  ideaId: string,
+  hidden: boolean
+): Promise<IdeaPublic> {
+  return hidden ? hideIdea(ideaId) : showIdea(ideaId);
 }
 
 export interface SurveyQuestion {

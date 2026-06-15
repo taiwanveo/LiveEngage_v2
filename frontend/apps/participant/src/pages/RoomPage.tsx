@@ -325,9 +325,7 @@ export function RoomPage(): React.JSX.Element {
   const sessionTitle = stateQuery.data?.title ?? "活動";
   const sessionCode = ctx.sessionCode ?? stateQuery.data?.code ?? null;
   const poll = pollQuery.data;
-  const headerTagline = ctx.displayName
-    ? `${sessionTitle} · 你好，${ctx.displayName}`
-    : sessionTitle;
+  const headerBrand = `LiveEngage 互動會場：${sessionTitle}`;
 
   const leave = (): void => {
     clearParticipantSession();
@@ -344,44 +342,41 @@ export function RoomPage(): React.JSX.Element {
     <OrgBrandingProvider branding={brandingQuery.data ?? null}>
       <main className="le-page-bg min-h-full">
         <AppHeader
-          brand="LiveEngage 互動會場"
-          tagline={headerTagline}
-          maxWidth="2xl"
+          brand={headerBrand}
+          maxWidth="full"
           logoutLabel="離開"
           onLogout={leave}
           chromeFooterActions={<ParticipantShareActions sessionCode={sessionCode} />}
-          actions={
-            <span
-              className={connected ? "le-status-dot-live" : "le-status-dot bg-muted"}
-              title={connected ? "即時連線中" : "連線中斷，備援輪詢"}
-            />
-          }
         />
 
       <div className="mx-auto max-w-2xl border-b border-border bg-surface/60 px-4 backdrop-blur-sm">
-        <nav className="flex gap-1 overflow-x-auto" aria-label="互動分頁">
-          <TabButton active={tab === "poll"} onClick={() => setTab("poll")} live={Boolean(activePollId)}>
-            投票（Poll）
-          </TabButton>
-          <TabButton active={tab === "qa"} onClick={() => setTab("qa")}>
-            問答（Q&amp;A）
-          </TabButton>
-          {activeIdeasBoardId ? (
-            <TabButton active={tab === "ideas"} onClick={() => setTab("ideas")}>
-              點子牆（Ideas）
+        <div className="flex items-center justify-between gap-2">
+          <nav className="flex min-w-0 flex-1 gap-1 overflow-x-auto" aria-label="互動分頁">
+            <TabButton active={tab === "poll"} onClick={() => setTab("poll")} live={Boolean(activePollId)}>
+              意見蒐集（Poll）
             </TabButton>
-          ) : null}
-          {activeSurveyId ? (
-            <TabButton active={tab === "survey"} onClick={() => setTab("survey")}>
-              問卷（Survey）
+            <TabButton active={tab === "quiz"} onClick={() => setTab("quiz")} live={Boolean(quizQuestion)}>
+              知識評量（Quiz）與回饋
             </TabButton>
-          ) : null}
-          {quizQuestion ? (
-            <TabButton active={tab === "quiz"} onClick={() => setTab("quiz")} live>
-              Quiz
+            <TabButton active={tab === "qa"} onClick={() => setTab("qa")}>
+              發問（Q&amp;A）
             </TabButton>
-          ) : null}
-        </nav>
+            {activeIdeasBoardId ? (
+              <TabButton active={tab === "ideas"} onClick={() => setTab("ideas")}>
+                點子牆（Ideas）
+              </TabButton>
+            ) : null}
+            {activeSurveyId ? (
+              <TabButton active={tab === "survey"} onClick={() => setTab("survey")}>
+                問卷（Survey）
+              </TabButton>
+            ) : null}
+          </nav>
+          <span
+            className={`shrink-0 ${connected ? "le-status-dot-live" : "le-status-dot bg-muted"}`}
+            title={connected ? "即時連線中" : "連線中斷，備援輪詢"}
+          />
+        </div>
       </div>
 
       <div className="relative z-10 mx-auto max-w-2xl px-4 py-6">
@@ -391,7 +386,8 @@ export function RoomPage(): React.JSX.Element {
           <RoomIdeasPanel boardId={activeIdeasBoardId} />
         ) : tab === "survey" && activeSurveyId ? (
           <RoomSurveyPanel surveyId={activeSurveyId} />
-        ) : tab === "quiz" && quizQuestion ? (
+        ) : tab === "quiz" ? (
+          quizQuestion ? (
           <div className="le-card p-6">
             <h2 className="font-display text-lg font-semibold text-foreground">{quizQuestion.title}</h2>
             <ul className="mt-4 space-y-2">
@@ -430,6 +426,14 @@ export function RoomPage(): React.JSX.Element {
               <p className="text-sm text-muted">Quiz 已提交，感謝參與！</p>
             </Modal>
           </div>
+          ) : (
+            <div className="le-card border-dashed p-10 text-center">
+              <p className="text-lg font-medium text-foreground">等待知識評量開始</p>
+              <p className="mt-2 text-sm text-muted">
+                主持人啟動 Quiz 後，題目會自動出現在此頁
+              </p>
+            </div>
+          )
         ) : (
           <>
             <Modal

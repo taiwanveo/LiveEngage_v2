@@ -68,7 +68,7 @@ export function SessionsDashboardPage({ onLogout }: Props): React.JSX.Element {
   function archiveSession(session: SessionHost): void {
     if (
       !window.confirm(
-        `確定要封存「${session.title}」？\n\n封存後將從儀表板移出，資料仍保留供匯出與稽核。`
+        `確定要封存「${session.title}」？\n\n封存後將從活動列表移出，資料仍保留供匯出與稽核。`
       )
     ) {
       return;

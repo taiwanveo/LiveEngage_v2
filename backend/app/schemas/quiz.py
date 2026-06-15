@@ -18,6 +18,7 @@ class QuizAction(StrEnum):
 
     START_QUESTION = "start_question"
     REVEAL = "reveal"
+    HIDE = "hide"
     NEXT = "next"
     CLOSE = "close"
 
@@ -35,7 +36,7 @@ class QuizQuestionCreateRequest(BaseModel):
 
 
 class QuizQuestionUpdateRequest(BaseModel):
-    """更新 Quiz 子題（僅 pending 可編輯）。"""
+    """更新 Quiz 子題（各狀態皆可編輯內容）。"""
 
     title: str | None = Field(default=None, min_length=1, max_length=500)
     description: str | None = None
@@ -62,6 +63,7 @@ class QuizQuestionPublic(BaseModel):
     order_no: int
     state: QuizQuestionState
     started_at: dt.datetime | None
+    result_visible: bool = False
     options: list[PollOptionPublic] = Field(default_factory=list)
 
 

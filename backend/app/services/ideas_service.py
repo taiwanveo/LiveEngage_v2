@@ -288,6 +288,63 @@ async def hide_idea(
         room_id=board.room_id,
     )
     await db.commit()
+    await db.refresh(idea)
 
     reactions_map = await _reactions_for_ideas(db, [idea_id], None)
-    return _to_public(idea, author_display=None, reactions=reactions_map.get(idea_id, []))
+    public = _to_public(
+        idea,
+        author_display=None,
+        reactions=reactions_map.get(idea_id, []),
+    )
+
+    await events.publish(
+        board.room_id,
+        events.IDEA_VISIBILITY_CHANGED,
+        {"idea_id": str(idea_id), "is_hidden": True},
+    )
+    return public
+
+
+async def show_idea(
+    db: AsyncSession,
+    *,
+    idea_id: uuid.UUID,
+    host: User,
+) -> IdeaPublic:
+    """Host 取消隱藏點子。"""
+    result = await db.execute(
+        select(Idea, Interaction)
+        .join(Interaction, Idea.board_interaction_id == Interaction.id)
+        .where(Idea.id == idea_id)
+    )
+    row = result.first()
+    if row is None:
+        raise AppError(ErrorCode.NOT_FOUND, "找不到點子")
+    idea, board = row[0], row[1]
+    await interaction_service.ensure_room_access(db, board.room_id, host)
+
+    idea.is_hidden = False
+    await audit_service.log(
+        db,
+        actor=host,
+        action="ideas.show",
+        target_type="idea",
+        target_id=idea_id,
+        room_id=board.room_id,
+    )
+    await db.commit()
+    await db.refresh(idea)
+
+    reactions_map = await _reactions_for_ideas(db, [idea_id], None)
+    public = _to_public(
+        idea,
+        author_display=None,
+        reactions=reactions_map.get(idea_id, []),
+    )
+
+    await events.publish(
+        board.room_id,
+        events.IDEA_VISIBILITY_CHANGED,
+        {"idea_id": str(idea_id), "is_hidden": False},
+    )
+    return public

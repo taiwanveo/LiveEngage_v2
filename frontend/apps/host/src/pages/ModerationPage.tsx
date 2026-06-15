@@ -40,13 +40,13 @@ function RoomPicker(props: { onLogout: () => void }): React.JSX.Element {
       <div className="max-w-lg space-y-4 rounded-2xl bg-white p-8 text-center shadow-xl">
         <h2 className="text-xl font-semibold text-slate-900">請指定活動室（room）</h2>
         <p className="text-left text-sm leading-relaxed text-slate-600">
-          請從活動儀表板選擇活動，或將網址中的佔位符換成實際 room ID：
+          請從活動列表選擇活動，或將網址中的佔位符換成實際 room ID：
         </p>
         <a
           href="#/dashboard"
           className="inline-block rounded-lg bg-primary-600 px-4 py-2 text-sm font-medium text-white hover:bg-primary-700"
         >
-          前往活動儀表板
+          前往活動列表
         </a>
         <code className="block break-all rounded bg-slate-100 px-3 py-2 font-mono text-xs text-slate-800">
           #/rooms/&lt;roomId&gt;/moderation

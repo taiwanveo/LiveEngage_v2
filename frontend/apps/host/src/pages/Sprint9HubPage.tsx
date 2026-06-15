@@ -6,6 +6,11 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { formatUserFacingError } from "@liveengage/realtime";
 import { useSystemNotice } from "@liveengage/ui";
 import { HubInteractionRowActions } from "../components/HubInteractionRowActions";
+import {
+  HubCreateCard,
+  HUB_CREATE_BTN_CLASS,
+  HUB_CREATE_INPUT_CLASS,
+} from "../components/HubCreateCard";
 import { HostRoomHubBreadcrumb } from "../components/HostBreadcrumb";
 import { HostShell } from "../components/HostShell";
 import { canEditHostContent } from "../lib/auth";
@@ -19,6 +24,7 @@ import {
 import {
   interactionStatusLabel,
   interactionTypeLabel,
+  type InteractionSummary,
 } from "../lib/pollTypes";
 
 interface Props {
@@ -83,8 +89,25 @@ export function Sprint9HubPage({ roomId, onLogout }: Props): React.JSX.Element {
 
   const deleteMutation = useMutation({
     mutationFn: (id: string) => deleteInteraction(id),
+    onMutate: async (id) => {
+      await qc.cancelQueries({ queryKey: ["interactions", roomId] });
+      const previous = qc.getQueryData<InteractionSummary[]>([
+        "interactions",
+        roomId,
+      ]);
+      if (previous) {
+        qc.setQueryData(
+          ["interactions", roomId],
+          previous.filter((i) => i.id !== id)
+        );
+      }
+      return { previous };
+    },
     onSuccess: () => void qc.invalidateQueries({ queryKey: ["interactions", roomId] }),
-    onError: (err: unknown) => {
+    onError: (err: unknown, _id, context) => {
+      if (context?.previous) {
+        qc.setQueryData(["interactions", roomId], context.previous);
+      }
       showError(formatUserFacingError(err, "刪除失敗"));
     },
   });
@@ -101,37 +124,34 @@ export function Sprint9HubPage({ roomId, onLogout }: Props): React.JSX.Element {
       activeNav="sprint9"
       breadcrumb={<HostRoomHubBreadcrumb roomId={roomId} currentLabel="Quiz 管理" />}
     >
-      <section className="le-card mb-8 p-6">
-        <h2 className="mb-4 text-sm font-semibold text-foreground">建立互動</h2>
-        <div className="flex flex-wrap gap-3">
-          <select
-            value={newType}
-            onChange={(e) => setNewType(e.target.value as typeof newType)}
-            className="le-input !w-auto min-w-[180px]"
-          >
-            {S9_TYPES.map((t) => (
-              <option key={t.value} value={t.value}>
-                {t.label}
-              </option>
-            ))}
-          </select>
-          <input
-            type="text"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            placeholder="標題（選填）"
-            className="le-input min-w-[200px] flex-1"
-          />
-          <button
-            type="button"
-            disabled={createMutation.isPending}
-            onClick={() => createMutation.mutate()}
-            className="le-btn-primary le-btn-sm !min-h-[42px] !px-5 !text-sm"
-          >
-            建立
-          </button>
-        </div>
-      </section>
+      <HubCreateCard title="新增 Quiz">
+        <select
+          value={newType}
+          onChange={(e) => setNewType(e.target.value as typeof newType)}
+          className={`${HUB_CREATE_INPUT_CLASS} !w-auto min-w-[140px]`}
+        >
+          {S9_TYPES.map((t) => (
+            <option key={t.value} value={t.value}>
+              {t.label}
+            </option>
+          ))}
+        </select>
+        <input
+          type="text"
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          placeholder="標題（選填）"
+          className={`${HUB_CREATE_INPUT_CLASS} min-w-[160px] flex-1`}
+        />
+        <button
+          type="button"
+          disabled={createMutation.isPending}
+          onClick={() => createMutation.mutate()}
+          className={HUB_CREATE_BTN_CLASS}
+        >
+          {createMutation.isPending ? "建立中…" : "建立"}
+        </button>
+      </HubCreateCard>
 
       <section className="le-card overflow-hidden">
         <header className="border-b border-border px-4 py-3">
@@ -143,7 +163,7 @@ export function Sprint9HubPage({ roomId, onLogout }: Props): React.JSX.Element {
           {isLoading ? (
             <li className="px-4 py-8 text-center text-sm text-muted">載入中…</li>
           ) : s9Items.length === 0 ? (
-            <li className="px-4 py-8 text-center text-sm text-muted">尚無 Quiz 互動</li>
+            <li className="px-4 py-8 text-center text-sm text-muted">尚無 Quiz</li>
           ) : (
             s9Items.map((item) => {
               const label = item.title ?? interactionTypeLabel(item.type);
@@ -176,7 +196,10 @@ export function Sprint9HubPage({ roomId, onLogout }: Props): React.JSX.Element {
                     }
                     onStop={() => stopMutation.mutate(item.id)}
                     canDelete={item.status !== "active" && item.status !== "locked"}
-                    deletePending={deleteMutation.isPending}
+                    deletePending={
+                      deleteMutation.isPending &&
+                      deleteMutation.variables === item.id
+                    }
                     deleteDisabledReason={
                       item.status === "active" || item.status === "locked"
                         ? `進行中的 ${interactionTypeLabel(item.type)} 須先結束後才能刪除`

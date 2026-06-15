@@ -15,9 +15,9 @@ import {
   interactionTypeLabel,
   type InteractionSummary,
 } from "../../lib/pollTypes";
-import { Sprint9ActivateBanner } from "./Sprint9ActivateBanner";
 import { WorkbenchInteractionStatusBadge } from "./WorkbenchInteractionStatusBadge";
 import { WorkbenchInteractionTitle } from "./WorkbenchInteractionTitle";
+import { WORKBENCH_S9_EDIT_ID } from "./WorkbenchInteractionActions";
 
 interface Props {
   roomId: string;
@@ -81,10 +81,8 @@ export function SurveyWorkbenchMain({ roomId, item }: Props): React.JSX.Element 
         <WorkbenchInteractionStatusBadge status={item.status} />
       </div>
 
-      <Sprint9ActivateBanner roomId={roomId} item={item} />
-
       {editable ? (
-        <section className="le-card p-4">
+        <section id={WORKBENCH_S9_EDIT_ID} className="le-card p-4">
           <h3 className="mb-3 text-sm font-semibold text-foreground">新增評分題</h3>
           <div className="flex flex-wrap gap-2">
             <input
@@ -107,7 +105,7 @@ export function SurveyWorkbenchMain({ roomId, item }: Props): React.JSX.Element 
         </section>
       ) : null}
 
-      <section className="le-card p-4">
+      <section className="le-card p-4" id={editable ? undefined : WORKBENCH_S9_EDIT_ID}>
         <h3 className="mb-3 text-sm font-semibold text-foreground">問卷題目</h3>
         {questionsQuery.isLoading ? (
           <p className="text-sm text-muted">載入中…</p>

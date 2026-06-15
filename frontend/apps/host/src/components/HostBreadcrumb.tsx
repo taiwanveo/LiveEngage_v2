@@ -64,7 +64,7 @@ function useRoomBreadcrumbBase(roomId: string): HostBreadcrumbItem[] {
     session?.title ?? (sessionsQuery.isLoading ? "載入中…" : "活動");
 
   return [
-    { label: "活動儀表板", href: HOST_DASHBOARD_HASH },
+    { label: "活動列表", href: HOST_DASHBOARD_HASH },
     { label: sessionTitle, href: `#/rooms/${roomId}/workbench` },
   ];
 }

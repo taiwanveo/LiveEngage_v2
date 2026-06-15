@@ -103,7 +103,7 @@ export function OrgBrandMark({
   fallback = "LiveEngage",
   className = "",
   href,
-  linkTitle = "回到活動儀表板",
+  linkTitle = "回到活動列表",
 }: {
   fallback?: string;
   className?: string;

@@ -153,6 +153,140 @@ def test_fe013_ideas_submit_and_react(
     assert react.json()["reaction_total"] >= 1
 
 
+def test_fe013_ideas_hide_and_show(
+    client: TestClient, host_token: tuple[str, str]
+) -> None:
+    """FE-013：Host 隱藏／顯示點子；參與者列表不含 hidden。"""
+    token, _ = host_token
+    headers = _auth(token)
+    session = _live_session(client, headers)
+    room_id = session["default_room_id"]
+
+    board = client.post(
+        f"/api/v1/rooms/{room_id}/interactions",
+        headers=headers,
+        json={"type": "ideas", "title": "點子牆"},
+    )
+    assert board.status_code == 201, board.text
+    board_id = board.json()["id"]
+
+    client.patch(
+        f"/api/v1/interactions/{board_id}",
+        headers=headers,
+        json={"status": "active"},
+    )
+
+    part_token, _ = _join(client, str(session["id"]))
+    part_headers = _auth(part_token)
+    idea = client.post(
+        f"/api/v1/ideas-boards/{board_id}/ideas",
+        headers=part_headers,
+        json={"content": "測試隱藏"},
+    )
+    assert idea.status_code == 201, idea.text
+    idea_id = idea.json()["id"]
+
+    hide = client.post(f"/api/v1/ideas/{idea_id}/hide", headers=headers)
+    assert hide.status_code == 200, hide.text
+    assert hide.json()["is_hidden"] is True
+
+    host_list = client.get(
+        f"/api/v1/ideas-boards/{board_id}/ideas",
+        headers=headers,
+    )
+    assert host_list.status_code == 200, host_list.text
+    host_items = host_list.json()["items"]
+    assert any(i["id"] == idea_id and i["is_hidden"] for i in host_items)
+
+    part_list = client.get(
+        f"/api/v1/ideas-boards/{board_id}/ideas",
+        headers=part_headers,
+    )
+    assert part_list.status_code == 200, part_list.text
+    assert not any(i["id"] == idea_id for i in part_list.json()["items"])
+
+    show = client.post(f"/api/v1/ideas/{idea_id}/show", headers=headers)
+    assert show.status_code == 200, show.text
+    assert show.json()["is_hidden"] is False
+
+    part_list2 = client.get(
+        f"/api/v1/ideas-boards/{board_id}/ideas",
+        headers=part_headers,
+    )
+    assert any(i["id"] == idea_id for i in part_list2.json()["items"])
+
+
+def test_interaction_list_excludes_quiz_child_polls(
+    client: TestClient, host_token: tuple[str, str]
+) -> None:
+    """Host 列表不應包含 Quiz 子題對應的 Poll 互動。"""
+    token, _ = host_token
+    headers = _auth(token)
+    session = _live_session(client, headers)
+    room_id = session["default_room_id"]
+
+    quiz = client.post(
+        f"/api/v1/rooms/{room_id}/interactions",
+        headers=headers,
+        json={"type": "quiz", "title": "測試 Quiz"},
+    )
+    assert quiz.status_code == 201, quiz.text
+    quiz_id = quiz.json()["id"]
+
+    q = client.post(
+        f"/api/v1/quizzes/{quiz_id}/questions",
+        headers=headers,
+        json={
+            "title": "子題 A",
+            "options": [
+                {"text": "A", "is_correct": True, "order_no": 0},
+                {"text": "B", "is_correct": False, "order_no": 1},
+            ],
+        },
+    )
+    assert q.status_code == 201, q.text
+    child_id = q.json()["child_interaction_id"]
+
+    listed = client.get(
+        f"/api/v1/rooms/{room_id}/interactions",
+        headers=headers,
+    )
+    assert listed.status_code == 200, listed.text
+    ids = {item["id"] for item in listed.json()}
+    assert quiz_id in ids
+    assert child_id not in ids
+
+
+def test_delete_interaction_idempotent(
+    client: TestClient, host_token: tuple[str, str]
+) -> None:
+    """重複 DELETE 已刪除的互動不應報錯。"""
+    token, _ = host_token
+    headers = _auth(token)
+    session = _live_session(client, headers)
+    room_id = session["default_room_id"]
+
+    created = client.post(
+        f"/api/v1/rooms/{room_id}/interactions",
+        headers=headers,
+        json={"type": "ideas", "title": "待刪除"},
+    )
+    assert created.status_code == 201, created.text
+    interaction_id = created.json()["id"]
+
+    first = client.delete(
+        f"/api/v1/interactions/{interaction_id}",
+        headers=headers,
+    )
+    assert first.status_code == 204, first.text
+
+    second = client.delete(
+        f"/api/v1/interactions/{interaction_id}",
+        headers=headers,
+    )
+    assert second.status_code == 204, second.text
+
+
 def test_fe012_survey_submit(
     client: TestClient, host_token: tuple[str, str]
 ) -> None:
@@ -377,6 +511,116 @@ def test_quiz_close_active_question(
     assert interactions.status_code == 200, interactions.text
     by_id = {item["id"]: item for item in interactions.json()}
     assert by_id[quiz_id]["status"] == "active"
+
+
+def test_quiz_restart_closed_question(
+    client: TestClient, host_token: tuple[str, str]
+) -> None:
+    """已結束子題可再次 start_question，狀態回到 active。"""
+    token, _ = host_token
+    headers = _auth(token)
+    session = _live_session(client, headers)
+    room_id = str(session["default_room_id"])
+
+    quiz = client.post(
+        f"/api/v1/rooms/{room_id}/interactions",
+        headers=headers,
+        json={"type": "quiz", "title": "重啟測試"},
+    )
+    assert quiz.status_code == 201, quiz.text
+    quiz_id = quiz.json()["id"]
+
+    client.patch(
+        f"/api/v1/interactions/{quiz_id}",
+        headers=headers,
+        json={"status": "active"},
+    )
+
+    q = client.post(
+        f"/api/v1/quizzes/{quiz_id}/questions",
+        headers=headers,
+        json={
+            "title": "重啟題",
+            "options": [
+                {"text": "A", "is_correct": False, "order_no": 0},
+                {"text": "B", "is_correct": True, "order_no": 1},
+            ],
+        },
+    )
+    assert q.status_code == 201, q.text
+    question_id = q.json()["id"]
+
+    client.post(
+        f"/api/v1/quizzes/questions/{question_id}/actions",
+        headers=headers,
+        json={"action": "start_question"},
+    )
+    client.post(
+        f"/api/v1/quizzes/questions/{question_id}/actions",
+        headers=headers,
+        json={"action": "close"},
+    )
+
+    restart = client.post(
+        f"/api/v1/quizzes/questions/{question_id}/actions",
+        headers=headers,
+        json={"action": "start_question"},
+    )
+    assert restart.status_code == 200, restart.text
+    assert restart.json()["state"] == "active"
+
+
+def test_quiz_update_closed_question(
+    client: TestClient, host_token: tuple[str, str]
+) -> None:
+    """已結束子題仍可更新題目內容。"""
+    token, _ = host_token
+    headers = _auth(token)
+    session = _live_session(client, headers)
+    room_id = str(session["default_room_id"])
+
+    quiz = client.post(
+        f"/api/v1/rooms/{room_id}/interactions",
+        headers=headers,
+        json={"type": "quiz", "title": "編輯測試"},
+    )
+    quiz_id = quiz.json()["id"]
+    client.patch(
+        f"/api/v1/interactions/{quiz_id}",
+        headers=headers,
+        json={"status": "active"},
+    )
+
+    q = client.post(
+        f"/api/v1/quizzes/{quiz_id}/questions",
+        headers=headers,
+        json={
+            "title": "舊標題",
+            "options": [
+                {"text": "A", "is_correct": False, "order_no": 0},
+                {"text": "B", "is_correct": True, "order_no": 1},
+            ],
+        },
+    )
+    question_id = q.json()["id"]
+    client.post(
+        f"/api/v1/quizzes/questions/{question_id}/actions",
+        headers=headers,
+        json={"action": "start_question"},
+    )
+    client.post(
+        f"/api/v1/quizzes/questions/{question_id}/actions",
+        headers=headers,
+        json={"action": "close"},
+    )
+
+    updated = client.patch(
+        f"/api/v1/quizzes/questions/{question_id}",
+        headers=headers,
+        json={"title": "新標題"},
+    )
+    assert updated.status_code == 200, updated.text
+    assert updated.json()["title"] == "新標題"
 
 
 def test_ai001_unavailable_without_key(

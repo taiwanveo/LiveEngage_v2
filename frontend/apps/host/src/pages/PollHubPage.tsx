@@ -6,10 +6,16 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { formatUserFacingError } from "@liveengage/realtime";
 import { useSystemNotice } from "@liveengage/ui";
 import { HubInteractionRowActions } from "../components/HubInteractionRowActions";
+import {
+  HubCreateCard,
+  HUB_CREATE_BTN_CLASS,
+  HUB_CREATE_INPUT_CLASS,
+} from "../components/HubCreateCard";
 import { HostRoomHubBreadcrumb } from "../components/HostBreadcrumb";
 import { HostShell } from "../components/HostShell";
 import { canEditHostContent } from "../lib/auth";
 import { createInteraction, deleteInteraction, listInteractions } from "../lib/interactionApi";
+import type { InteractionSummary } from "../lib/pollTypes";
 import { pollAction } from "../lib/pollApi";
 import { presentAppUrl } from "../lib/presentUrl";
 import {
@@ -38,9 +44,27 @@ export function PollHubPage({ roomId, onLogout }: Props): React.JSX.Element {
 
   const deleteMutation = useMutation({
     mutationFn: (pollId: string) => deleteInteraction(pollId),
-    onSuccess: () =>
-      void queryClient.invalidateQueries({ queryKey: ["interactions", roomId] }),
-    onError: (err: unknown) => {
+    onMutate: async (pollId) => {
+      await queryClient.cancelQueries({ queryKey: ["interactions", roomId] });
+      const previous = queryClient.getQueryData<InteractionSummary[]>([
+        "interactions",
+        roomId,
+      ]);
+      if (previous) {
+        queryClient.setQueryData(
+          ["interactions", roomId],
+          previous.filter((i) => i.id !== pollId)
+        );
+      }
+      return { previous };
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["interactions", roomId] });
+    },
+    onError: (err: unknown, _pollId, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(["interactions", roomId], context.previous);
+      }
       showError(formatUserFacingError(err, "刪除失敗"));
     },
   });
@@ -97,13 +121,11 @@ export function PollHubPage({ roomId, onLogout }: Props): React.JSX.Element {
       breadcrumb={<HostRoomHubBreadcrumb roomId={roomId} currentLabel="Poll 管理" />}
     >
       {editable ? (
-      <section className="le-card mb-8 p-6">
-        <h2 className="mb-4 text-sm font-semibold text-foreground">建立新 Poll</h2>
-        <div className="flex flex-wrap gap-3">
+        <HubCreateCard title="新增 Poll">
           <select
             value={newType}
             onChange={(e) => setNewType(e.target.value as PollInteractionType)}
-            className="le-input !w-auto min-w-[180px]"
+            className={`${HUB_CREATE_INPUT_CLASS} !w-auto min-w-[140px]`}
           >
             {POLL_TYPES.map((t) => (
               <option key={t.value} value={t.value}>
@@ -116,18 +138,17 @@ export function PollHubPage({ roomId, onLogout }: Props): React.JSX.Element {
             value={newTitle}
             onChange={(e) => setNewTitle(e.target.value)}
             placeholder="題目標題（選填）"
-            className="le-input min-w-[200px] flex-1"
+            className={`${HUB_CREATE_INPUT_CLASS} min-w-[160px] flex-1`}
           />
           <button
             type="button"
             disabled={createMutation.isPending}
             onClick={() => createMutation.mutate()}
-            className="le-btn-primary le-btn-sm !min-h-[42px] !px-5 !text-sm"
+            className={HUB_CREATE_BTN_CLASS}
           >
             {createMutation.isPending ? "建立中…" : "建立"}
           </button>
-        </div>
-      </section>
+        </HubCreateCard>
       ) : null}
 
       <section className="le-card overflow-hidden">
@@ -176,7 +197,10 @@ export function PollHubPage({ roomId, onLogout }: Props): React.JSX.Element {
                     }
                     onStop={() => stopMutation.mutate(poll.id)}
                     canDelete={poll.status !== "active" && poll.status !== "locked"}
-                    deletePending={deleteMutation.isPending}
+                    deletePending={
+                      deleteMutation.isPending &&
+                      deleteMutation.variables === poll.id
+                    }
                     deleteDisabledReason={
                       poll.status === "active" || poll.status === "locked"
                         ? "進行中的 Poll 須先結束後才能刪除"

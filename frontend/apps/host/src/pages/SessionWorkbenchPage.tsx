@@ -23,6 +23,7 @@ import {
 import { getPoll, pollAction } from "../lib/pollApi";
 import {
   isPollType,
+  interactionTypeLabel,
   type InteractionSummary,
   type PollAction,
 } from "../lib/pollTypes";
@@ -41,6 +42,7 @@ import {
   type WorkbenchCreateType,
 } from "../lib/workbenchTypes";
 import { HOST_DASHBOARD_HASH, hostRoomNavItems } from "../components/HostShell";
+import { HostRoomHubBreadcrumb } from "../components/HostBreadcrumb";
 import { HostRoomHeaderActions } from "../components/HostRoomHeaderActions";
 import { ControlAction, ControlToggle, isPollRunning } from "../components/PollControlBar";
 import { presentAppUrl, sprint9PresentUrl } from "../lib/presentUrl";
@@ -55,13 +57,30 @@ import {
   WorkbenchPreviewPanel,
 } from "../components/workbench/WorkbenchMainPanel";
 import { useActiveQuizQuestionLabel } from "../components/workbench/QuizWorkbenchMain";
-import { QaModerationModal } from "../components/qa/QaModerationModal";
-import { useQaPendingCount } from "../components/qa/QaModerationPanel";
+import {
+  WorkbenchInteractionActions,
+  WORKBENCH_S9_EDIT_ID,
+} from "../components/workbench/WorkbenchInteractionActions";
 
 interface Props {
   roomId: string;
   interactionId?: string | undefined;
   onLogout: () => void;
+}
+
+function workbenchItemDisplayTitle(
+  item: InteractionSummary,
+  pollTitle?: string | null
+): string {
+  if (isPollType(item.type)) {
+    return pollTitle?.trim() || "未命名題目";
+  }
+  const fallback: Record<string, string> = {
+    quiz: "未命名 Quiz",
+    ideas: "點子牆",
+    survey: "問卷",
+  };
+  return item.title?.trim() || fallback[item.type] || interactionTypeLabel(item.type);
 }
 
 export function SessionWorkbenchPage({
@@ -74,7 +93,6 @@ export function SessionWorkbenchPage({
   const selfActionGuard = useRef(createSelfPollActionGuard());
   const [newType, setNewType] = useState<WorkbenchCreateType>("multiple_choice");
   const [newTitle, setNewTitle] = useState("");
-  const [qaModalOpen, setQaModalOpen] = useState(false);
 
   const sessionsQuery = useQuery({
     queryKey: ["host-sessions"],
@@ -106,7 +124,7 @@ export function SessionWorkbenchPage({
     enabled: Boolean(selectedItem && isPollType(selectedItem.type)),
   });
 
-  const pendingQaCount = useQaPendingCount(roomId);
+
   const quizActiveLabel = useActiveQuizQuestionLabel(
     selectedItem?.type === "quiz" ? selectedItem.id : null
   );
@@ -276,21 +294,8 @@ export function SessionWorkbenchPage({
       })
     : "—";
 
-  const navControls = (
+  const workbenchControls = (
     <>
-      <button
-        type="button"
-        onClick={() => setQaModalOpen(true)}
-        className="le-btn-secondary relative !min-h-[24px] !px-2 !py-0.5 !text-[10px]"
-      >
-        Q&amp;A
-        {pendingQaCount > 0 ? (
-          <span className="absolute -right-1 -top-1 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-amber-500 px-1 text-[9px] font-bold text-white">
-            {pendingQaCount > 99 ? "99+" : pendingQaCount}
-          </span>
-        ) : null}
-      </button>
-
       <button
         type="button"
         disabled={selectedIndex <= 0}
@@ -357,6 +362,7 @@ export function SessionWorkbenchPage({
               activeLabel="結束"
               inactiveLabel="開放"
               disabled={sprint9StatusMutation.isPending}
+              showDot={false}
               size="compact"
               onClick={() => sprint9StatusMutation.mutate("active")}
             />
@@ -367,6 +373,7 @@ export function SessionWorkbenchPage({
               inactiveLabel="開放"
               disabled={sprint9StatusMutation.isPending}
               accent="danger"
+              showDot={false}
               size="compact"
               onClick={() => sprint9StatusMutation.mutate("stopped")}
             />
@@ -378,6 +385,31 @@ export function SessionWorkbenchPage({
         <span className="max-w-[120px] truncate text-[10px] text-muted" title={quizActiveLabel}>
           {quizActiveLabel}
         </span>
+      ) : null}
+
+      {selectedItem ? (
+        <WorkbenchInteractionActions
+          roomId={roomId}
+          interactionId={selectedItem.id}
+          status={
+            isPollType(selectedItem.type) && poll
+              ? poll.status
+              : selectedItem.status
+          }
+          displayTitle={workbenchItemDisplayTitle(
+            selectedItem,
+            poll?.title
+          )}
+          {...(isPollType(selectedItem.type)
+            ? {
+                editHref: `#/rooms/${roomId}/polls/${selectedItem.id}/builder`,
+              }
+            : isSprint9Type(selectedItem.type)
+              ? { editScrollTargetId: WORKBENCH_S9_EDIT_ID }
+              : {})}
+          onDeleted={() => handleInteractionDeleted(selectedItem.id)}
+          variant="compact"
+        />
       ) : null}
     </>
   );
@@ -402,7 +434,6 @@ export function SessionWorkbenchPage({
                 : {}),
             }}
             navItems={hostRoomNavItems(roomId, "workbench")}
-            navControls={navControls}
             chromeFooterActions={
               <HostRoomHeaderActions
                 roomId={roomId}
@@ -410,6 +441,7 @@ export function SessionWorkbenchPage({
               />
             }
             onLogout={onLogout}
+            subRow={<HostRoomHubBreadcrumb roomId={roomId} currentLabel="工作台" />}
             titleExtra={
               <span
                 className={`le-status-dot ${connected ? "le-status-dot-live" : "bg-muted"}`}
@@ -436,18 +468,17 @@ export function SessionWorkbenchPage({
           />
         }
         main={
-          <WorkbenchMainPanel
-            roomId={roomId}
-            item={selectedItem}
-            onInteractionDeleted={handleInteractionDeleted}
-          />
+          <div className="space-y-4">
+            <div className="flex flex-wrap items-center justify-center gap-2">
+              {workbenchControls}
+            </div>
+            <WorkbenchMainPanel
+              roomId={roomId}
+              item={selectedItem}
+            />
+          </div>
         }
         preview={<WorkbenchPreviewPanel item={selectedItem} />}
-      />
-      <QaModerationModal
-        roomId={roomId}
-        open={qaModalOpen}
-        onClose={() => setQaModalOpen(false)}
       />
       {systemNoticeModal}
     </>

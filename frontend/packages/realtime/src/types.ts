@@ -67,8 +67,13 @@ export const QUIZ_EVENT_TYPES = new Set([
 /** Ideas 事件（Sprint 9；FE-013） */
 export const IDEA_SUBMITTED = "idea_submitted";
 export const IDEA_REACTED = "idea_reacted";
+export const IDEA_VISIBILITY_CHANGED = "idea_visibility_changed";
 
-export const IDEAS_EVENT_TYPES = new Set([IDEA_SUBMITTED, IDEA_REACTED]);
+export const IDEAS_EVENT_TYPES = new Set([
+  IDEA_SUBMITTED,
+  IDEA_REACTED,
+  IDEA_VISIBILITY_CHANGED,
+]);
 
 /** Session 事件（活動生命週期） */
 export const SESSION_STARTED = "session_started";

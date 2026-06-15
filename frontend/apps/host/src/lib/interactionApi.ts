@@ -1,6 +1,6 @@
 /** 互動項目 API（BE-002 / BE-003）。 */
 
-import { api } from "./api";
+import { api, ApiException } from "./api";
 import type { InteractionSummary, PollInteractionType } from "./pollTypes";
 
 export type Sprint9InteractionType = "quiz" | "ideas" | "survey";
@@ -67,9 +67,17 @@ export async function updateInteraction(
 }
 
 export async function deleteInteraction(interactionId: string): Promise<void> {
-  await api<void>(`/api/v1/interactions/${interactionId}`, {
-    method: "DELETE",
-  });
+  try {
+    await api<void>(`/api/v1/interactions/${interactionId}`, {
+      method: "DELETE",
+    });
+  } catch (err: unknown) {
+    // 重複刪除或列表快取殘留：後端已不存在時視為成功
+    if (err instanceof ApiException && err.status === 404) {
+      return;
+    }
+    throw err;
+  }
 }
 
 /** 工作台左欄拖曳排序（須含房間內所有非 Q&A 互動 id）。 */

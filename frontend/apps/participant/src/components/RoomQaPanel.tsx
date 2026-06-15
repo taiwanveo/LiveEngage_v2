@@ -129,12 +129,12 @@ export function RoomQaPanel({ roomId }: Props): React.JSX.Element {
       </section>
 
       <section>
-        <h2 className="mb-3 text-lg font-semibold text-foreground">熱門問題</h2>
+        <h2 className="mb-3 text-lg font-semibold text-foreground">問題列表</h2>
         {questionsQuery.isLoading ? (
           <p className="text-sm text-muted">載入中…</p>
         ) : items.length === 0 ? (
           <p className="le-card border-dashed p-8 text-center text-sm text-muted">
-            尚無已核准問題，成為第一個發問的人吧！
+            成為第一個發問的人吧！
           </p>
         ) : (
           <QaQuestionList

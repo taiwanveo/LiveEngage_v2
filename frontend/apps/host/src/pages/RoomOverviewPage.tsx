@@ -21,6 +21,7 @@ import {
 import { listSessions } from "../lib/sessionApi";
 import { overviewPresentUrl } from "../lib/presentUrl";
 import { HostShell } from "../components/HostShell";
+import { HostRoomHubBreadcrumb } from "../components/HostBreadcrumb";
 import { OverviewDashboard } from "../components/overview/OverviewDashboard";
 
 interface Props {
@@ -107,6 +108,7 @@ export function RoomOverviewPage({ roomId, onLogout }: Props): React.JSX.Element
         roomId={roomId}
         onLogout={onLogout}
         activeNav="overview"
+        breadcrumb={<HostRoomHubBreadcrumb roomId={roomId} currentLabel="即時總覽" />}
       >
         <p className="text-sm text-muted">
           {sessionsQuery.isLoading ? "載入中…" : "找不到此房間對應的活動。"}
@@ -122,6 +124,7 @@ export function RoomOverviewPage({ roomId, onLogout }: Props): React.JSX.Element
       onLogout={onLogout}
       activeNav="overview"
       presentHref={overviewPresentUrl(roomId)}
+      breadcrumb={<HostRoomHubBreadcrumb roomId={roomId} currentLabel="即時總覽" />}
     >
       <div className="animate-slide-up space-y-6">
         {overview ? (
