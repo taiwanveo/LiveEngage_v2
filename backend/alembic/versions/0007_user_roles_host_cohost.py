@@ -8,7 +8,7 @@ from __future__ import annotations
 from alembic import op
 
 revision = "0007_user_roles_host_cohost"
-down_revision = "0006_sprint9_phase_d"
+down_revision = "0006"
 branch_labels = None
 depends_on = None
 
