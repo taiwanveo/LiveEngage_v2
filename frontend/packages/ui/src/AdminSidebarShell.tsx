@@ -11,7 +11,6 @@ export interface SidebarNavItem {
 
 interface Props {
   brand?: string;
-  tagline?: string;
   activeId: string;
   navItems: SidebarNavItem[];
   onLogout: () => void;
@@ -19,8 +18,7 @@ interface Props {
 }
 
 export function AdminSidebarShell({
-  brand = "LiveEngage",
-  tagline = "管理後台（admin）",
+  brand = "LiveEngage 管理後台",
   activeId,
   navItems,
   onLogout,
@@ -30,7 +28,6 @@ export function AdminSidebarShell({
     <div className="le-page-bg flex min-h-full flex-col">
       <AppHeader
         brand={brand}
-        tagline={tagline}
         onLogout={onLogout}
         maxWidth="full"
       />

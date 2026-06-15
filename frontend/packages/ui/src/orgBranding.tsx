@@ -71,10 +71,6 @@ export function applyOrgBranding(branding: PublicBranding | null | undefined): v
     }
     link.href = branding.favicon_url;
   }
-
-  if (branding.display_name) {
-    document.title = branding.display_name;
-  }
 }
 
 const OrgBrandingContext = React.createContext<PublicBranding | null>(null);

@@ -7,7 +7,7 @@ import { OrgBrandMark, useOrgBranding } from "./orgBranding";
 interface Props {
   title: string;
   subtitle?: string;
-  /** AppHeader 副標（例如「控場端（host）」） */
+  /** AppHeader 副標（例如「主持人工作台（host）」） */
   appTagline?: string;
   children: React.ReactNode;
   footer?: React.ReactNode;

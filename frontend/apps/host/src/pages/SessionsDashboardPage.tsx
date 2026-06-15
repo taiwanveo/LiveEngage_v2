@@ -96,14 +96,8 @@ export function SessionsDashboardPage({ onLogout }: Props): React.JSX.Element {
   return (
     <main className="le-page-bg min-h-full">
       <AppHeader
-        brand="LiveEngage Host"
+        brand="LiveEngage 主持人工作台"
         brandHref={HOST_DASHBOARD_HASH}
-        tagline="活動儀表板"
-        taglineAddon={
-          <button type="button" onClick={openCreateModal} className="le-btn-primary !min-h-[32px] !px-3 !py-1 !text-xs">
-            建立新活動
-          </button>
-        }
         maxWidth="6xl"
         onLogout={onLogout}
       />
@@ -139,7 +133,16 @@ export function SessionsDashboardPage({ onLogout }: Props): React.JSX.Element {
 
       <div className="relative z-10 mx-auto max-w-6xl px-4 py-8 sm:px-6">
         <section>
-          <h2 className="mb-4 font-display text-lg font-semibold text-foreground">我的活動</h2>
+          <div className="mb-4 flex flex-wrap items-center">
+            <h2 className="font-display text-lg font-semibold text-foreground">我的活動</h2>
+            <button
+              type="button"
+              onClick={openCreateModal}
+              className="le-btn-primary ml-[3ch] !min-h-[32px] !px-3 !py-1 !text-xs"
+            >
+              建立新活動
+            </button>
+          </div>
           {sessionsQuery.isLoading ? (
             <p className="text-sm text-muted">載入中…</p>
           ) : sessionsQuery.data?.length === 0 ? (
@@ -216,7 +219,7 @@ function SessionCard(props: {
               type="button"
               disabled={props.statusPending}
               onClick={props.onEnd}
-              className="le-btn-secondary !min-h-[36px] !px-3 !py-1.5 !text-xs"
+              className="le-btn-secondary !min-h-[36px] !px-3 !py-1.5 !text-xs !text-danger"
             >
               結束活動
             </button>

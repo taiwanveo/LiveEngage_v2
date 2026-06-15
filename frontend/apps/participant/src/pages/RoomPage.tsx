@@ -35,10 +35,12 @@ import {
 import { getPoll, getPollResults, isPollType, submitPollResponse } from "../lib/pollApi";
 import { patchQaVoteFromWs } from "../lib/qaCache";
 import { getSessionState } from "../lib/sessionApi";
+import { fetchBrandingByCode } from "../lib/brandingApi";
 import { submitQuizAnswer, getActiveQuizQuestion, type ActiveQuizQuestion } from "../lib/sprint9Api";
 import {
   AppHeader,
   Modal,
+  OrgBrandingProvider,
   interactionTypeLabel,
   useSystemNotice,
 } from "@liveengage/ui";
@@ -68,6 +70,13 @@ export function RoomPage(): React.JSX.Element {
     queryFn: () => getSessionState(ctx!.sessionId),
     enabled: Boolean(ctx?.sessionId),
     refetchInterval: 30_000,
+  });
+
+  const brandingQuery = useQuery({
+    queryKey: ["participant-room-branding", ctx?.sessionCode],
+    queryFn: () => fetchBrandingByCode(ctx!.sessionCode!),
+    enabled: Boolean(ctx?.sessionCode),
+    staleTime: 60_000,
   });
 
   const activePollId = useMemo(() => {
@@ -316,6 +325,9 @@ export function RoomPage(): React.JSX.Element {
   const sessionTitle = stateQuery.data?.title ?? "活動";
   const sessionCode = ctx.sessionCode ?? stateQuery.data?.code ?? null;
   const poll = pollQuery.data;
+  const headerTagline = ctx.displayName
+    ? `${sessionTitle} · 你好，${ctx.displayName}`
+    : sessionTitle;
 
   const leave = (): void => {
     clearParticipantSession();
@@ -329,21 +341,22 @@ export function RoomPage(): React.JSX.Element {
   };
 
   return (
-    <main className="le-page-bg min-h-full">
-      <AppHeader
-        brand={sessionTitle}
-        tagline={ctx.displayName ? `你好，${ctx.displayName}` : "參與者（participant）"}
-        maxWidth="2xl"
-        logoutLabel="離開"
-        onLogout={leave}
-        chromeFooterActions={<ParticipantShareActions sessionCode={sessionCode} />}
-        actions={
-          <span
-            className={connected ? "le-status-dot-live" : "le-status-dot bg-muted"}
-            title={connected ? "即時連線中" : "連線中斷，備援輪詢"}
-          />
-        }
-      />
+    <OrgBrandingProvider branding={brandingQuery.data ?? null}>
+      <main className="le-page-bg min-h-full">
+        <AppHeader
+          brand="LiveEngage 互動會場"
+          tagline={headerTagline}
+          maxWidth="2xl"
+          logoutLabel="離開"
+          onLogout={leave}
+          chromeFooterActions={<ParticipantShareActions sessionCode={sessionCode} />}
+          actions={
+            <span
+              className={connected ? "le-status-dot-live" : "le-status-dot bg-muted"}
+              title={connected ? "即時連線中" : "連線中斷，備援輪詢"}
+            />
+          }
+        />
 
       <div className="mx-auto max-w-2xl border-b border-border bg-surface/60 px-4 backdrop-blur-sm">
         <nav className="flex gap-1 overflow-x-auto" aria-label="互動分頁">
@@ -469,6 +482,7 @@ export function RoomPage(): React.JSX.Element {
         </p>
       </Modal>
     </main>
+    </OrgBrandingProvider>
   );
 }
 

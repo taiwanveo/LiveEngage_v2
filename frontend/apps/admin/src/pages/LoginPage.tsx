@@ -53,7 +53,7 @@ export function LoginPage({ onLoggedIn }: Props): React.JSX.Element {
       <BrandedAuthShell
         appTagline="管理後台（admin）"
         title="管理後台"
-        subtitle="帳號管理、組織設定、稽核資料、匯出與品牌設定"
+        subtitle="帳號管理、組織設定、系統日誌資料查詢與匯出"
         branding={brandingQuery.data ?? null}
       >
         <form onSubmit={onSubmit} className="space-y-5">

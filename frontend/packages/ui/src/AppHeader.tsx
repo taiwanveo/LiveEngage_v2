@@ -92,7 +92,7 @@ export function AppHeader({
 }: Props): React.JSX.Element {
   const hasNav = Boolean(navItems?.length || actions);
   const orgBranding = useOrgBranding();
-  const showOrgLogo = Boolean(orgBranding || brandHref);
+  const showOrgLogo = Boolean(orgBranding?.logo_url);
 
   return (
     <header className="sticky top-0 z-40 border-b border-border/80 bg-surface/80 backdrop-blur-xl">
