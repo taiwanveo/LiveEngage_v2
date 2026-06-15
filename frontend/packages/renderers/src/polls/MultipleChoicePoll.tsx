@@ -94,6 +94,7 @@ export function MultipleChoicePoll({
             options={sortedOptions}
             counts={optionCounts ?? []}
             large
+            showCorrectAnswer={shouldShowCorrectAnswer(mode, poll)}
           />
         ) : (
           <ResultBars

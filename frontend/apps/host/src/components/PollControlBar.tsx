@@ -4,6 +4,14 @@ import * as React from "react";
 import type { InteractionStatus, PollAction } from "../lib/pollTypes";
 import { isPollRunning } from "../lib/pollTypes";
 
+/** idle 時無法 reveal；hover「揭曉答案」時顯示。 */
+export const POLL_REVEAL_REQUIRES_STARTED_HINT =
+  "必須在互動項目開始或停止之後才可揭曉答案";
+
+export function canRevealPollResult(status: InteractionStatus): boolean {
+  return status !== "idle";
+}
+
 interface PollControlState {
   status: InteractionStatus;
   result_visible: boolean;
@@ -61,6 +69,7 @@ export function PollControlToggles({
 }): React.JSX.Element {
   const running = isPollRunning(poll.status);
   const locked = poll.status === "locked";
+  const revealBlockedByIdle = !canRevealPollResult(poll.status);
 
   return (
     <>
@@ -85,7 +94,10 @@ export function PollControlToggles({
         active={poll.result_visible}
         activeLabel="隱藏答案"
         inactiveLabel="揭曉答案"
-        disabled={pending}
+        disabled={pending || revealBlockedByIdle}
+        {...(revealBlockedByIdle && !poll.result_visible
+          ? { disabledHint: POLL_REVEAL_REQUIRES_STARTED_HINT }
+          : {})}
         size={size}
         onClick={() => onToggle(poll.result_visible ? "hide" : "reveal")}
       />
@@ -155,6 +167,8 @@ export function ControlToggle(props: {
   activeLabel: string;
   inactiveLabel: string;
   disabled?: boolean;
+  /** disabled 且為「揭曉答案」等需說明時，hover 顯示於按鈕上方 */
+  disabledHint?: string;
   accent?: ControlAccent;
   size?: ControlSize;
   /** 預設顯示狀態圓點；Sprint9「開放」等按鈕可關閉 */
@@ -166,7 +180,7 @@ export function ControlToggle(props: {
   const accent = props.accent ?? "default";
   const showDot = props.showDot ?? true;
 
-  return (
+  const button = (
     <button
       type="button"
       disabled={props.disabled}
@@ -180,4 +194,20 @@ export function ControlToggle(props: {
       {label}
     </button>
   );
+
+  if (props.disabled && props.disabledHint) {
+    return (
+      <span className="group/control-tip relative inline-flex">
+        {button}
+        <span
+          role="tooltip"
+          className="pointer-events-none absolute bottom-[calc(100%+6px)] left-1/2 z-50 w-max max-w-[240px] -translate-x-1/2 whitespace-normal rounded-md bg-foreground px-2 py-1.5 text-center text-[10px] font-normal leading-snug text-background opacity-0 shadow-md transition-opacity group-hover/control-tip:opacity-100 group-focus-within/control-tip:opacity-100"
+        >
+          {props.disabledHint}
+        </span>
+      </span>
+    );
+  }
+
+  return button;
 }

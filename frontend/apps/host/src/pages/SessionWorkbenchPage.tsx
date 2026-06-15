@@ -45,7 +45,12 @@ import { HOST_DASHBOARD_HASH, hostRoomNavItems } from "../components/HostShell";
 import { useHostRoomNavLiveState } from "../lib/useHostRoomNavLiveState";
 import { HostRoomHubBreadcrumb } from "../components/HostBreadcrumb";
 import { HostRoomHeaderActions } from "../components/HostRoomHeaderActions";
-import { ControlAction, ControlToggle } from "../components/PollControlBar";
+import {
+  ControlAction,
+  ControlToggle,
+  canRevealPollResult,
+  POLL_REVEAL_REQUIRES_STARTED_HINT,
+} from "../components/PollControlBar";
 import { isPollRunning } from "../lib/pollTypes";
 import { presentAppUrl, sprint9PresentUrl } from "../lib/presentUrl";
 import {
@@ -345,7 +350,16 @@ export function SessionWorkbenchPage({
             active={Boolean(poll?.result_visible)}
             activeLabel="隱藏答案"
             inactiveLabel="揭曉答案"
-            disabled={!poll || actionMutation.isPending}
+            disabled={
+              !poll ||
+              actionMutation.isPending ||
+              !canRevealPollResult(poll.status)
+            }
+            {...(poll &&
+            !canRevealPollResult(poll.status) &&
+            !poll.result_visible
+              ? { disabledHint: POLL_REVEAL_REQUIRES_STARTED_HINT }
+              : {})}
             size="compact"
             onClick={() => runPollAction(poll?.result_visible ? "hide" : "reveal")}
           />
