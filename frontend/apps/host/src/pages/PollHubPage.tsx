@@ -4,16 +4,13 @@ import * as React from "react";
 import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { formatUserFacingError } from "@liveengage/realtime";
-import {
-  ListActionDanger,
-  ListActionLink,
-  PresentListAction,
-  useSystemNotice,
-} from "@liveengage/ui";
+import { useSystemNotice } from "@liveengage/ui";
+import { HubInteractionRowActions } from "../components/HubInteractionRowActions";
 import { HostRoomHubBreadcrumb } from "../components/HostBreadcrumb";
 import { HostShell } from "../components/HostShell";
 import { canEditHostContent } from "../lib/auth";
 import { createInteraction, deleteInteraction, listInteractions } from "../lib/interactionApi";
+import { pollAction } from "../lib/pollApi";
 import { presentAppUrl } from "../lib/presentUrl";
 import {
   interactionMetaLine,
@@ -29,7 +26,7 @@ interface Props {
 
 export function PollHubPage({ roomId, onLogout }: Props): React.JSX.Element {
   const queryClient = useQueryClient();
-  const { showError, systemNoticeModal } = useSystemNotice();
+  const { showError, showSuccess, systemNoticeModal } = useSystemNotice();
   const editable = canEditHostContent();
   const [newType, setNewType] = useState<PollInteractionType>("multiple_choice");
   const [newTitle, setNewTitle] = useState("");
@@ -45,6 +42,17 @@ export function PollHubPage({ roomId, onLogout }: Props): React.JSX.Element {
       void queryClient.invalidateQueries({ queryKey: ["interactions", roomId] }),
     onError: (err: unknown) => {
       showError(formatUserFacingError(err, "刪除失敗"));
+    },
+  });
+
+  const startMutation = useMutation({
+    mutationFn: (pollId: string) => pollAction(pollId, "start"),
+    onSuccess: () => {
+      showSuccess("已開始");
+      void queryClient.invalidateQueries({ queryKey: ["interactions", roomId] });
+    },
+    onError: (err: unknown) => {
+      showError(formatUserFacingError(err, "開始失敗，請稍後再試"));
     },
   });
 
@@ -123,59 +131,45 @@ export function PollHubPage({ roomId, onLogout }: Props): React.JSX.Element {
           ) : polls.length === 0 ? (
             <li className="px-4 py-8 text-center text-sm text-muted">尚無 Poll</li>
           ) : (
-            polls.map((poll) => (
-              <li
-                key={poll.id}
-                className="flex flex-wrap items-center justify-between gap-3 px-4 py-3"
-              >
-                <div>
-                  <p className="font-medium text-foreground">
-                    {poll.title ?? "未命名題目"}
-                  </p>
-                  <p className="text-xs text-muted">
-                    {interactionMetaLine(
-                      poll.type,
-                      poll.status,
-                      poll.result_visible ? "結果已揭示" : undefined
-                    )}
-                  </p>
-                </div>
-                <div className="flex flex-wrap items-center gap-2">
-                  <ListActionLink href={`#/rooms/${roomId}/polls/${poll.id}/builder`}>
-                    {editable ? "編輯" : "檢視"}
-                  </ListActionLink>
-                  <ListActionLink href={`#/rooms/${roomId}/workbench/${poll.id}`}>
-                    工作台
-                  </ListActionLink>
-                  <PresentListAction href={presentAppUrl(roomId, poll.id)} />
-                  <ListActionLink href={`#/rooms/${roomId}/polls/${poll.id}/answer`}>
-                    參與者預覽
-                  </ListActionLink>
-                  {editable ? (
-                  <ListActionDanger
-                    disabled={poll.status === "active" || deleteMutation.isPending}
-                    title={
+            polls.map((poll) => {
+              const label = poll.title ?? "未命名題目";
+              return (
+                <li
+                  key={poll.id}
+                  className="flex flex-wrap items-center justify-between gap-3 px-4 py-3"
+                >
+                  <div className="min-w-0 flex-1">
+                    <p className="font-medium text-foreground">{label}</p>
+                    <p className="text-xs text-muted">
+                      {interactionMetaLine(
+                        poll.type,
+                        poll.status,
+                        poll.result_visible ? "結果已揭示" : undefined
+                      )}
+                    </p>
+                  </div>
+                  <HubInteractionRowActions
+                    workbenchHref={`#/rooms/${roomId}/workbench/${poll.id}`}
+                    editHref={`#/rooms/${roomId}/polls/${poll.id}/builder`}
+                    presentHref={presentAppUrl(roomId, poll.id)}
+                    title={label}
+                    status={poll.status}
+                    editable={editable}
+                    canStart={editable}
+                    startPending={startMutation.isPending}
+                    onStart={() => startMutation.mutate(poll.id)}
+                    canDelete={poll.status !== "active"}
+                    deletePending={deleteMutation.isPending}
+                    deleteDisabledReason={
                       poll.status === "active"
                         ? "進行中的 Poll 須先停止後才能刪除"
                         : "刪除此 Poll"
                     }
-                    onClick={() => {
-                      if (
-                        !window.confirm(
-                          `確定要刪除「${poll.title ?? "未命名題目"}」？此動作無法復原。`
-                        )
-                      ) {
-                        return;
-                      }
-                      deleteMutation.mutate(poll.id);
-                    }}
-                  >
-                    刪除
-                  </ListActionDanger>
-                  ) : null}
-                </div>
-              </li>
-            ))
+                    onDelete={() => deleteMutation.mutate(poll.id)}
+                  />
+                </li>
+              );
+            })
           )}
         </ul>
       </section>

@@ -12,7 +12,7 @@ import {
   useRoomWebSocket,
   type WsEvent,
 } from "@liveengage/realtime";
-import { SessionToolbar, WorkbenchLayout, useSystemNotice } from "@liveengage/ui";
+import { HostRoomNavHeader, WorkbenchLayout, useSystemNotice } from "@liveengage/ui";
 import { getAccessToken, canEditHostContent } from "../lib/auth";
 import {
   createInteraction,
@@ -422,19 +422,21 @@ export function SessionWorkbenchPage({
     <>
       <WorkbenchLayout
         toolbar={
-          <SessionToolbar
+          <HostRoomNavHeader
             title={session?.title ?? "活動工作台"}
-            titleHref={HOST_DASHBOARD_HASH}
-            dateLabel={dateLabel}
-            code={session?.code ?? "—"}
-            visibilityLabel={session ? VISIBILITY_LABEL[session.visibility] : "—"}
+            brandHref={HOST_DASHBOARD_HASH}
+            sessionMeta={{
+              dateLabel,
+              code: session?.code ?? "—",
+              visibilityLabel: session ? VISIBILITY_LABEL[session.visibility] : "—",
+              ...(toolbarStatus
+                ? {
+                    statusLabel: toolbarStatus.label,
+                    statusBadgeVariant: toolbarStatus.variant,
+                  }
+                : {}),
+            }}
             navItems={hostRoomNavItems(roomId, "workbench")}
-            {...(toolbarStatus
-              ? {
-                  statusLabel: toolbarStatus.label,
-                  statusBadgeVariant: toolbarStatus.variant,
-                }
-              : {})}
             navControls={navControls}
             chromeFooterActions={
               <HostRoomHeaderActions
@@ -443,7 +445,7 @@ export function SessionWorkbenchPage({
               />
             }
             onLogout={onLogout}
-            extra={
+            titleExtra={
               <span
                 className={`le-status-dot ${connected ? "le-status-dot-live" : "bg-muted"}`}
                 title={connected ? "WS 已連線" : "WS 未連線"}

@@ -20,6 +20,12 @@ export function HostSessionMeta({ roomId }: Props): React.JSX.Element {
   return (
     <span className="cursor-default truncate font-sans text-xs text-muted" title={`room: ${roomId}`}>
       {label}
+      {session?.code ? (
+        <>
+          {" "}
+          <span className="font-mono text-accent">( {session.code} )</span>
+        </>
+      ) : null}
     </span>
   );
 }

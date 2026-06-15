@@ -23,6 +23,12 @@ export { onLoginFieldKeyDown } from "./loginForm";
 export { AppHeader, APP_HEADER_PADDING, AppHeaderChrome } from "./AppHeader";
 export { AdminSidebarShell } from "./AdminSidebarShell";
 export type { SidebarNavItem } from "./AdminSidebarShell";
+export { HostRoomNavHeader } from "./HostRoomNavHeader";
+export type {
+  HostRoomNavHeaderProps,
+  HostRoomNavItem,
+  HostRoomSessionMeta,
+} from "./HostRoomNavHeader";
 export { SessionToolbar } from "./SessionToolbar";
 export type { SessionToolbarProps } from "./SessionToolbar";
 export { WorkbenchLayout } from "./WorkbenchLayout";
@@ -37,6 +43,10 @@ export {
   ListActionLink,
   ListActionPrimary,
   ListActionDanger,
+  ListActionCompactDanger,
+  ListActionCompactLink,
+  ListActionCompactPrimary,
+  ListActionCompactSecondary,
 } from "./Button";
 export type { ButtonProps, ButtonLinkProps, ButtonVariant, ButtonSize } from "./Button";
 export { PresentButton, PresentListAction } from "./PresentButton";

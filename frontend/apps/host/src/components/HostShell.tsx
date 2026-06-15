@@ -1,5 +1,7 @@
+/** Host 頁面外殼：統一房間頂欄 + 內容區。 */
+
 import * as React from "react";
-import { AppHeader } from "@liveengage/ui";
+import { HostRoomNavHeader } from "@liveengage/ui";
 import { HostRoomHeaderActions } from "./HostRoomHeaderActions";
 import { HostSessionMeta } from "./HostSessionMeta";
 
@@ -56,23 +58,22 @@ export function HostShell({
 }: HostShellProps): React.JSX.Element {
   return (
     <main className="le-page-bg min-h-full">
-      <AppHeader
-        brand={title}
+      <HostRoomNavHeader
+        title={title}
         brandHref={HOST_DASHBOARD_HASH}
-        brandAddon={titleAddon}
-        tagline={subtitle ?? ""}
+        {...(titleAddon ? { brandAddon: titleAddon } : {})}
+        {...(subtitle ? { tagline: subtitle } : {})}
         meta={<HostSessionMeta roomId={roomId} />}
-        maxWidth="7xl"
+        navItems={hostRoomNavItems(roomId, activeNav)}
+        {...(actions ? { actions } : {})}
         onLogout={onLogout}
-        actions={actions}
-        subRow={breadcrumb}
         chromeFooterActions={
           <HostRoomHeaderActions
             roomId={roomId}
             {...(presentHref ? { presentHref } : {})}
           />
         }
-        navItems={hostRoomNavItems(roomId, activeNav)}
+        {...(breadcrumb ? { subRow: breadcrumb } : {})}
       />
       <div className="relative z-10 mx-auto max-w-7xl px-4 py-6 sm:px-6">{children}</div>
     </main>

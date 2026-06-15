@@ -4,10 +4,10 @@ import * as React from "react";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
-  Button,
   JoinShareCard,
   Modal,
   PresentButton,
+  PresentIcon,
   ShareIcon,
   participantJoinUrl,
 } from "@liveengage/ui";
@@ -39,19 +39,28 @@ export function HostRoomHeaderActions({
 
   return (
     <>
-      <div className="flex items-center justify-end gap-1.5">
-        {presentHref ? <PresentButton href={presentHref} compact /> : null}
-        <Button
+      <div className="flex min-h-[1.75rem] items-center justify-end gap-1.5">
+        {presentHref ? (
+          <PresentButton href={presentHref} compact />
+        ) : (
+          <span
+            className="le-btn-primary le-btn-present-compact pointer-events-none invisible"
+            aria-hidden
+          >
+            <PresentIcon size={14} />
+            <span>投影</span>
+          </span>
+        )}
+        <button
           type="button"
-          variant="secondary"
-          size="xs"
           disabled={!session}
           title={shareTitle}
           onClick={() => setShareOpen(true)}
+          className="le-btn-secondary le-btn-present-compact disabled:opacity-50"
         >
           <ShareIcon size={14} />
-          分享
-        </Button>
+          <span>分享</span>
+        </button>
       </div>
 
       {session ? (

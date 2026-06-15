@@ -39,24 +39,32 @@ export function PresentButton({
   );
 }
 
-/** 列表列上的投影連結（與 PresentButton 同風格）。 */
+/** 列表列上的投影連結（與頂欄精簡投影同尺寸）。 */
 export function PresentListAction({
   href,
   className,
   title = "另開新視窗投影",
+  compact = true,
 }: {
   href: string;
   className?: string;
   title?: string;
+  compact?: boolean;
 }): React.JSX.Element {
   return (
     <button
       type="button"
       title={title}
       onClick={() => openPresentWindow(href)}
-      className={["le-btn-primary le-btn-sm", className].filter(Boolean).join(" ")}
+      className={[
+        "le-btn-primary",
+        compact ? "le-btn-present-compact" : "le-btn-sm",
+        className,
+      ]
+        .filter(Boolean)
+        .join(" ")}
     >
-      <PresentIcon size={16} />
+      <PresentIcon size={compact ? 14 : 16} />
       <span>投影</span>
     </button>
   );

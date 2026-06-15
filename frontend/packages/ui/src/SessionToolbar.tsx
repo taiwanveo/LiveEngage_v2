@@ -1,7 +1,10 @@
-/** Session 頂欄：日期、代碼；投影／分享置於登出下方。 */
+/**
+ * @deprecated 請改用 HostRoomNavHeader。保留以相容舊引用。
+ */
 
 import * as React from "react";
-import { APP_HEADER_PADDING, AppHeaderChrome } from "./AppHeader";
+import { HostRoomNavHeader } from "./HostRoomNavHeader";
+import type { HostRoomNavItem, HostRoomSessionMeta } from "./HostRoomNavHeader";
 
 export interface SessionToolbarProps {
   title: string;
@@ -9,20 +12,16 @@ export interface SessionToolbarProps {
   code: string;
   visibilityLabel: string;
   statusLabel?: string;
-  /** 狀態徽章樣式（預設 live 綠色） */
   statusBadgeVariant?: "live" | "accent" | "muted";
-  /** 房間頁面導覽（工作台／總覽／審核等） */
-  navItems?: { href: string; label: string; active?: boolean }[];
-  /** 返回按鈕文字（預設「← 返回」） */
+  navItems?: HostRoomNavItem[];
   backLabel?: string;
-  /** 第二列：控場 / 導覽按鈕 */
   navControls?: React.ReactNode;
   onBack?: () => void;
-  /** 設定後標題可點擊導覽（例如回到活動儀表板） */
   titleHref?: string;
+  /** @deprecated 請改用 brandHref */
+  brandHref?: string;
   onLogout?: () => void;
   extra?: React.ReactNode;
-  /** 登出列下方（Host 投影／分享） */
   chromeFooterActions?: React.ReactNode;
 }
 
@@ -32,129 +31,34 @@ export function SessionToolbar({
   code,
   visibilityLabel,
   statusLabel,
-  statusBadgeVariant = "live",
-  navItems,
-  backLabel = "← 返回",
+  statusBadgeVariant,
+  navItems = [],
   navControls,
-  onBack,
   titleHref,
+  brandHref,
   onLogout,
   extra,
   chromeFooterActions,
 }: SessionToolbarProps): React.JSX.Element {
-  const hasNavRow = Boolean(onBack || navControls);
-  const hasPageNav = Boolean(navItems?.length);
+  const sessionMeta: HostRoomSessionMeta = {
+    dateLabel,
+    code,
+    visibilityLabel,
+    ...(statusLabel ? { statusLabel, statusBadgeVariant } : {}),
+  };
 
   return (
-    <header className="sticky top-0 z-40 border-b border-border/80 bg-surface/80 backdrop-blur-xl">
-      <div className={`flex items-start gap-3 ${APP_HEADER_PADDING}`}>
-        <div className="flex min-w-0 flex-1 items-start gap-3">
-          <div className="flex min-w-0 flex-1 flex-col gap-1.5">
-          <div className="flex min-w-0 items-start gap-2">
-            <div className="min-w-0 flex-1">
-              <h1 className="truncate font-display text-lg font-bold tracking-tight text-foreground">
-                {titleHref ? (
-                  <a
-                    href={titleHref}
-                    className="rounded-sm transition-colors hover:text-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40"
-                    title="回到活動儀表板"
-                  >
-                    {title}
-                  </a>
-                ) : (
-                  title
-                )}
-              </h1>
-              <div className="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted">
-                <span className="inline-flex items-center gap-1">
-                  <CalendarIcon />
-                  {dateLabel}
-                </span>
-                <span className="hidden h-3 w-px bg-border sm:inline-block" />
-                <span className="font-mono">#{code}</span>
-                <span className="hidden h-3 w-px bg-border sm:inline-block" />
-                <span className="inline-flex items-center gap-1">
-                  <ShieldIcon />
-                  {visibilityLabel}
-                </span>
-                {statusLabel ? (
-                  <>
-                    <span className="hidden h-3 w-px bg-border sm:inline-block" />
-                    <span
-                      className={`le-badge ${
-                        statusBadgeVariant === "live"
-                          ? "le-badge-live"
-                          : statusBadgeVariant === "accent"
-                            ? "bg-accent/15 text-accent"
-                            : "bg-muted/20 text-muted"
-                      }`}
-                    >
-                      {statusLabel}
-                    </span>
-                  </>
-                ) : null}
-              </div>
-            </div>
-            {extra ? <div className="shrink-0 pt-1">{extra}</div> : null}
-          </div>
-
-          {hasNavRow ? (
-            <div className="flex flex-wrap items-center gap-1.5 text-[10px]">
-              {onBack ? (
-                <button
-                  type="button"
-                  onClick={onBack}
-                  className="le-btn-ghost !min-h-[26px] !px-1.5 !text-[10px] text-muted"
-                >
-                  {backLabel}
-                </button>
-              ) : null}
-              {navControls ? (
-                <div className="flex flex-wrap items-center gap-1 border-l border-border pl-2">
-                  {navControls}
-                </div>
-              ) : null}
-            </div>
-          ) : null}
-          </div>
-
-          {hasPageNav ? (
-            <div className="flex shrink-0 flex-wrap items-center justify-end gap-2 pt-0.5">
-              {navItems!.map((item) => (
-                <a
-                  key={item.href}
-                  href={item.href}
-                  className={`le-nav-link ${item.active ? "le-nav-link-active" : ""}`}
-                >
-                  {item.label}
-                </a>
-              ))}
-            </div>
-          ) : null}
-        </div>
-
-        <AppHeaderChrome
-          {...(onLogout ? { onLogout } : {})}
-          {...(chromeFooterActions ? { footerActions: chromeFooterActions } : {})}
-        />
-      </div>
-    </header>
-  );
-}
-
-function CalendarIcon(): React.JSX.Element {
-  return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
-      <rect x="3" y="4" width="18" height="18" rx="2" />
-      <path d="M16 2v4M8 2v4M3 10h18" />
-    </svg>
-  );
-}
-
-function ShieldIcon(): React.JSX.Element {
-  return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
-      <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-    </svg>
+    <HostRoomNavHeader
+      title={title}
+      {...(brandHref ?? titleHref
+        ? { brandHref: brandHref ?? titleHref! }
+        : {})}
+      sessionMeta={sessionMeta}
+      navItems={navItems}
+      {...(navControls ? { navControls } : {})}
+      {...(onLogout ? { onLogout } : {})}
+      {...(extra ? { titleExtra: extra } : {})}
+      {...(chromeFooterActions ? { chromeFooterActions } : {})}
+    />
   );
 }

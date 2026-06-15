@@ -93,3 +93,54 @@ export function ListActionPrimary(props: ButtonProps): React.JSX.Element {
 export function ListActionDanger(props: ButtonProps): React.JSX.Element {
   return <Button variant="danger" size="sm" {...props} />;
 }
+
+const COMPACT_CLASS = "le-btn-present-compact";
+
+/** 列表列精簡連結（對齊頂欄投影按鈕尺寸）。 */
+export function ListActionCompactLink({
+  variant = "secondary",
+  className,
+  ...props
+}: ButtonLinkProps): React.JSX.Element {
+  return (
+    <ButtonLink
+      variant={variant}
+      className={joinClasses(COMPACT_CLASS, className)}
+      {...props}
+    />
+  );
+}
+
+export function ListActionCompactPrimary(
+  props: ButtonLinkProps
+): React.JSX.Element {
+  return <ListActionCompactLink variant="primary" {...props} />;
+}
+
+/** 列表列精簡按鈕（開始等）。 */
+export function ListActionCompactSecondary({
+  className,
+  ...props
+}: ButtonProps): React.JSX.Element {
+  return (
+    <Button
+      variant="secondary"
+      className={joinClasses(COMPACT_CLASS, className)}
+      {...props}
+    />
+  );
+}
+
+/** 列表列精簡刪除（紅字）。 */
+export function ListActionCompactDanger({
+  className,
+  ...props
+}: ButtonProps): React.JSX.Element {
+  return (
+    <Button
+      variant="danger"
+      className={joinClasses(COMPACT_CLASS, className)}
+      {...props}
+    />
+  );
+}

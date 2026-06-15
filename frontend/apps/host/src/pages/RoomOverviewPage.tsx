@@ -18,7 +18,7 @@ import {
   listSessionParticipants,
   OVERVIEW_POLL_INTERVAL_MS,
 } from "../lib/overviewApi";
-import { listSessions, type SessionHost } from "../lib/sessionApi";
+import { listSessions } from "../lib/sessionApi";
 import { overviewPresentUrl } from "../lib/presentUrl";
 import { HostShell } from "../components/HostShell";
 import { OverviewDashboard } from "../components/overview/OverviewDashboard";
@@ -27,13 +27,6 @@ interface Props {
   roomId: string;
   onLogout: () => void;
 }
-
-const STATUS_LABEL: Record<SessionHost["status"], string> = {
-  draft: "草稿",
-  live: "進行中",
-  ended: "已結束",
-  archived: "已封存",
-};
 
 function overviewQueryKey(sessionId: string, roomId: string): string[] {
   return ["session-overview", sessionId, roomId];
@@ -90,7 +83,7 @@ export function RoomOverviewPage({ roomId, onLogout }: Props): React.JSX.Element
     [invalidateOverview]
   );
 
-  const { connected } = useRoomWebSocket({
+  useRoomWebSocket({
     roomId,
     token: getAccessToken(),
     mode: "host",
@@ -129,42 +122,8 @@ export function RoomOverviewPage({ roomId, onLogout }: Props): React.JSX.Element
       onLogout={onLogout}
       activeNav="overview"
       presentHref={overviewPresentUrl(roomId)}
-      titleAddon={
-        <span
-          className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${
-            session.status === "live"
-              ? "bg-live/15 text-live"
-              : "bg-surface-elevated text-muted"
-          }`}
-        >
-          {STATUS_LABEL[session.status]}
-        </span>
-      }
-      actions={
-        <span className="text-xs text-muted" title="WebSocket 連線狀態">
-          {connected ? "即時連線中" : "輪詢更新中"}
-        </span>
-      }
     >
       <div className="animate-slide-up space-y-6">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <p className="font-mono text-sm text-accent">{session.code}</p>
-          <div className="flex flex-wrap gap-2">
-            <a
-              href={`#/rooms/${roomId}/workbench`}
-              className="le-btn-secondary !min-h-[36px] !px-3 !text-xs"
-            >
-              工作台
-            </a>
-            <a
-              href={`#/rooms/${roomId}/moderation`}
-              className="le-nav-link !text-xs"
-            >
-              Q&amp;A 審核
-            </a>
-          </div>
-        </div>
-
         {overview ? (
           <OverviewDashboard
             roomId={roomId}

@@ -106,15 +106,20 @@ export function useOrgBranding(): PublicBranding | null {
 export function OrgBrandMark({
   fallback = "LiveEngage",
   className = "",
+  href,
+  linkTitle = "回到活動儀表板",
 }: {
   fallback?: string;
   className?: string;
+  /** 設定後 Logo 可點擊導覽（例如 Host 回到活動儀表板） */
+  href?: string;
+  linkTitle?: string;
 }): React.JSX.Element {
   const branding = useOrgBranding();
   const name = branding?.display_name?.trim() || fallback;
 
-  if (branding?.logo_url) {
-    return (
+  const inner =
+    branding?.logo_url ? (
       <span className={`inline-flex items-center gap-2 ${className}`.trim()}>
         <img
           src={branding.logo_url}
@@ -123,8 +128,21 @@ export function OrgBrandMark({
         />
         <span className="sr-only">{name}</span>
       </span>
+    ) : (
+      <span className={className}>{name}</span>
+    );
+
+  if (href) {
+    return (
+      <a
+        href={href}
+        title={linkTitle}
+        className="inline-block rounded-sm transition-opacity hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40"
+      >
+        {inner}
+      </a>
     );
   }
 
-  return <span className={className}>{name}</span>;
+  return inner;
 }

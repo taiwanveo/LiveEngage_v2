@@ -4,15 +4,11 @@ import * as React from "react";
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { formatUserFacingError } from "@liveengage/realtime";
-import {
-  ListActionDanger,
-  ListActionLink,
-  ListActionPrimary,
-  PresentListAction,
-  useSystemNotice,
-} from "@liveengage/ui";
+import { useSystemNotice } from "@liveengage/ui";
+import { HubInteractionRowActions } from "../components/HubInteractionRowActions";
 import { HostRoomHubBreadcrumb } from "../components/HostBreadcrumb";
 import { HostShell } from "../components/HostShell";
+import { canEditHostContent } from "../lib/auth";
 import { sprint9PresentUrl } from "../lib/presentUrl";
 import {
   createInteraction,
@@ -38,6 +34,7 @@ const S9_TYPES = [
 
 export function Sprint9HubPage({ roomId, onLogout }: Props): React.JSX.Element {
   const qc = useQueryClient();
+  const editable = canEditHostContent();
   const [newType, setNewType] = useState<(typeof S9_TYPES)[number]["value"]>("quiz");
   const [title, setTitle] = useState("");
   const { showError, showSuccess, systemNoticeModal } = useSystemNotice();
@@ -62,14 +59,14 @@ export function Sprint9HubPage({ roomId, onLogout }: Props): React.JSX.Element {
     },
   });
 
-  const activateMutation = useMutation({
+  const startMutation = useMutation({
     mutationFn: (id: string) => updateInteractionStatus(id, "active"),
     onSuccess: () => {
-      showSuccess("已開放");
+      showSuccess("已開始");
       void qc.invalidateQueries({ queryKey: ["interactions", roomId] });
     },
     onError: (err: unknown) => {
-      showError(formatUserFacingError(err, "開放失敗，請稍後再試"));
+      showError(formatUserFacingError(err, "開始失敗，請稍後再試"));
     },
   });
 
@@ -135,57 +132,42 @@ export function Sprint9HubPage({ roomId, onLogout }: Props): React.JSX.Element {
           <p className="px-6 py-8 text-sm text-muted">尚無 Quiz 互動</p>
         ) : (
           <ul className="divide-y divide-border">
-            {s9Items.map((item) => (
-              <li key={item.id} className="flex flex-wrap items-center justify-between gap-3 px-6 py-3">
-                <div>
-                  <p className="font-medium text-foreground">
-                    {item.title ?? interactionTypeLabel(item.type)}
-                  </p>
-                  <p className="text-xs text-muted">
-                    題型：{interactionTypeLabel(item.type)} · 狀態：
-                    {interactionStatusLabel(item.status)}
-                  </p>
-                </div>
-                <div className="flex flex-wrap items-center gap-2">
-                  {item.status !== "active" ? (
-                    <ListActionPrimary
-                      disabled={activateMutation.isPending}
-                      onClick={() => activateMutation.mutate(item.id)}
-                    >
-                      開放
-                    </ListActionPrimary>
-                  ) : null}
-                  <ListActionLink href={`#/rooms/${roomId}/workbench/${item.id}`}>
-                    工作台
-                  </ListActionLink>
-                  {["quiz", "ideas", "survey"].includes(item.type) ? (
-                    <PresentListAction href={sprint9PresentUrl(roomId, item.id)} />
-                  ) : null}
-                  {item.type === "quiz" ? (
-                    <ListActionDanger
-                      disabled={item.status === "active" || deleteMutation.isPending}
-                      title={
-                        item.status === "active"
-                          ? "進行中的 Quiz 須先結束後才能刪除"
-                          : "刪除此 Quiz"
-                      }
-                      onClick={() => {
-                        if (
-                          !window.confirm(
-                            `確定要刪除「${item.title ?? "快問快答"}」？此動作無法復原。`
-                          )
-                        ) {
-                          return;
-                        }
-                        deleteMutation.mutate(item.id);
-                      }}
-                    >
-                      刪除
-                    </ListActionDanger>
-                  ) : null}
-                </div>
-              </li>
-            ))}
+            {s9Items.map((item) => {
+              const label = item.title ?? interactionTypeLabel(item.type);
+              return (
+                <li
+                  key={item.id}
+                  className="flex flex-wrap items-center justify-between gap-3 px-6 py-3"
+                >
+                  <div className="min-w-0 flex-1">
+                    <p className="font-medium text-foreground">{label}</p>
+                    <p className="text-xs text-muted">
+                      題型：{interactionTypeLabel(item.type)} · 狀態：
+                      {interactionStatusLabel(item.status)}
+                    </p>
+                  </div>
+                  <HubInteractionRowActions
+                    workbenchHref={`#/rooms/${roomId}/workbench/${item.id}`}
+                    editHref={`#/rooms/${roomId}/workbench/${item.id}`}
+                    presentHref={sprint9PresentUrl(roomId, item.id)}
+                    title={label}
+                    status={item.status}
+                    editable={editable}
+                    canStart={editable}
+                    startPending={startMutation.isPending}
+                    onStart={() => startMutation.mutate(item.id)}
+                    canDelete={item.status !== "active"}
+                    deletePending={deleteMutation.isPending}
+                    deleteDisabledReason={
+                      item.status === "active"
+                        ? `進行中的 ${interactionTypeLabel(item.type)} 須先結束後才能刪除`
+                        : `刪除此 ${interactionTypeLabel(item.type)}`
+                    }
+                    onDelete={() => deleteMutation.mutate(item.id)}
+                  />
+                </li>
+              );
+            })}
           </ul>
         )}
       </section>

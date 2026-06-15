@@ -12,7 +12,7 @@ interface NavItem {
 
 interface Props {
   brand: string;
-  /** 設定後 brand 可點擊導覽（例如 Host 回到活動儀表板） */
+  /** 設定後組織 Logo 可點擊導覽（例如 Host 回到活動儀表板） */
   brandHref?: string;
   tagline?: string;
   meta?: React.ReactNode;
@@ -54,7 +54,10 @@ export function AppHeaderChrome({
   footerActions?: React.ReactNode;
 }): React.JSX.Element {
   return (
-    <div className="flex shrink-0 flex-col items-end gap-1.5" aria-label="顯示設定與帳號">
+    <div
+      className="flex min-w-[7.25rem] shrink-0 flex-col items-end gap-1.5"
+      aria-label="顯示設定與帳號"
+    >
       <div className="flex items-center gap-2">
         <ThemeSwitcher compact />
         {onLogout ? (
@@ -68,18 +71,7 @@ export function AppHeaderChrome({
   );
 }
 
-function BrandText({ brand, href }: { brand: string; href?: string }): React.JSX.Element {
-  if (href) {
-    return (
-      <a
-        href={href}
-        className="rounded-sm transition-colors hover:text-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40"
-        title="回到活動儀表板"
-      >
-        {brand}
-      </a>
-    );
-  }
+function BrandText({ brand }: { brand: string }): React.JSX.Element {
   return <span>{brand}</span>;
 }
 
@@ -100,6 +92,7 @@ export function AppHeader({
 }: Props): React.JSX.Element {
   const hasNav = Boolean(navItems?.length || actions);
   const orgBranding = useOrgBranding();
+  const showOrgLogo = Boolean(orgBranding || brandHref);
 
   return (
     <header className="sticky top-0 z-40 border-b border-border/80 bg-surface/80 backdrop-blur-xl">
@@ -110,17 +103,18 @@ export function AppHeader({
           }`}
         >
           <div className="min-w-0">
-            {orgBranding ? (
+            {showOrgLogo ? (
               <div className="mb-1">
                 <OrgBrandMark
                   fallback="LiveEngage"
                   className="font-display text-xs font-semibold tracking-wide text-muted"
+                  {...(brandHref ? { href: brandHref } : {})}
                 />
               </div>
             ) : null}
             <div className="flex items-center justify-between gap-x-3 gap-y-1">
               <h1 className="min-w-0 font-display text-lg font-bold tracking-tight text-foreground">
-                <BrandText brand={brand} {...(brandHref ? { href: brandHref } : {})} />
+                <BrandText brand={brand} />
               </h1>
               {brandAddon ? (
                 <div className="flex shrink-0 flex-wrap items-center justify-end gap-x-2">
