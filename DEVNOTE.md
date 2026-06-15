@@ -7,7 +7,7 @@
 ## SNAPSHOT（2026-06-15）
 
 - **Repo**：https://github.com/ColdRighter/LiveEngage.git（master）
-- **最新 commit**：見本輪 push — 五大服務架構文件
+- **最新 commit**：`3ccb83c` — 五大服務架構文件
 - **typecheck**：`host`、`participant`、`admin` 通過
 - **接手文件**：[`docs/服務架構.md`](docs/服務架構.md) — api / host / participant / admin / worker 分工
 
