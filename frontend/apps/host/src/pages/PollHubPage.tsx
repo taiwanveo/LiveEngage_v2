@@ -56,6 +56,17 @@ export function PollHubPage({ roomId, onLogout }: Props): React.JSX.Element {
     },
   });
 
+  const stopMutation = useMutation({
+    mutationFn: (pollId: string) => pollAction(pollId, "stop"),
+    onSuccess: () => {
+      showSuccess("已結束");
+      void queryClient.invalidateQueries({ queryKey: ["interactions", roomId] });
+    },
+    onError: (err: unknown) => {
+      showError(formatUserFacingError(err, "結束失敗，請稍後再試"));
+    },
+  });
+
   const createMutation = useMutation({
     mutationFn: () =>
       createInteraction(roomId, {
@@ -122,7 +133,7 @@ export function PollHubPage({ roomId, onLogout }: Props): React.JSX.Element {
       <section className="le-card overflow-hidden">
         <header className="border-b border-border px-4 py-3">
           <h2 className="text-sm font-semibold text-foreground">
-            房間內 Poll（{polls.length}）
+            已建立Poll項目（{polls.length}）
           </h2>
         </header>
         <ul className="divide-y divide-border">
@@ -156,13 +167,19 @@ export function PollHubPage({ roomId, onLogout }: Props): React.JSX.Element {
                     status={poll.status}
                     editable={editable}
                     canStart={editable}
-                    startPending={startMutation.isPending}
+                    startPending={
+                      startMutation.isPending && startMutation.variables === poll.id
+                    }
                     onStart={() => startMutation.mutate(poll.id)}
-                    canDelete={poll.status !== "active"}
+                    stopPending={
+                      stopMutation.isPending && stopMutation.variables === poll.id
+                    }
+                    onStop={() => stopMutation.mutate(poll.id)}
+                    canDelete={poll.status !== "active" && poll.status !== "locked"}
                     deletePending={deleteMutation.isPending}
                     deleteDisabledReason={
-                      poll.status === "active"
-                        ? "進行中的 Poll 須先停止後才能刪除"
+                      poll.status === "active" || poll.status === "locked"
+                        ? "進行中的 Poll 須先結束後才能刪除"
                         : "刪除此 Poll"
                     }
                     onDelete={() => deleteMutation.mutate(poll.id)}

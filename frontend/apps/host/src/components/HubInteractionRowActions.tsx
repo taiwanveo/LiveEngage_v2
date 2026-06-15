@@ -20,6 +20,8 @@ interface Props {
   canStart: boolean;
   startPending?: boolean;
   onStart: () => void;
+  stopPending?: boolean;
+  onStop: () => void;
   canDelete: boolean;
   deletePending?: boolean;
   deleteDisabledReason?: string;
@@ -37,6 +39,10 @@ function ActionPlaceholder({ label }: { label: string }): React.JSX.Element {
   );
 }
 
+function isInteractionRunning(status: InteractionStatus): boolean {
+  return status === "active" || status === "locked";
+}
+
 export function HubInteractionRowActions({
   workbenchHref,
   editHref,
@@ -47,17 +53,17 @@ export function HubInteractionRowActions({
   canStart,
   startPending = false,
   onStart,
+  stopPending = false,
+  onStop,
   canDelete,
   deletePending = false,
   deleteDisabledReason,
   onDelete,
 }: Props): React.JSX.Element {
-  const showStart = canStart && status !== "active";
+  const running = isInteractionRunning(status);
 
   const handleDelete = (): void => {
-    if (
-      !window.confirm(`確定要刪除「${title}」？此動作無法復原。`)
-    ) {
+    if (!window.confirm(`確定要刪除「${title}」？此動作無法復原。`)) {
       return;
     }
     onDelete();
@@ -67,11 +73,12 @@ export function HubInteractionRowActions({
     <div className="flex shrink-0 items-center gap-1.5">
       <ListActionCompactPrimary href={workbenchHref}>工作台</ListActionCompactPrimary>
 
-      {showStart ? (
-        <ListActionCompactSecondary
-          disabled={startPending}
-          onClick={onStart}
-        >
+      {running ? (
+        <ListActionCompactDanger disabled={stopPending} onClick={onStop}>
+          {stopPending ? "處理中…" : "結束"}
+        </ListActionCompactDanger>
+      ) : canStart ? (
+        <ListActionCompactSecondary disabled={startPending} onClick={onStart}>
           {startPending ? "處理中…" : "開始"}
         </ListActionCompactSecondary>
       ) : (
@@ -94,10 +101,7 @@ export function HubInteractionRowActions({
             刪除
           </ListActionCompactDanger>
         ) : (
-          <ListActionCompactDanger
-            disabled
-            title={deleteDisabledReason}
-          >
+          <ListActionCompactDanger disabled title={deleteDisabledReason}>
             刪除
           </ListActionCompactDanger>
         )

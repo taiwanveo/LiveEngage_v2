@@ -70,6 +70,17 @@ export function Sprint9HubPage({ roomId, onLogout }: Props): React.JSX.Element {
     },
   });
 
+  const stopMutation = useMutation({
+    mutationFn: (id: string) => updateInteractionStatus(id, "stopped"),
+    onSuccess: () => {
+      showSuccess("已結束");
+      void qc.invalidateQueries({ queryKey: ["interactions", roomId] });
+    },
+    onError: (err: unknown) => {
+      showError(formatUserFacingError(err, "結束失敗，請稍後再試"));
+    },
+  });
+
   const deleteMutation = useMutation({
     mutationFn: (id: string) => deleteInteraction(id),
     onSuccess: () => void qc.invalidateQueries({ queryKey: ["interactions", roomId] }),
@@ -123,21 +134,23 @@ export function Sprint9HubPage({ roomId, onLogout }: Props): React.JSX.Element {
       </section>
 
       <section className="le-card overflow-hidden">
-        <header className="border-b border-border px-6 py-4">
-          <h2 className="text-sm font-semibold text-foreground">已建立項目</h2>
+        <header className="border-b border-border px-4 py-3">
+          <h2 className="text-sm font-semibold text-foreground">
+            已建立Quiz項目（{s9Items.length}）
+          </h2>
         </header>
-        {isLoading ? (
-          <p className="px-6 py-8 text-sm text-muted">載入中…</p>
-        ) : s9Items.length === 0 ? (
-          <p className="px-6 py-8 text-sm text-muted">尚無 Quiz 互動</p>
-        ) : (
-          <ul className="divide-y divide-border">
-            {s9Items.map((item) => {
+        <ul className="divide-y divide-border">
+          {isLoading ? (
+            <li className="px-4 py-8 text-center text-sm text-muted">載入中…</li>
+          ) : s9Items.length === 0 ? (
+            <li className="px-4 py-8 text-center text-sm text-muted">尚無 Quiz 互動</li>
+          ) : (
+            s9Items.map((item) => {
               const label = item.title ?? interactionTypeLabel(item.type);
               return (
                 <li
                   key={item.id}
-                  className="flex flex-wrap items-center justify-between gap-3 px-6 py-3"
+                  className="flex flex-wrap items-center justify-between gap-3 px-4 py-3"
                 >
                   <div className="min-w-0 flex-1">
                     <p className="font-medium text-foreground">{label}</p>
@@ -154,12 +167,18 @@ export function Sprint9HubPage({ roomId, onLogout }: Props): React.JSX.Element {
                     status={item.status}
                     editable={editable}
                     canStart={editable}
-                    startPending={startMutation.isPending}
+                    startPending={
+                      startMutation.isPending && startMutation.variables === item.id
+                    }
                     onStart={() => startMutation.mutate(item.id)}
-                    canDelete={item.status !== "active"}
+                    stopPending={
+                      stopMutation.isPending && stopMutation.variables === item.id
+                    }
+                    onStop={() => stopMutation.mutate(item.id)}
+                    canDelete={item.status !== "active" && item.status !== "locked"}
                     deletePending={deleteMutation.isPending}
                     deleteDisabledReason={
-                      item.status === "active"
+                      item.status === "active" || item.status === "locked"
                         ? `進行中的 ${interactionTypeLabel(item.type)} 須先結束後才能刪除`
                         : `刪除此 ${interactionTypeLabel(item.type)}`
                     }
@@ -167,9 +186,9 @@ export function Sprint9HubPage({ roomId, onLogout }: Props): React.JSX.Element {
                   />
                 </li>
               );
-            })}
-          </ul>
-        )}
+            })
+          )}
+        </ul>
       </section>
       {systemNoticeModal}
     </HostShell>
