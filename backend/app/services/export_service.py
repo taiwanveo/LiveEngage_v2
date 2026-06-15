@@ -38,6 +38,26 @@ from app.workers.export_tasks import enqueue_export_job
 
 EXPORT_TTL_HOURS = 72
 
+# 各 section 列可能帶不同欄位；CSV DictWriter 須使用聯集欄位（否則含 email/status 列會 ValueError）
+_EXPORT_ROW_FIELDS = ("section", "field", "value", "email", "status", "upvotes")
+
+
+def _export_fieldnames(rows: list[dict[str, Any]]) -> list[str]:
+    if not rows:
+        return ["section", "field", "value"]
+    present = {key for row in rows for key in row}
+    return [name for name in _EXPORT_ROW_FIELDS if name in present]
+
+
+def _write_csv_bytes(rows: list[dict[str, Any]]) -> bytes:
+    buf = io.StringIO()
+    fieldnames = _export_fieldnames(rows)
+    writer = csv.DictWriter(buf, fieldnames=fieldnames, extrasaction="ignore")
+    writer.writeheader()
+    if rows:
+        writer.writerows(rows)
+    return buf.getvalue().encode("utf-8-sig")
+
 
 def _to_job_response(job: ExportJob, *, base_url: str = "") -> ExportJobResponse:
     download_url: str | None = None
@@ -240,14 +260,7 @@ async def build_export_bytes(db: AsyncSession, job: ExportJob) -> tuple[bytes, s
         })
 
     if job.format == ExportFormat.CSV:
-        buf = io.StringIO()
-        if rows:
-            writer = csv.DictWriter(buf, fieldnames=list(rows[0].keys()))
-            writer.writeheader()
-            writer.writerows(rows)
-        else:
-            buf.write("section,field,value\n")
-        content = buf.getvalue().encode("utf-8-sig")
+        content = _write_csv_bytes(rows)
         return content, "text/csv", f"export-{session.code}.csv"
 
     # XLSX via openpyxl（若未安裝則 fallback CSV）
@@ -257,8 +270,8 @@ async def build_export_bytes(db: AsyncSession, job: ExportJob) -> tuple[bytes, s
         wb = Workbook()
         ws = wb.active
         ws.title = "Export"
-        if rows:
-            headers = list(rows[0].keys())
+        headers = _export_fieldnames(rows)
+        if headers:
             ws.append(headers)
             for row in rows:
                 ws.append([row.get(h) for h in headers])
@@ -270,9 +283,5 @@ async def build_export_bytes(db: AsyncSession, job: ExportJob) -> tuple[bytes, s
             f"export-{session.code}.xlsx",
         )
     except ImportError:
-        buf = io.StringIO()
-        if rows:
-            writer = csv.DictWriter(buf, fieldnames=list(rows[0].keys()))
-            writer.writeheader()
-            writer.writerows(rows)
-        return buf.getvalue().encode("utf-8-sig"), "text/csv", f"export-{session.code}.csv"
+        content = _write_csv_bytes(rows)
+        return content, "text/csv", f"export-{session.code}.csv"
