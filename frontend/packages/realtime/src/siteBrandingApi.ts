@@ -7,6 +7,7 @@ export interface SiteBranding {
   logo_url: string | null;
   favicon_url: string | null;
   primary_color: string;
+  override_theme_colors: boolean;
 }
 
 export async function fetchSiteBranding(): Promise<SiteBranding> {

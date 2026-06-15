@@ -7,6 +7,7 @@ import {
   THEME_STORAGE_KEY,
   type ThemeId,
 } from "./theme";
+import { syncBrandingThemeColors } from "./orgBranding";
 
 interface ThemeContextValue {
   theme: ThemeId;
@@ -24,6 +25,7 @@ function readStoredTheme(): ThemeId {
 
 function applyTheme(id: ThemeId): void {
   document.documentElement.setAttribute("data-theme", id);
+  syncBrandingThemeColors();
   localStorage.setItem(THEME_STORAGE_KEY, id);
 }
 

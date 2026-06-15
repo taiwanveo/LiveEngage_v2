@@ -118,6 +118,7 @@ class BrandingSettings(BaseModel):
     primary_color: str = Field(default="#2563eb", pattern=r"^#[0-9A-Fa-f]{6}$")
     custom_domain: str | None = Field(default=None, max_length=255)
     display_name: str | None = Field(default=None, max_length=255)
+    override_theme_colors: bool = False
 
 
 class BrandingResponse(BaseModel):
@@ -131,6 +132,7 @@ class BrandingUpdateRequest(BaseModel):
     primary_color: str | None = Field(default=None, pattern=r"^#[0-9A-Fa-f]{6}$")
     custom_domain: str | None = Field(default=None, max_length=255)
     display_name: str | None = Field(default=None, max_length=255)
+    override_theme_colors: bool | None = None
 
 
 class PublicBrandingResponse(BaseModel):
@@ -140,6 +142,7 @@ class PublicBrandingResponse(BaseModel):
     logo_url: str | None
     favicon_url: str | None
     primary_color: str
+    override_theme_colors: bool = False
 
 
 # ── Export Jobs（S7-5 / BE-012）──────────────────────────────────────────────

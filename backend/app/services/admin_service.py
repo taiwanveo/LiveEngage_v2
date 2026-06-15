@@ -460,6 +460,18 @@ def _parse_branding(raw: dict[str, Any]) -> BrandingSettings:
     return BrandingSettings.model_validate(branding_raw)
 
 
+def _public_branding_from_org(org: Organization) -> PublicBrandingResponse:
+    """公開品牌：顯示名稱一律用組織名稱。"""
+    branding = _parse_branding(org.settings_jsonb or {})
+    return PublicBrandingResponse(
+        display_name=org.name,
+        logo_url=branding.logo_url,
+        favicon_url=branding.favicon_url,
+        primary_color=branding.primary_color,
+        override_theme_colors=branding.override_theme_colors,
+    )
+
+
 async def get_branding(db: AsyncSession, actor: User) -> BrandingResponse:
     org = await _get_org_or_403(db, actor)
     return BrandingResponse(org_id=org.id, branding=_parse_branding(org.settings_jsonb or {}))
@@ -468,13 +480,7 @@ async def get_branding(db: AsyncSession, actor: User) -> BrandingResponse:
 async def get_branding_for_user(db: AsyncSession, actor: User) -> PublicBrandingResponse:
     """已登入 Host／Admin 使用者讀取自身組織品牌。"""
     org = await _get_org_or_403(db, actor)
-    branding = _parse_branding(org.settings_jsonb or {})
-    return PublicBrandingResponse(
-        display_name=branding.display_name or org.name,
-        logo_url=branding.logo_url,
-        favicon_url=branding.favicon_url,
-        primary_color=branding.primary_color,
-    )
+    return _public_branding_from_org(org)
 
 
 async def update_branding(
@@ -522,13 +528,7 @@ async def get_public_branding_by_code(
         from app.services.rate_limit_service import check_by_code_lookup
 
         await check_by_code_lookup(client_ip, parse_rate_limits(org.settings_jsonb))
-    branding = _parse_branding(org.settings_jsonb or {})
-    return PublicBrandingResponse(
-        display_name=branding.display_name or org.name,
-        logo_url=branding.logo_url,
-        favicon_url=branding.favicon_url,
-        primary_color=branding.primary_color,
-    )
+    return _public_branding_from_org(org)
 
 
 async def _resolve_site_organization(db: AsyncSession) -> Organization | None:
@@ -588,14 +588,9 @@ async def get_site_branding(db: AsyncSession) -> PublicBrandingResponse:
             logo_url=None,
             favicon_url=None,
             primary_color="#2563eb",
+            override_theme_colors=False,
         )
-    branding = _parse_branding(org.settings_jsonb or {})
-    return PublicBrandingResponse(
-        display_name=branding.display_name or org.name or None,
-        logo_url=branding.logo_url,
-        favicon_url=branding.favicon_url,
-        primary_color=branding.primary_color,
-    )
+    return _public_branding_from_org(org)
 
 
 # ── Analytics / Stats ─────────────────────────────────────────────────────────

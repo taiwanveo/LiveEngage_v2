@@ -52,11 +52,30 @@ class TestS74Branding:
             headers=_headers(token),
             json={"primary_color": "#112233", "display_name": "公開品牌"},
         )
+        org = client.get("/api/v1/admin/organization", headers=_headers(token)).json()
         pub = client.get(f"/api/v1/branding/by-code/{code}")
         assert pub.status_code == 200, pub.text
         data = pub.json()
         assert data["primary_color"] == "#112233"
-        assert data["display_name"] == "公開品牌"
+        assert data["display_name"] == org["name"]
+
+    def test_site_branding_respects_override_flag(
+        self, client: TestClient, host_token: tuple[str, str]
+    ) -> None:
+        token, _ = host_token
+        client.patch(
+            "/api/v1/admin/branding",
+            headers=_headers(token),
+            json={
+                "primary_color": "#ff5500",
+                "override_theme_colors": True,
+            },
+        )
+        site = client.get("/api/v1/branding/site")
+        assert site.status_code == 200, site.text
+        data = site.json()
+        assert data["primary_color"] == "#ff5500"
+        assert data["override_theme_colors"] is True
 
     def test_site_branding_public(self, client: TestClient) -> None:
         resp = client.get("/api/v1/branding/site")
@@ -76,11 +95,12 @@ class TestS74Branding:
             headers=_headers(token),
             json={"logo_url": logo_url, "display_name": "站點品牌"},
         )
+        org = client.get("/api/v1/admin/organization", headers=_headers(token)).json()
         site = client.get("/api/v1/branding/site")
         assert site.status_code == 200, site.text
         data = site.json()
         assert data["logo_url"] == logo_url
-        assert data["display_name"] == "站點品牌"
+        assert data["display_name"] == org["name"]
 
 
 class TestS75Export:

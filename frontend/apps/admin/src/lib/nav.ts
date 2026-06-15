@@ -50,7 +50,7 @@ export const NAV_ITEMS: NavItem[] = [
     id: "organization",
     label: "組織設定",
     hash: "#/organization",
-    description: "管理組織資料與品牌外觀",
+    description: "管理組織資料與品牌設定",
     sprint: "S7-2",
   },
   {

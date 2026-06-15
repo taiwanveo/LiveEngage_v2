@@ -1,4 +1,4 @@
-/** 組織品牌：favicon、主色、頂欄 Logo（S7-4）。 */
+/** 組織品牌：favicon、Logo；可選覆寫主題 accent 色。 */
 
 import * as React from "react";
 
@@ -7,7 +7,10 @@ export interface PublicBranding {
   logo_url: string | null;
   favicon_url: string | null;
   primary_color: string;
+  override_theme_colors: boolean;
 }
+
+let activeBranding: PublicBranding | null = null;
 
 function hexToRgbTriplet(hex: string): string | null {
   const m = /^#?([0-9a-f]{6})$/i.exec(hex.trim());
@@ -17,6 +20,43 @@ function hexToRgbTriplet(hex: string): string | null {
   const g = (n >> 8) & 255;
   const b = n & 255;
   return `${r} ${g} ${b}`;
+}
+
+/** 清除寫入 document 的 accent 覆寫。 */
+export function clearBrandingColorOverrides(): void {
+  const vars = [
+    "--le-accent",
+    "--le-accent-fg",
+    "--le-accent-muted",
+    "--le-primary-50",
+    "--le-primary-100",
+    "--le-primary-500",
+    "--le-primary-600",
+    "--le-primary-700",
+  ];
+  for (const name of vars) {
+    document.documentElement.style.removeProperty(name);
+  }
+}
+
+function applyBrandingColorOverrides(primaryColor: string): void {
+  const rgb = hexToRgbTriplet(primaryColor);
+  if (!rgb) return;
+  document.documentElement.style.setProperty("--le-accent", rgb);
+  document.documentElement.style.setProperty("--le-primary-600", rgb);
+}
+
+/** 依目前 active branding 與 data-theme 同步 accent（切換主題時呼叫）。 */
+export function syncBrandingThemeColors(): void {
+  clearBrandingColorOverrides();
+  if (activeBranding?.override_theme_colors && activeBranding.primary_color) {
+    applyBrandingColorOverrides(activeBranding.primary_color);
+  }
+}
+
+function setActiveOrgBranding(branding: PublicBranding | null): void {
+  activeBranding = branding;
+  syncBrandingThemeColors();
 }
 
 export function applyOrgBranding(branding: PublicBranding | null | undefined): void {
@@ -30,12 +70,6 @@ export function applyOrgBranding(branding: PublicBranding | null | undefined): v
       document.head.appendChild(link);
     }
     link.href = branding.favicon_url;
-  }
-
-  const rgb = hexToRgbTriplet(branding.primary_color);
-  if (rgb) {
-    document.documentElement.style.setProperty("--le-accent", rgb);
-    document.documentElement.style.setProperty("--le-primary-600", rgb);
   }
 
   if (branding.display_name) {
@@ -53,7 +87,11 @@ export function OrgBrandingProvider({
   children: React.ReactNode;
 }): React.JSX.Element {
   React.useEffect(() => {
+    setActiveOrgBranding(branding);
     applyOrgBranding(branding);
+    return () => {
+      setActiveOrgBranding(null);
+    };
   }, [branding]);
 
   return (

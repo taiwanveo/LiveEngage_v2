@@ -11,6 +11,7 @@ import { SessionsPage } from "./pages/SessionsPage";
 import { AuditPage } from "./pages/AuditPage";
 import { ExportsPage } from "./pages/ExportsPage";
 import { SsoCallbackPage, parseSsoCallbackHash } from "./pages/SsoCallbackPage";
+import { AdminBrandingRoot } from "./components/AdminBrandingRoot";
 import type { AdminRoute } from "./lib/nav";
 
 type Route = { name: AdminRoute } | { name: "login" };
@@ -84,19 +85,23 @@ export function App(): React.JSX.Element {
     );
   }
 
-  switch (route.name) {
-    case "organization":
-      return <OrganizationPage onLogout={logout} />;
-    case "accounts":
-      return <AccountsPage onLogout={logout} />;
-    case "sessions":
-      return <SessionsPage onLogout={logout} />;
-    case "audit":
-      return <AuditPage onLogout={logout} />;
-    case "exports":
-      return <ExportsPage onLogout={logout} />;
-    case "dashboard":
-    default:
-      return <DashboardPage onLogout={logout} />;
-  }
+  const page = (() => {
+    switch (route.name) {
+      case "organization":
+        return <OrganizationPage onLogout={logout} />;
+      case "accounts":
+        return <AccountsPage onLogout={logout} />;
+      case "sessions":
+        return <SessionsPage onLogout={logout} />;
+      case "audit":
+        return <AuditPage onLogout={logout} />;
+      case "exports":
+        return <ExportsPage onLogout={logout} />;
+      case "dashboard":
+      default:
+        return <DashboardPage onLogout={logout} />;
+    }
+  })();
+
+  return <AdminBrandingRoot>{page}</AdminBrandingRoot>;
 }

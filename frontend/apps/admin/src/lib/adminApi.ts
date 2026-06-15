@@ -170,6 +170,7 @@ export interface BrandingData {
     primary_color: string;
     custom_domain: string | null;
     display_name: string | null;
+    override_theme_colors: boolean;
   };
 }
 
