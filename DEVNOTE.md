@@ -7,43 +7,34 @@
 ## SNAPSHOT（2026-06-15）
 
 - **Repo**：https://github.com/ColdRighter/LiveEngage.git（master）
-- **最新 commit**：`792f5a0` — 全專案 API／網路錯誤訊息中文化
-- **typecheck**：`realtime`、`host`、`participant`、`admin` 通過
-- **Zeabur**：api / host / participant / admin / worker（**已刪除** `present` / `le-present`）
-
-### 已上線服務
-
-| 服務 | URL |
-|------|------|
-| api | https://le-api.zeabur.app |
-| host | https://le-host.zeabur.app（含大螢幕投影 `#/…/present`） |
-| participant | https://le-participant.zeabur.app |
-| admin | https://le-admin.zeabur.app |
+- **最新 commit**：`e3b1b1b` — UI 按鈕設計系統與投影按鈕統一
+- **typecheck**：`ui`、`host` 通過
+- **Zeabur**：api / host / participant / admin / worker
 
 ### 本輪重點
 
 | 區塊 | 內容 |
 |------|------|
-| **錯誤訊息中文化** | 新增 `formatUserFacingError`；`Failed to fetch` 等英文改為「無法連上伺服器，請確認網路連線或稍後再試」 |
-| **API client** | host / participant / admin 的 `fetch` 失敗統一拋中文 `ApiException` |
-| **Quiz 控場** | `Sprint9ConsolePage` 子題「開始」等 mutation 錯誤改走統一格式化 |
+| **設計系統** | `@liveengage/ui` 新增 `Button`、`PresentButton`、`ListAction*`；`theme.css` 擴充 sm/xs、danger/success/muted |
+| **投影按鈕** | 深綠填色 + 白字（修正 `text-accent-fg` 無效導致黑字）；圖示放大；移除「···」內嵌選單；一律 `openPresentWindow` |
+| **列表操作列** | Poll／Quiz 管理「投影」同風格（accent 填色 + 圖示 + sm 尺寸） |
 
-### 投影路由速查（Host）
+### 按鈕語意速查
 
-| 類型 | 路由 |
-|------|------|
-| Poll | `#/rooms/{roomId}/polls/{pollId}/present` |
-| Q&A | `#/rooms/{roomId}/moderation/present` |
-| Quiz / Ideas / Survey | `#/rooms/{roomId}/sprint9/{interactionId}/present` |
-
-### 仍可做（非阻塞）
-
-- Neon Pooler 環境變數
-- Playwright E2E
+| 用途 | variant |
+|------|---------|
+| 建立、投影、開始、開放 | `primary` / `success` |
+| 編輯、控制台、預覽、結束 | `secondary` |
+| 揭曉 | `muted` |
+| 刪除 | `danger` |
 
 ---
 
 ## HISTORY
+
+### 2026-06-15 — UI 按鈕設計系統（待 commit hash）
+
+`Button`／`PresentButton`；Poll／Quiz 投影統一；頂欄投影精簡並另開新視窗。
 
 ### 2026-06-15 — 錯誤訊息中文化（792f5a0）
 
