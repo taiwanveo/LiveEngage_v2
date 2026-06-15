@@ -7,7 +7,7 @@
 ## SNAPSHOT（2026-06-15）
 
 - **Repo**：https://github.com/ColdRighter/LiveEngage.git（master）
-- **最新 commit**：待 push — 修復管理後台匯出下載連結
+- **最新 commit**：`ad2ba42` — 修復管理後台匯出下載連結
 - **typecheck**：`admin` 通過；`test_public_url` 2 passed
 - **接手文件**：[`docs/服務架構.md`](docs/服務架構.md)
 - **api 健康**：https://le-api.zeabur.app/health
