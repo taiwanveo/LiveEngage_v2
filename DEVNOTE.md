@@ -7,11 +7,20 @@
 ## SNAPSHOT（2026-06-15）
 
 - **Repo**：https://github.com/ColdRighter/LiveEngage.git（master）
-- **最新 commit**：`3ccb83c` — 五大服務架構文件
+- **最新 commit**：`e634fe4` — api migration 修復（enum autocommit）
 - **typecheck**：`host`、`participant`、`admin` 通過
 - **接手文件**：[`docs/服務架構.md`](docs/服務架構.md) — api / host / participant / admin / worker 分工
+- **api 健康**：https://le-api.zeabur.app/health → `{"status":"ok"}`
 
-### 本輪重點（文件）
+### 本輪重點（api 502 / 後台無法登入）
+
+| 問題 | 根因 | 修復 |
+|------|------|------|
+| Admin 登入「無法連上伺服器」 | `le-api.zeabur.app` 502，api 服務 crash loop | 見下方兩次 migration 修正 |
+| Alembic KeyError | `0007` 的 `down_revision` 寫成不存在的 `0006_sprint9_phase_d` | 改為 `"0006"`（`ea460f7`） |
+| PostgreSQL enum 錯誤 | `ADD VALUE` 與 `UPDATE` 同一 transaction | `autocommit_block()` 分開 commit（`e634fe4`） |
+
+### 本輪重點（文件，3ccb83c）
 
 | 文件 | 內容 |
 |------|------|
@@ -34,6 +43,10 @@
 ---
 
 ## HISTORY
+
+### 2026-06-15 — api 502 修復（ea460f7 + e634fe4）
+
+管理後台／Host／Participant 皆因 api 掛掉而無法登入或 fetch。Zeabur api 在 `alembic upgrade head` 階段失敗；修正 migration 鏈與 PostgreSQL enum 交易後 redeploy，health 恢復 200。
 
 ### 2026-06-15 — 五大服務架構文件
 
