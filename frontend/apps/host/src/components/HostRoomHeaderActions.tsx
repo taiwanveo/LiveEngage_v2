@@ -1,27 +1,27 @@
-/** Host 房間頁右上角：分享（跨頁固定）；工作台可選投影。 */
+/** Host 房間頁右上角：投影（另開新視窗）＋分享。 */
 
 import * as React from "react";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { JoinShareCard, Modal, participantJoinUrl } from "@liveengage/ui";
+import {
+  Button,
+  JoinShareCard,
+  Modal,
+  PresentButton,
+  ShareIcon,
+  participantJoinUrl,
+} from "@liveengage/ui";
 import { listSessions } from "../lib/sessionApi";
-
-const BTN_SECONDARY =
-  "inline-flex min-h-[28px] items-center gap-1 rounded-full border border-border bg-surface px-2.5 text-[11px] font-medium text-accent hover:border-accent/40";
-const BTN_PRIMARY =
-  "inline-flex min-h-[28px] items-center gap-1 rounded-full border border-accent bg-accent px-2.5 text-[11px] font-semibold text-accent-fg hover:brightness-105";
 
 interface Props {
   roomId: string;
-  /** 投影目標 URL（Poll / Q&A / Quiz 同源路由） */
+  /** 投影目標 URL（完整 URL，含 hash） */
   presentHref?: string | undefined;
-  presentMenu?: React.ReactNode;
 }
 
 export function HostRoomHeaderActions({
   roomId,
   presentHref,
-  presentMenu,
 }: Props): React.JSX.Element {
   const [shareOpen, setShareOpen] = useState(false);
 
@@ -31,7 +31,6 @@ export function HostRoomHeaderActions({
   });
 
   const session = sessionsQuery.data?.find((s) => s.default_room_id === roomId) ?? null;
-  const showPresent = Boolean(presentHref);
   const shareTitle = session
     ? "分享加入連結"
     : sessionsQuery.isLoading
@@ -41,36 +40,18 @@ export function HostRoomHeaderActions({
   return (
     <>
       <div className="flex items-center justify-end gap-1.5">
-        {showPresent ? (
-          <div className="inline-flex overflow-hidden rounded-full border border-accent">
-            <button
-              type="button"
-              title="開啟投影視窗"
-              onClick={() => {
-                window.open(presentHref!, "_blank", "noopener");
-              }}
-              className={`${BTN_PRIMARY} !rounded-none !border-0`}
-            >
-              <PresentIcon />
-              投影
-            </button>
-            {presentMenu ? (
-              <div className="flex items-center border-l border-accent/30 bg-accent px-0.5">
-                {presentMenu}
-              </div>
-            ) : null}
-          </div>
-        ) : null}
-        <button
+        {presentHref ? <PresentButton href={presentHref} compact /> : null}
+        <Button
           type="button"
+          variant="secondary"
+          size="xs"
           disabled={!session}
           title={shareTitle}
           onClick={() => setShareOpen(true)}
-          className={BTN_SECONDARY}
         >
-          <ShareIcon />
+          <ShareIcon size={14} />
           分享
-        </button>
+        </Button>
       </div>
 
       {session ? (
@@ -89,25 +70,5 @@ export function HostRoomHeaderActions({
         </Modal>
       ) : null}
     </>
-  );
-}
-
-function ShareIcon(): React.JSX.Element {
-  return (
-    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
-      <circle cx="18" cy="5" r="3" />
-      <circle cx="6" cy="12" r="3" />
-      <circle cx="18" cy="19" r="3" />
-      <path d="M8.59 13.51 15.42 17.49M15.41 6.51 8.59 10.49" />
-    </svg>
-  );
-}
-
-function PresentIcon(): React.JSX.Element {
-  return (
-    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
-      <rect x="2" y="3" width="20" height="14" rx="2" />
-      <path d="M8 21h8M12 17v4" />
-    </svg>
   );
 }

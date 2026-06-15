@@ -143,13 +143,7 @@ export function PollConsolePage({
             target="_blank"
             rel="noopener noreferrer"
           >
-            投影模式
-          </HostTitleLink>
-          <HostTitleLink
-            href={`#/rooms/${roomId}/polls/${pollId}/present`}
-            variant="secondary"
-          >
-            內嵌投影
+            投影
           </HostTitleLink>
         </HostTitleActions>
       }

@@ -4,10 +4,16 @@ import * as React from "react";
 import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { formatUserFacingError } from "@liveengage/realtime";
-import { useSystemNotice } from "@liveengage/ui";
+import {
+  ListActionDanger,
+  ListActionLink,
+  PresentListAction,
+  useSystemNotice,
+} from "@liveengage/ui";
 import { HostRoomHubBreadcrumb } from "../components/HostBreadcrumb";
 import { HostShell } from "../components/HostShell";
 import { createInteraction, deleteInteraction, listInteractions } from "../lib/interactionApi";
+import { presentAppUrl } from "../lib/presentUrl";
 import {
   interactionMetaLine,
   isPollType,
@@ -94,7 +100,7 @@ export function PollHubPage({ roomId, onLogout }: Props): React.JSX.Element {
             type="button"
             disabled={createMutation.isPending}
             onClick={() => createMutation.mutate()}
-            className="le-btn-primary !min-h-[42px]"
+            className="le-btn-primary le-btn-sm !min-h-[42px] !px-5 !text-sm"
           >
             {createMutation.isPending ? "建立中…" : "建立"}
           </button>
@@ -130,21 +136,18 @@ export function PollHubPage({ roomId, onLogout }: Props): React.JSX.Element {
                     )}
                   </p>
                 </div>
-                <div className="flex flex-wrap gap-2">
-                  <SmallLink href={`#/rooms/${roomId}/polls/${poll.id}/builder`}>
+                <div className="flex flex-wrap items-center gap-2">
+                  <ListActionLink href={`#/rooms/${roomId}/polls/${poll.id}/builder`}>
                     編輯
-                  </SmallLink>
-                  <SmallLink href={`#/rooms/${roomId}/polls/${poll.id}/console`}>
+                  </ListActionLink>
+                  <ListActionLink href={`#/rooms/${roomId}/polls/${poll.id}/console`}>
                     控制台
-                  </SmallLink>
-                  <SmallLink href={`#/rooms/${roomId}/polls/${poll.id}/present`}>
-                    投影
-                  </SmallLink>
-                  <SmallLink href={`#/rooms/${roomId}/polls/${poll.id}/answer`}>
+                  </ListActionLink>
+                  <PresentListAction href={presentAppUrl(roomId, poll.id)} />
+                  <ListActionLink href={`#/rooms/${roomId}/polls/${poll.id}/answer`}>
                     參與者預覽
-                  </SmallLink>
-                  <button
-                    type="button"
+                  </ListActionLink>
+                  <ListActionDanger
                     disabled={poll.status === "active" || deleteMutation.isPending}
                     title={
                       poll.status === "active"
@@ -161,10 +164,9 @@ export function PollHubPage({ roomId, onLogout }: Props): React.JSX.Element {
                       }
                       deleteMutation.mutate(poll.id);
                     }}
-                    className="rounded-md border border-red-200 px-2.5 py-1 text-xs text-red-600 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-40 dark:border-red-900 dark:hover:bg-red-950/40"
                   >
                     刪除
-                  </button>
+                  </ListActionDanger>
                 </div>
               </li>
             ))
@@ -173,19 +175,5 @@ export function PollHubPage({ roomId, onLogout }: Props): React.JSX.Element {
       </section>
       {systemNoticeModal}
     </HostShell>
-  );
-}
-
-function SmallLink(props: {
-  href: string;
-  children: React.ReactNode;
-}): React.JSX.Element {
-  return (
-    <a
-      href={props.href}
-      className="le-btn-secondary !min-h-0 px-2.5 py-1 text-xs"
-    >
-      {props.children}
-    </a>
   );
 }

@@ -4,7 +4,13 @@ import * as React from "react";
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { formatUserFacingError } from "@liveengage/realtime";
-import { useSystemNotice } from "@liveengage/ui";
+import {
+  ListActionDanger,
+  ListActionLink,
+  ListActionPrimary,
+  PresentListAction,
+  useSystemNotice,
+} from "@liveengage/ui";
 import { HostRoomHubBreadcrumb } from "../components/HostBreadcrumb";
 import { HostShell } from "../components/HostShell";
 import { sprint9PresentUrl } from "../lib/presentUrl";
@@ -112,7 +118,7 @@ export function Sprint9HubPage({ roomId, onLogout }: Props): React.JSX.Element {
             type="button"
             disabled={createMutation.isPending}
             onClick={() => createMutation.mutate()}
-            className="le-btn-primary !min-h-[42px]"
+            className="le-btn-primary le-btn-sm !min-h-[42px] !px-5 !text-sm"
           >
             建立
           </button>
@@ -140,34 +146,23 @@ export function Sprint9HubPage({ roomId, onLogout }: Props): React.JSX.Element {
                     {interactionStatusLabel(item.status)}
                   </p>
                 </div>
-                <div className="flex flex-wrap gap-2">
+                <div className="flex flex-wrap items-center gap-2">
                   {item.status !== "active" ? (
-                    <button
-                      type="button"
+                    <ListActionPrimary
                       disabled={activateMutation.isPending}
                       onClick={() => activateMutation.mutate(item.id)}
-                      className="rounded-md bg-emerald-600 px-3 py-1.5 text-xs text-white hover:bg-emerald-700 disabled:opacity-50"
                     >
                       開放
-                    </button>
+                    </ListActionPrimary>
                   ) : null}
-                  <a
-                    href={`#/rooms/${roomId}/sprint9/${item.id}/console`}
-                    className="le-btn-secondary !min-h-0 px-3 py-1.5 text-xs"
-                  >
+                  <ListActionLink href={`#/rooms/${roomId}/sprint9/${item.id}/console`}>
                     控制台
-                  </a>
+                  </ListActionLink>
                   {["quiz", "ideas", "survey"].includes(item.type) ? (
-                    <a
-                      href={sprint9PresentUrl(roomId, item.id)}
-                      className="le-btn-primary !min-h-0 px-3 py-1.5 text-xs"
-                    >
-                      投影
-                    </a>
+                    <PresentListAction href={sprint9PresentUrl(roomId, item.id)} />
                   ) : null}
                   {item.type === "quiz" ? (
-                    <button
-                      type="button"
+                    <ListActionDanger
                       disabled={item.status === "active" || deleteMutation.isPending}
                       title={
                         item.status === "active"
@@ -184,10 +179,9 @@ export function Sprint9HubPage({ roomId, onLogout }: Props): React.JSX.Element {
                         }
                         deleteMutation.mutate(item.id);
                       }}
-                      className="rounded-md border border-red-200 px-3 py-1.5 text-xs text-red-600 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-40 dark:border-red-900 dark:hover:bg-red-950/40"
                     >
                       刪除
-                    </button>
+                    </ListActionDanger>
                   ) : null}
                 </div>
               </li>

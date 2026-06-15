@@ -1,12 +1,7 @@
 /** 標題列右側小型頁面功能按鈕（Host 各控制台一致）。 */
 
 import * as React from "react";
-
-export const hostTitleBtnPrimary =
-  "le-btn-primary !min-h-[28px] !px-2.5 !py-1 !text-xs !font-normal !shadow-none";
-
-export const hostTitleBtnSecondary =
-  "le-btn-secondary !min-h-[28px] !px-2.5 !py-1 !text-xs !font-normal";
+import { Button, ButtonLink } from "@liveengage/ui";
 
 export function HostTitleActions({
   children,
@@ -25,23 +20,24 @@ export function HostTitleLink(props: {
   target?: string;
   rel?: string;
 }): React.JSX.Element {
-  const cls = props.variant === "primary" ? hostTitleBtnPrimary : hostTitleBtnSecondary;
+  const variant = props.variant === "primary" ? "primary" : "secondary";
   if (props.target) {
     return (
-      <a
+      <ButtonLink
         href={props.href}
-        className={cls}
+        variant={variant}
+        size="xs"
         target={props.target}
         rel={props.rel ?? "noopener noreferrer"}
       >
         {props.children}
-      </a>
+      </ButtonLink>
     );
   }
   return (
-    <a href={props.href} className={cls}>
+    <ButtonLink href={props.href} variant={variant} size="xs">
       {props.children}
-    </a>
+    </ButtonLink>
   );
 }
 
@@ -51,10 +47,10 @@ export function HostTitleButton(props: {
   children: React.ReactNode;
   variant?: "primary" | "secondary";
 }): React.JSX.Element {
-  const cls = props.variant === "primary" ? hostTitleBtnPrimary : hostTitleBtnSecondary;
+  const variant = props.variant === "primary" ? "primary" : "secondary";
   return (
-    <button type="button" onClick={props.onClick} className={cls}>
+    <Button type="button" onClick={props.onClick} variant={variant} size="xs">
       {props.children}
-    </button>
+    </Button>
   );
 }

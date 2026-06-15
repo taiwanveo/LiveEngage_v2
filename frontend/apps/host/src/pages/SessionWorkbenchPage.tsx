@@ -303,17 +303,6 @@ export function SessionWorkbenchPage({ roomId, pollId, onLogout }: Props): React
               {...(selectedPollId
                 ? { presentHref: presentAppUrl(roomId, selectedPollId) }
                 : {})}
-              presentMenu={
-                selectedPollId ? (
-                  <a
-                    href={`#/rooms/${roomId}/polls/${selectedPollId}/present`}
-                    className="inline-flex min-h-[28px] items-center px-1.5 text-[10px] text-accent-fg hover:bg-accent/90"
-                    title="內嵌投影"
-                  >
-                    ···
-                  </a>
-                ) : null
-              }
             />
           }
           onLogout={onLogout}

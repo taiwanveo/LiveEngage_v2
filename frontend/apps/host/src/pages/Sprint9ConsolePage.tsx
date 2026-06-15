@@ -9,7 +9,13 @@ import {
   useRoomWebSocket,
   type WsEvent,
 } from "@liveengage/realtime";
-import { useSystemNotice } from "@liveengage/ui";
+import {
+  Button,
+  ListActionDanger,
+  ListActionLink,
+  ListActionPrimary,
+  useSystemNotice,
+} from "@liveengage/ui";
 import { HostRoomDetailBreadcrumb } from "../components/HostBreadcrumb";
 import { HostShell } from "../components/HostShell";
 import { HostTitleLink } from "../components/HostTitleActions";
@@ -225,18 +231,7 @@ export function Sprint9ConsolePage({
       breadcrumb={consoleBreadcrumb}
       titleAddon={backToList}
       {...(["quiz", "ideas", "survey"].includes(item.type)
-        ? {
-            presentHref: sprint9PresentUrl(roomId, interactionId),
-            presentMenu: (
-              <a
-                href={sprint9PresentUrl(roomId, interactionId)}
-                className="inline-flex min-h-[28px] items-center px-1.5 text-[10px] text-accent-fg hover:bg-accent/90"
-                title="內嵌投影"
-              >
-                ···
-              </a>
-            ),
-          }
+        ? { presentHref: sprint9PresentUrl(roomId, interactionId) }
         : {})}
     >
       {item.type === "quiz" ? (
@@ -263,7 +258,7 @@ export function Sprint9ConsolePage({
                 type="button"
                 disabled={addQuestionMutation.isPending}
                 onClick={() => addQuestionMutation.mutate()}
-                className="rounded-lg bg-primary-600 px-4 py-2 text-sm text-white"
+                className="le-btn-primary le-btn-sm"
               >
                 新增
               </button>
@@ -286,61 +281,56 @@ export function Sprint9ConsolePage({
                       狀態：{quizQuestionStateLabel(q.state)}
                     </p>
                   </div>
-                  <div className="flex flex-wrap gap-2">
+                  <div className="flex flex-wrap items-center gap-2">
                     {q.state === "pending" ? (
-                      <a
+                      <ListActionLink
                         href={`#/rooms/${roomId}/sprint9/${interactionId}/questions/${q.id}/edit`}
-                        className="le-btn-secondary !min-h-0 px-2 py-1 text-xs"
                       >
                         編輯
-                      </a>
+                      </ListActionLink>
                     ) : null}
-                    <button
-                      type="button"
+                    <ListActionPrimary
                       disabled={!canStart || busy}
                       title={canStart ? "開始此子題" : "僅「待開始」狀態可開始"}
                       onClick={() =>
                         actionMutation.mutate({ questionId: q.id, action: "start_question" })
                       }
-                      className="rounded bg-emerald-600 px-2 py-1 text-xs text-white disabled:cursor-not-allowed disabled:opacity-40"
                     >
                       {busy && canStart ? "處理中…" : "開始"}
-                    </button>
-                    <button
-                      type="button"
+                    </ListActionPrimary>
+                    <Button
+                      variant="muted"
+                      size="sm"
                       disabled={!canReveal || busy}
                       title={canReveal ? "揭曉正確答案" : "須先「開始」後才能揭曉"}
                       onClick={() =>
                         actionMutation.mutate({ questionId: q.id, action: "reveal" })
                       }
-                      className="rounded bg-slate-700 px-2 py-1 text-xs text-white disabled:cursor-not-allowed disabled:opacity-40"
                     >
                       揭曉
-                    </button>
+                    </Button>
                     {canClose ? (
-                      <button
-                        type="button"
+                      <Button
+                        variant="secondary"
+                        size="sm"
                         disabled={busy}
                         onClick={() =>
                           actionMutation.mutate({ questionId: q.id, action: "close" })
                         }
-                        className="rounded border border-border px-2 py-1 text-xs text-muted hover:bg-surface-elevated disabled:opacity-40"
                       >
                         結束
-                      </button>
+                      </Button>
                     ) : null}
                     {q.state === "pending" ? (
-                      <button
-                        type="button"
+                      <ListActionDanger
                         disabled={deleteQuestionMutation.isPending}
                         onClick={() => {
                           if (!window.confirm(`確定要刪除子題「${q.title}」？`)) return;
                           deleteQuestionMutation.mutate(q.id);
                         }}
-                        className="rounded border border-red-200 px-2 py-1 text-xs text-red-600 hover:bg-red-50 dark:border-red-900"
                       >
                         刪除
-                      </button>
+                      </ListActionDanger>
                     ) : null}
                   </div>
                 </li>

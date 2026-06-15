@@ -119,15 +119,6 @@ export function ModerationPage({ roomId, onLogout }: Props): React.JSX.Element {
       activeNav="moderation"
       presentHref={qaPresentUrl(roomId)}
       breadcrumb={<HostRoomHubBreadcrumb roomId={roomId} currentLabel="Q&A 審核" />}
-      presentMenu={
-        <a
-          href={qaPresentUrl(roomId)}
-          className="inline-flex min-h-[28px] items-center px-1.5 text-[10px] text-accent-fg hover:bg-accent/90"
-          title="內嵌投影"
-        >
-          ···
-        </a>
-      }
     >
       <QaControlBar roomId={roomId} />
       {!wsConnected ? (
