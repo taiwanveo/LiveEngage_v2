@@ -9,6 +9,11 @@ export type PollInteractionType =
 
 export type InteractionStatus = "idle" | "active" | "locked" | "stopped";
 
+/** Poll／Quiz 等互動是否視為進行中（含 locked 揭曉態）。 */
+export function isPollRunning(status: InteractionStatus): boolean {
+  return status === "active" || status === "locked";
+}
+
 export type PollAction =
   | "start"
   | "stop"

@@ -17,6 +17,7 @@ from app.schemas.survey import (
     SurveyQuestionParticipantPublic,
     SurveyQuestionPublic,
     SurveyResultsResponse,
+    SurveySubmissionsResponse,
     SurveySubmitRequest,
     SurveySubmitResult,
 )
@@ -108,5 +109,20 @@ async def survey_results(
 ) -> SurveyResultsResponse:
     """Survey 結果聚合。"""
     return await survey_service.get_results(
+        db, survey_interaction_id=survey_interaction_id, host=host
+    )
+
+
+@router.get(
+    "/surveys/{survey_interaction_id}/submissions",
+    response_model=SurveySubmissionsResponse,
+)
+async def survey_submissions(
+    survey_interaction_id: uuid.UUID,
+    db: Annotated[AsyncSession, Depends(get_session)],
+    host: Annotated[User, Depends(get_current_user)],
+) -> SurveySubmissionsResponse:
+    """Survey 逐人完整作答（Host 工作台）。"""
+    return await survey_service.list_submissions_for_host(
         db, survey_interaction_id=survey_interaction_id, host=host
     )

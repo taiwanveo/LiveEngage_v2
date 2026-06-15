@@ -10,6 +10,7 @@ import {
   addSurveyQuestion,
   getSurveyResults,
   listSurveyQuestions,
+  listSurveySubmissions,
   type SurveyQuestion,
   type SurveyQuestionType,
 } from "../../lib/sprint9Api";
@@ -72,6 +73,25 @@ function surveyQuestionMeta(q: SurveyQuestion): string {
   return `${label}${detail}${q.required ? " · 必填" : ""}`;
 }
 
+function formatSubmittedAt(iso: string | null): string {
+  if (!iso) return "—";
+  try {
+    return new Date(iso).toLocaleString("zh-TW", {
+      month: "numeric",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  } catch {
+    return iso;
+  }
+}
+
+function participantLabel(name: string | null, participantId: string): string {
+  if (name?.trim()) return name.trim();
+  return `參與者 ${participantId.slice(0, 8)}`;
+}
+
 export function SurveyWorkbenchMain({ roomId, item }: Props): React.JSX.Element {
   const qc = useQueryClient();
   const { showError, showSuccess, systemNoticeModal } = useSystemNotice();
@@ -92,6 +112,12 @@ export function SurveyWorkbenchMain({ roomId, item }: Props): React.JSX.Element 
   const surveyResultsQuery = useQuery({
     queryKey: ["survey-results", interactionId],
     queryFn: () => getSurveyResults(interactionId),
+    refetchInterval: 8_000,
+  });
+
+  const surveySubmissionsQuery = useQuery({
+    queryKey: ["survey-submissions", interactionId],
+    queryFn: () => listSurveySubmissions(interactionId),
     refetchInterval: 8_000,
   });
 
@@ -300,9 +326,51 @@ export function SurveyWorkbenchMain({ roomId, item }: Props): React.JSX.Element 
       </section>
 
       <section className="le-card p-4">
-        <p className="text-sm text-foreground">
-          提交數：{surveyResultsQuery.data?.submission_count ?? 0}
-        </p>
+        <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
+          <h3 className="text-sm font-semibold text-foreground">填寫明細</h3>
+          <p className="text-xs text-muted">
+            已完成 {surveyResultsQuery.data?.submission_count ?? 0} 份
+          </p>
+        </div>
+
+        {surveySubmissionsQuery.isLoading ? (
+          <p className="text-sm text-muted">載入填寫內容…</p>
+        ) : (surveySubmissionsQuery.data?.submissions.length ?? 0) === 0 ? (
+          <p className="text-sm text-muted">尚無填寫紀錄。</p>
+        ) : (
+          <ul className="space-y-4">
+            {surveySubmissionsQuery.data!.submissions.map((sub, index) => (
+              <li
+                key={sub.submission_id}
+                className="rounded-lg border border-border bg-surface-elevated/50 p-3"
+              >
+                <div className="mb-2 flex flex-wrap items-baseline justify-between gap-2 border-b border-border pb-2">
+                  <p className="font-medium text-foreground">
+                    {index + 1}. {participantLabel(sub.display_name, sub.participant_id)}
+                  </p>
+                  <p className="text-xs text-muted">
+                    {formatSubmittedAt(sub.submitted_at)}
+                  </p>
+                </div>
+                <dl className="space-y-2">
+                  {sub.answers.map((ans, qIndex) => (
+                    <div key={ans.child_interaction_id}>
+                      <dt className="text-xs text-muted">
+                        {qIndex + 1}. {ans.question_title ?? "（無標題）"}
+                        <span className="ml-1">
+                          （{interactionTypeLabel(ans.question_type)}）
+                        </span>
+                      </dt>
+                      <dd className="mt-0.5 whitespace-pre-wrap text-sm text-foreground">
+                        {ans.answer_text}
+                      </dd>
+                    </div>
+                  ))}
+                </dl>
+              </li>
+            ))}
+          </ul>
+        )}
       </section>
 
       {systemNoticeModal}

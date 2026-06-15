@@ -42,9 +42,11 @@ import {
   type WorkbenchCreateType,
 } from "../lib/workbenchTypes";
 import { HOST_DASHBOARD_HASH, hostRoomNavItems } from "../components/HostShell";
+import { useHostRoomNavLiveState } from "../lib/useHostRoomNavLiveState";
 import { HostRoomHubBreadcrumb } from "../components/HostBreadcrumb";
 import { HostRoomHeaderActions } from "../components/HostRoomHeaderActions";
-import { ControlAction, ControlToggle, isPollRunning } from "../components/PollControlBar";
+import { ControlAction, ControlToggle } from "../components/PollControlBar";
+import { isPollRunning } from "../lib/pollTypes";
 import { presentAppUrl, sprint9PresentUrl } from "../lib/presentUrl";
 import {
   applyHostPollActionSuccess,
@@ -108,6 +110,8 @@ export function SessionWorkbenchPage({
     queryKey: ["interactions", roomId],
     queryFn: () => listInteractions(roomId),
   });
+
+  const navLive = useHostRoomNavLiveState(roomId);
 
   const workbenchItems = useMemo(
     () => workbenchInteractions(interactionsQuery.data),
@@ -433,7 +437,7 @@ export function SessionWorkbenchPage({
                   }
                 : {}),
             }}
-            navItems={hostRoomNavItems(roomId, "workbench")}
+            navItems={hostRoomNavItems(roomId, "workbench", navLive)}
             chromeFooterActions={
               <HostRoomHeaderActions
                 roomId={roomId}

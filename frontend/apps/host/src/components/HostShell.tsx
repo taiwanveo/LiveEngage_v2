@@ -2,9 +2,13 @@
 
 import * as React from "react";
 import { HostRoomNavHeader } from "@liveengage/ui";
-import type { HostRoomSessionMeta } from "@liveengage/ui";
+import type { HostRoomNavItem, HostRoomSessionMeta } from "@liveengage/ui";
 import { HostRoomHeaderActions } from "./HostRoomHeaderActions";
 import { useHostRoomSessionMeta } from "../lib/useHostRoomSessionMeta";
+import {
+  useHostRoomNavLiveState,
+  type HostRoomNavLiveState,
+} from "../lib/useHostRoomNavLiveState";
 
 export type HostNavId = "workbench" | "overview" | "moderation" | "polls" | "sprint9";
 
@@ -20,12 +24,21 @@ const HOST_NAV: { id: HostNavId; segment: string; label: string }[] = [
 
 export function hostRoomNavItems(
   roomId: string,
-  activeNav?: HostNavId
-): { href: string; label: string; active: boolean }[] {
+  activeNav?: HostNavId,
+  live?: Pick<HostRoomNavLiveState, "qaOpen" | "pollRunning" | "quizRunning">
+): HostRoomNavItem[] {
   return HOST_NAV.map((item) => ({
     href: `#/rooms/${roomId}/${item.segment}`,
     label: item.label,
     active: activeNav === item.id,
+    liveIndicator:
+      item.id === "moderation"
+        ? Boolean(live?.qaOpen)
+        : item.id === "polls"
+          ? Boolean(live?.pollRunning)
+          : item.id === "sprint9"
+            ? Boolean(live?.quizRunning)
+            : false,
   }));
 }
 
@@ -61,6 +74,7 @@ export function HostShell({
   sessionMeta,
 }: HostShellProps): React.JSX.Element {
   const defaultSessionMeta = useHostRoomSessionMeta(roomId);
+  const navLive = useHostRoomNavLiveState(roomId);
 
   return (
     <main className="le-page-bg min-h-full">
@@ -70,7 +84,7 @@ export function HostShell({
         {...(titleAddon ? { brandAddon: titleAddon } : {})}
         {...(subtitle ? { tagline: subtitle } : {})}
         sessionMeta={sessionMeta ?? defaultSessionMeta}
-        navItems={hostRoomNavItems(roomId, activeNav)}
+        navItems={hostRoomNavItems(roomId, activeNav, navLive)}
         {...(actions ? { actions } : {})}
         onLogout={onLogout}
         chromeFooterActions={

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import datetime as dt
 import uuid
 from enum import StrEnum
 
@@ -72,3 +73,27 @@ class SurveyResultsResponse(BaseModel):
     survey_interaction_id: uuid.UUID
     submission_count: int
     questions: list[SurveyAnswerCount] = Field(default_factory=list)
+
+
+class SurveySubmissionAnswerDetail(BaseModel):
+    """單一子題的作答內容（Host 工作台逐人檢視）。"""
+
+    child_interaction_id: uuid.UUID
+    question_title: str | None = None
+    question_type: str
+    answer_text: str
+
+
+class SurveySubmissionDetail(BaseModel):
+    """單一參與者的完整問卷提交。"""
+
+    submission_id: uuid.UUID
+    participant_id: uuid.UUID
+    display_name: str | None = None
+    submitted_at: dt.datetime | None = None
+    answers: list[SurveySubmissionAnswerDetail] = Field(default_factory=list)
+
+
+class SurveySubmissionsResponse(BaseModel):
+    survey_interaction_id: uuid.UUID
+    submissions: list[SurveySubmissionDetail] = Field(default_factory=list)

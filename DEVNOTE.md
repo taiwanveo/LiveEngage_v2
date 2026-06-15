@@ -7,12 +7,39 @@
 ## SNAPSHOT（2026-06-15）
 
 - **Repo**：https://github.com/ColdRighter/LiveEngage.git（master）
-- **最新 commit**：`8c611f2` — Quiz 揭曉、問卷多題型、Q&A 投票與工作台 UX 優化
+- **最新 commit**：`PLACEHOLDER` — 問卷填寫明細、頂欄「進行中」膠囊
+- **測試**：`test_fe012_survey_multiple_choice_and_open_text` 涵蓋 `GET /surveys/{id}/submissions`
+- **api 健康**：https://le-api.zeabur.app/health → 待驗證
+- **Zeabur 部署**：push 後自動建置；需 redeploy **api**、**host**
+
+### 本輪重點
+
+| 區塊 | 內容 |
+|------|------|
+| **問卷填寫明細** | 後端 `GET /api/v1/surveys/{id}/submissions`（Host）；逐人完整答案（評分／選擇題文字／開放文字全文）；工作台「填寫明細」區塊每 8s 刷新 |
+| **頂欄進行中膠囊** | Q&A 開啟 →「Q&A 審核」；Poll `active`/`locked` →「Poll 管理」；Quiz 進行中 →「Quiz 管理」；絕對定位於標籤右下角，不推擠文字 |
+| **共用** | `useHostRoomNavLiveState` + `HostRoomNavItem.liveIndicator`；`isPollRunning` 移至 `pollTypes.ts` |
+
+### 部署（本輪）
+
+| 服務 | URL | 變更 |
+|------|-----|------|
+| api | https://le-api.zeabur.app | Survey submissions API |
+| host | https://le-host.zeabur.app | 填寫明細 UI、頂欄膠囊（含 `@liveengage/ui`） |
+| participant | https://le-participant.zeabur.app | 本輪無變更 |
+| admin | https://le-admin.zeabur.app | 本輪無變更 |
+| worker | （內部） | 本輪無變更 |
+
+---
+
+## SNAPSHOT（2026-06-15，歷史）
+
+- **最新 commit（舊）**：`8c611f2` — Quiz 揭曉、問卷多題型、Q&A 投票與工作台 UX 優化
 - **測試**：`test_s9_phase_d` 新增 quiz reveal／host is_correct／survey 多題型用例
 - **api 健康**：https://le-api.zeabur.app/health → 200
 - **Zeabur 部署**：push `8c611f2` 後自動建置；**api**、**host**、**participant** 皆 `RUNNING`（2026-06-15）
 
-### 本輪重點
+### 本輪重點（Quiz／問卷／Q&A／工作台 UX）
 
 | 區塊 | 內容 |
 |------|------|

@@ -25,6 +25,9 @@ from app.schemas.survey import (
     SurveyQuestionParticipantPublic,
     SurveyQuestionPublic,
     SurveyResultsResponse,
+    SurveySubmissionAnswerDetail,
+    SurveySubmissionDetail,
+    SurveySubmissionsResponse,
     SurveySubmitRequest,
     SurveySubmitResult,
 )
@@ -467,4 +470,120 @@ async def get_results(
         survey_interaction_id=survey_interaction_id,
         submission_count=total_submissions,
         questions=questions,
+    )
+
+
+def _format_survey_answer_text(
+    child_type: InteractionType,
+    raw: Any,
+    option_text_by_id: dict[str, str],
+) -> str:
+    """將 answers_jsonb 單題原始值轉為主持人可讀文字。"""
+    if raw is None or raw == "":
+        return "（未作答）"
+    if child_type == InteractionType.OPEN_TEXT:
+        if isinstance(raw, str):
+            return raw.strip() or "（未作答）"
+        return str(raw)
+    if child_type == InteractionType.RATING:
+        if isinstance(raw, dict) and "value" in raw:
+            return str(raw["value"])
+        if isinstance(raw, (int, float)):
+            return str(int(raw))
+        return str(raw)
+    if child_type == InteractionType.MULTIPLE_CHOICE:
+        if isinstance(raw, dict):
+            option_ids = raw.get("option_ids", [])
+            if not option_ids:
+                return "（未作答）"
+            texts = [
+                option_text_by_id.get(str(oid), str(oid)) for oid in option_ids
+            ]
+            return "、".join(texts)
+        return str(raw)
+    return str(raw)
+
+
+async def list_submissions_for_host(
+    db: AsyncSession,
+    *,
+    survey_interaction_id: uuid.UUID,
+    host: User,
+) -> SurveySubmissionsResponse:
+    """列出 Survey 逐人完整作答（Host 工作台）。"""
+    await _load_survey_for_host(db, survey_interaction_id, host)
+
+    sq_rows = (
+        await db.execute(
+            select(SurveyQuestion)
+            .where(SurveyQuestion.survey_interaction_id == survey_interaction_id)
+            .order_by(SurveyQuestion.page_no, SurveyQuestion.order_no)
+        )
+    ).scalars().all()
+
+    question_context: list[tuple[SurveyQuestion, Interaction]] = []
+    option_text_by_id: dict[str, str] = {}
+
+    for sq in sq_rows:
+        child = (
+            await db.execute(
+                select(Interaction).where(Interaction.id == sq.child_interaction_id)
+            )
+        ).scalar_one_or_none()
+        if child is None:
+            continue
+        if child.type == InteractionType.MULTIPLE_CHOICE:
+            for opt in await _question_options_public(db, child.id):
+                option_text_by_id[str(opt.id)] = opt.text
+        question_context.append((sq, child))
+
+    rows = (
+        await db.execute(
+            select(SurveySubmission, Participant)
+            .join(Participant, Participant.id == SurveySubmission.participant_id)
+            .where(
+                SurveySubmission.survey_interaction_id == survey_interaction_id,
+                SurveySubmission.completed.is_(True),
+            )
+            .order_by(
+                SurveySubmission.submitted_at.desc().nulls_last(),
+                SurveySubmission.created_at.desc(),
+            )
+        )
+    ).all()
+
+    submissions: list[SurveySubmissionDetail] = []
+    for submission, participant in rows:
+        answers_jsonb = submission.answers_jsonb
+        if not isinstance(answers_jsonb, dict):
+            answers_jsonb = {}
+
+        answer_details: list[SurveySubmissionAnswerDetail] = []
+        for _sq, child in question_context:
+            child_key = str(child.id)
+            raw = answers_jsonb.get(child_key)
+            answer_details.append(
+                SurveySubmissionAnswerDetail(
+                    child_interaction_id=child.id,
+                    question_title=child.title,
+                    question_type=child.type.value,
+                    answer_text=_format_survey_answer_text(
+                        child.type, raw, option_text_by_id
+                    ),
+                )
+            )
+
+        submissions.append(
+            SurveySubmissionDetail(
+                submission_id=submission.id,
+                participant_id=submission.participant_id,
+                display_name=participant.display_name,
+                submitted_at=submission.submitted_at,
+                answers=answer_details,
+            )
+        )
+
+    return SurveySubmissionsResponse(
+        survey_interaction_id=survey_interaction_id,
+        submissions=submissions,
     )

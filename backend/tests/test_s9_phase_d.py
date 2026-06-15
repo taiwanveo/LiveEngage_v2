@@ -373,6 +373,19 @@ def test_fe012_survey_multiple_choice_and_open_text(
     assert result_by_child[mc_child]["response_count"] == 1
     assert result_by_child[ot_child]["response_count"] == 1
 
+    submissions = client.get(
+        f"/api/v1/surveys/{survey_id}/submissions",
+        headers=headers,
+    )
+    assert submissions.status_code == 200, submissions.text
+    body = submissions.json()
+    assert len(body["submissions"]) == 1
+    sub = body["submissions"][0]
+    assert sub["display_name"] == "參與者"
+    answers_by_child = {a["child_interaction_id"]: a for a in sub["answers"]}
+    assert answers_by_child[mc_child]["answer_text"] == "開場"
+    assert answers_by_child[ot_child]["answer_text"] == "希望多一點互動"
+
 
 def test_fe012_survey_submit(
     client: TestClient, host_token: tuple[str, str]

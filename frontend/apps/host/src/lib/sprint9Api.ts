@@ -158,6 +158,28 @@ export async function getSurveyResults(surveyId: string): Promise<{
   return api(`/api/v1/surveys/${surveyId}/results`);
 }
 
+export interface SurveySubmissionAnswer {
+  child_interaction_id: string;
+  question_title: string | null;
+  question_type: string;
+  answer_text: string;
+}
+
+export interface SurveySubmission {
+  submission_id: string;
+  participant_id: string;
+  display_name: string | null;
+  submitted_at: string | null;
+  answers: SurveySubmissionAnswer[];
+}
+
+export async function listSurveySubmissions(surveyId: string): Promise<{
+  survey_interaction_id: string;
+  submissions: SurveySubmission[];
+}> {
+  return api(`/api/v1/surveys/${surveyId}/submissions`);
+}
+
 export async function submitSurvey(
   surveyId: string,
   answers: Record<string, unknown>

@@ -11,6 +11,8 @@ export interface HostRoomNavItem {
   href: string;
   label: string;
   active?: boolean;
+  /** 文字右下角綠色「進行中」膠囊（不影響標籤排版） */
+  liveIndicator?: boolean;
 }
 
 export interface HostRoomSessionMeta {
@@ -162,7 +164,7 @@ export function HostRoomNavHeader({
             </div>
 
             <nav
-              className="flex shrink-0 items-center gap-0.5 whitespace-nowrap"
+              className="flex shrink-0 items-center gap-0.5 overflow-visible whitespace-nowrap"
               aria-label="房間頁面導覽"
             >
               {navItems.map((item) => (
@@ -173,7 +175,17 @@ export function HostRoomNavHeader({
                     item.active ? "le-nav-link-active" : ""
                   }`}
                 >
-                  {item.label}
+                  <span className="relative inline-block">
+                    {item.label}
+                    {item.liveIndicator ? (
+                      <span
+                        className="pointer-events-none absolute bottom-0 right-0 translate-x-[20%] translate-y-[85%] whitespace-nowrap rounded-full bg-[rgb(var(--le-success))] px-1 py-px text-[9px] font-semibold leading-tight text-white"
+                        aria-hidden
+                      >
+                        進行中
+                      </span>
+                    ) : null}
+                  </span>
                 </a>
               ))}
               {actions}

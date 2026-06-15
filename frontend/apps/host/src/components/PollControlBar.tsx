@@ -2,12 +2,7 @@
 
 import * as React from "react";
 import type { InteractionStatus, PollAction } from "../lib/pollTypes";
-
-function isPollRunning(status: InteractionStatus): boolean {
-  return status === "active" || status === "locked";
-}
-
-export { isPollRunning };
+import { isPollRunning } from "../lib/pollTypes";
 
 interface PollControlState {
   status: InteractionStatus;
