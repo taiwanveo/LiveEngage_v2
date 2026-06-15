@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { HostRoomNavHeader } from "@liveengage/ui";
+import type { HostRoomSessionMeta } from "@liveengage/ui";
 import { HostRoomHeaderActions } from "./HostRoomHeaderActions";
 import { HostSessionMeta } from "./HostSessionMeta";
 
@@ -42,6 +43,8 @@ interface HostShellProps {
   presentHref?: string | undefined;
   /** 標題列下方麵包屑（固定於 header 內，捲動時仍可見） */
   breadcrumb?: React.ReactNode;
+  /** 日期／代碼／活動名／狀態列（設定後取代 HostSessionMeta） */
+  sessionMeta?: HostRoomSessionMeta;
 }
 
 export function HostShell({
@@ -55,6 +58,7 @@ export function HostShell({
   activeNav,
   presentHref,
   breadcrumb,
+  sessionMeta,
 }: HostShellProps): React.JSX.Element {
   return (
     <main className="le-page-bg min-h-full">
@@ -63,7 +67,7 @@ export function HostShell({
         brandHref={HOST_DASHBOARD_HASH}
         {...(titleAddon ? { brandAddon: titleAddon } : {})}
         {...(subtitle ? { tagline: subtitle } : {})}
-        meta={<HostSessionMeta roomId={roomId} />}
+        {...(sessionMeta ? { sessionMeta } : { meta: <HostSessionMeta roomId={roomId} /> })}
         navItems={hostRoomNavItems(roomId, activeNav)}
         {...(actions ? { actions } : {})}
         onLogout={onLogout}

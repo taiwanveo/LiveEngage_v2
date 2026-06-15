@@ -17,6 +17,8 @@ export interface HostRoomSessionMeta {
   dateLabel: string;
   code: string;
   visibilityLabel: string;
+  /** 活動名稱（顯示於狀態徽章左側，工作台用） */
+  activityLabel?: string;
   statusLabel?: string;
   statusBadgeVariant?: "live" | "accent" | "muted";
 }
@@ -60,8 +62,14 @@ function SessionMetaRow({
 }: {
   meta: HostRoomSessionMeta;
 }): React.JSX.Element {
-  const { dateLabel, code, visibilityLabel, statusLabel, statusBadgeVariant = "live" } =
-    meta;
+  const {
+    dateLabel,
+    code,
+    visibilityLabel,
+    activityLabel,
+    statusLabel,
+    statusBadgeVariant = "live",
+  } = meta;
 
   return (
     <div className="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted">
@@ -70,25 +78,37 @@ function SessionMetaRow({
         {dateLabel}
       </span>
       <span className="hidden h-3 w-px bg-border sm:inline-block" />
-      <span className="font-mono">#{code}</span>
+      <span className="font-mono text-accent">#{code}</span>
       <span className="hidden h-3 w-px bg-border sm:inline-block" />
       <span className="inline-flex items-center gap-1">
         <ShieldIcon />
         {visibilityLabel}
       </span>
-      {statusLabel ? (
+      {activityLabel || statusLabel ? (
         <>
           <span className="hidden h-3 w-px bg-border sm:inline-block" />
-          <span
-            className={`le-badge ${
-              statusBadgeVariant === "live"
-                ? "le-badge-live"
-                : statusBadgeVariant === "accent"
-                  ? "bg-accent/15 text-accent"
-                  : "bg-muted/20 text-muted"
-            }`}
-          >
-            {statusLabel}
+          <span className="inline-flex min-w-0 items-center gap-2">
+            {activityLabel ? (
+              <span
+                className="max-w-[12rem] truncate text-[10px] text-accent"
+                title={activityLabel}
+              >
+                {activityLabel}
+              </span>
+            ) : null}
+            {statusLabel ? (
+              <span
+                className={`le-badge ${
+                  statusBadgeVariant === "live"
+                    ? "le-badge-live"
+                    : statusBadgeVariant === "accent"
+                      ? "bg-accent/15 text-accent"
+                      : "bg-muted/20 text-muted"
+                }`}
+              >
+                {statusLabel}
+              </span>
+            ) : null}
           </span>
         </>
       ) : null}

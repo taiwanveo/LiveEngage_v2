@@ -1,4 +1,4 @@
-/** 排序題：拖曳調整順序（滑鼠 + 觸控按住拖曳）。 */
+/** 排序題：拖曳調整順序（滑鼠 + 觸控）與 ↑↓ 微調（觸控備援）。 */
 
 import * as React from "react";
 import { useCallback, useRef, useState } from "react";
@@ -44,6 +44,45 @@ function DragGrip(props: { disabled?: boolean }): React.JSX.Element {
   );
 }
 
+function RankMoveButton(props: {
+  direction: "up" | "down";
+  disabled?: boolean;
+  label: string;
+  onClick: () => void;
+}): React.JSX.Element {
+  const { direction, disabled = false, label, onClick } = props;
+  return (
+    <button
+      type="button"
+      disabled={disabled}
+      aria-label={label}
+      onClick={(e) => {
+        e.stopPropagation();
+        onClick();
+      }}
+      className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-md border text-slate-600 transition-colors ${
+        disabled
+          ? "cursor-not-allowed border-slate-100 text-slate-300"
+          : "border-slate-200 bg-white hover:border-primary-300 hover:bg-primary-50 hover:text-primary-700 active:bg-primary-100"
+      }`}
+    >
+      <svg
+        width="14"
+        height="14"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        aria-hidden
+      >
+        {direction === "up" ? <path d="M18 15l-6-6-6 6" /> : <path d="M6 9l6 6 6-6" />}
+      </svg>
+    </button>
+  );
+}
+
 export function RankingSortableList({
   orderedIds,
   optionsById,
@@ -76,21 +115,38 @@ export function RankingSortableList({
     [disabled, onChange, orderedIds, resetDrag]
   );
 
-  const handleListPointerMove = (e: React.PointerEvent<HTMLUListElement>): void => {
-    if (dragFromRef.current === null || disabled) return;
-    const el = document.elementFromPoint(e.clientX, e.clientY);
+  const updateOverIndexFromPoint = useCallback((clientX: number, clientY: number): void => {
+    const el = document.elementFromPoint(clientX, clientY);
     const row = el?.closest<HTMLElement>("[data-rank-index]");
     if (!row) return;
     const idx = Number(row.dataset.rankIndex);
     if (Number.isNaN(idx)) return;
     overRef.current = idx;
     setOverIndex(idx);
+  }, []);
+
+  const handleGripPointerMove = (e: React.PointerEvent<HTMLSpanElement>): void => {
+    if (dragFromRef.current === null || disabled) return;
+    updateOverIndexFromPoint(e.clientX, e.clientY);
   };
 
-  const handleListPointerUp = (): void => {
+  const handleGripPointerUp = (e: React.PointerEvent<HTMLSpanElement>): void => {
     if (dragFromRef.current === null) return;
+    if (e.currentTarget.hasPointerCapture(e.pointerId)) {
+      e.currentTarget.releasePointerCapture(e.pointerId);
+    }
     finishDrag(overRef.current ?? dragFromRef.current);
   };
+
+  const moveByArrow = useCallback(
+    (index: number, direction: "up" | "down"): void => {
+      if (disabled) return;
+      const to = direction === "up" ? index - 1 : index + 1;
+      if (to < 0 || to >= orderedIds.length) return;
+      onChange(reorderIds(orderedIds, index, to));
+    },
+    [disabled, onChange, orderedIds]
+  );
 
   const showRankCutoff = rankedCount < orderedIds.length;
 
@@ -98,17 +154,14 @@ export function RankingSortableList({
     <div className="space-y-2">
       {showRankCutoff ? (
         <p className="text-xs text-slate-500">
-          拖曳調整順序；前 {rankedCount} 名為您的排序結果。
+          拖曳把手或使用右側箭頭調整順序；前 {rankedCount} 名為您的排序結果。
         </p>
       ) : (
-        <p className="text-xs text-slate-500">按住把手拖曳，調整由上到下的優先順序。</p>
+        <p className="text-xs text-slate-500">
+          拖曳把手或使用右側箭頭，調整由上到下的優先順序。
+        </p>
       )}
-      <ul
-        className="space-y-2"
-        onPointerMove={handleListPointerMove}
-        onPointerUp={handleListPointerUp}
-        onPointerCancel={handleListPointerUp}
-      >
+      <ul className="space-y-2">
         {orderedIds.map((id, index) => {
           const opt = optionsById.get(id);
           const isDragging = dragIndex === index;
@@ -163,6 +216,9 @@ export function RankingSortableList({
                     setOverIndex(index);
                     e.currentTarget.setPointerCapture(e.pointerId);
                   }}
+                  onPointerMove={handleGripPointerMove}
+                  onPointerUp={handleGripPointerUp}
+                  onPointerCancel={handleGripPointerUp}
                   className="flex items-center"
                   style={{ touchAction: "none" }}
                 >
@@ -171,6 +227,24 @@ export function RankingSortableList({
                 <span className="min-w-0 flex-1 text-sm text-slate-800">
                   {opt?.text ?? "選項"}
                 </span>
+                {!disabled ? (
+                  <span className="flex shrink-0 items-center gap-0.5">
+                    {index > 0 ? (
+                      <RankMoveButton
+                        direction="up"
+                        label={`將「${opt?.text ?? "選項"}」上移`}
+                        onClick={() => moveByArrow(index, "up")}
+                      />
+                    ) : null}
+                    {index < orderedIds.length - 1 ? (
+                      <RankMoveButton
+                        direction="down"
+                        label={`將「${opt?.text ?? "選項"}」下移`}
+                        onClick={() => moveByArrow(index, "down")}
+                      />
+                    ) : null}
+                  </span>
+                ) : null}
               </div>
               {showRankCutoff && index === rankedCount - 1 ? (
                 <div className="border-t border-dashed border-primary-300/60 px-2 py-1 text-[10px] text-primary-700/80">

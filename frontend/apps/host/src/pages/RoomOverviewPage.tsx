@@ -22,6 +22,7 @@ import { listSessions } from "../lib/sessionApi";
 import { overviewPresentUrl } from "../lib/presentUrl";
 import { HostShell } from "../components/HostShell";
 import { OverviewDashboard } from "../components/overview/OverviewDashboard";
+import { hostSessionMetaFromSession } from "../lib/hostSessionHeader";
 
 interface Props {
   roomId: string;
@@ -122,6 +123,7 @@ export function RoomOverviewPage({ roomId, onLogout }: Props): React.JSX.Element
       onLogout={onLogout}
       activeNav="overview"
       presentHref={overviewPresentUrl(roomId)}
+      sessionMeta={hostSessionMetaFromSession(session)}
     >
       <div className="animate-slide-up space-y-6">
         {overview ? (

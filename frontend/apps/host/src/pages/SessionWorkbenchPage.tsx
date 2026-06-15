@@ -423,12 +423,13 @@ export function SessionWorkbenchPage({
       <WorkbenchLayout
         toolbar={
           <HostRoomNavHeader
-            title={session?.title ?? "活動工作台"}
+            title="工作台"
             brandHref={HOST_DASHBOARD_HASH}
             sessionMeta={{
               dateLabel,
               code: session?.code ?? "—",
               visibilityLabel: session ? VISIBILITY_LABEL[session.visibility] : "—",
+              activityLabel: session?.title ?? (sessionsQuery.isLoading ? "載入中…" : "—"),
               ...(toolbarStatus
                 ? {
                     statusLabel: toolbarStatus.label,
