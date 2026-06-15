@@ -7,12 +7,39 @@
 ## SNAPSHOT（2026-06-15）
 
 - **Repo**：https://github.com/ColdRighter/LiveEngage.git（master）
-- **最新 commit**：`231abab` — 品牌 Logo、參與者會場等待文案與登入頁精簡
+- **最新 commit**：待 push — 修復管理後台匯出下載連結
+- **typecheck**：`admin` 通過；`test_public_url` 2 passed
+- **接手文件**：[`docs/服務架構.md`](docs/服務架構.md)
+- **api 健康**：https://le-api.zeabur.app/health
+
+### 本輪重點（匯出下載修復）
+
+| 區塊 | 內容 |
+|------|------|
+| **根因** | `download_url` 可能用錯主機（proxy 內部 `base_url`）或相對路徑落在 **admin** 靜態站；Zeabur 未設 `LE_API_PUBLIC_URL` |
+| **後端** | `api_public_base_url()` 優先 `LE_API_PUBLIC_URL`；`ProxyHeadersMiddleware` + uvicorn `--proxy-headers` |
+| **Admin** | `resolveExportDownloadUrl()` 強制指向 `VITE_API_BASE`；pending/processing 每 3s 輪詢 |
+| **Zeabur** | api 服務已設 `LE_API_PUBLIC_URL=https://le-api.zeabur.app` |
+
+### 部署（本輪）
+
+需 redeploy：**api**（public_url、proxy）、**admin**（下載連結重寫）；**worker** 無變更可略。
+
+| 服務 | URL |
+|------|-----|
+| api | https://le-api.zeabur.app |
+| admin | https://le-admin.zeabur.app |
+
+---
+
+## SNAPSHOT（2026-06-15，歷史）
+
+- **最新 commit（舊）**：`e0bfeaf` — 品牌 Logo、參與者會場等待文案與登入頁精簡
 - **typecheck**：`ui`／`host`／`admin`／`participant` 通過
 - **接手文件**：[`docs/服務架構.md`](docs/服務架構.md)
 - **api 健康**：https://le-api.zeabur.app/health
 
-### 本輪重點（品牌／參與者 UX／文案，231abab）
+### 本輪重點（品牌／參與者 UX／文案，231abab，歷史）
 
 | 區塊 | 內容 |
 |------|------|
@@ -22,7 +49,7 @@
 | **Host 登入** | 移除 `BrandedAuthShell` `footer`（含分隔線與底部說明文字） |
 | **Participant 首頁** | 活動代碼副標移除「以加入活動」 |
 
-### 部署（本輪）
+### 部署（本輪，歷史）
 
 Git push `231abab` 後 Zeabur 自動建置；需 redeploy：**host**、**participant**、**admin**（皆含 `ui`）；**api**／**worker** 無後端變更可略。
 

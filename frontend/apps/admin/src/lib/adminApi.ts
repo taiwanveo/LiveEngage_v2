@@ -1,5 +1,6 @@
 /** Admin API client（BE-008/009/010）。 */
 
+import { apiUrl } from "@liveengage/realtime";
 import { api } from "./api";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -208,6 +209,19 @@ export const createExport = (payload: {
   format: "csv" | "xlsx";
 }): Promise<ExportJobData> =>
   api<ExportJobData>("/api/v1/admin/exports", { method: "POST", body: payload });
+
+/** 匯出下載連結一律指向 API 公開網域（避免相對路徑落在 admin 靜態站）。 */
+export function resolveExportDownloadUrl(downloadUrl: string): string {
+  const marker = "/api/v1/exports/";
+  const idx = downloadUrl.indexOf(marker);
+  if (idx >= 0) {
+    return apiUrl(downloadUrl.slice(idx));
+  }
+  if (downloadUrl.startsWith("/")) {
+    return apiUrl(downloadUrl);
+  }
+  return downloadUrl;
+}
 
 // ── Analytics ─────────────────────────────────────────────────────────────────
 

@@ -23,6 +23,7 @@ from app.core.logging import configure_logging
 from app.core.redis import close_redis, ping_redis
 from app.realtime.redis_pubsub import start_subscriber, stop_subscriber
 from app.services.qa_redis import start_flush_worker, stop_flush_worker
+from uvicorn.middleware.proxy_headers import ProxyHeadersMiddleware
 
 
 @asynccontextmanager
@@ -50,6 +51,7 @@ def create_app() -> FastAPI:
     )
 
     register_error_handlers(app)
+    app.add_middleware(ProxyHeadersMiddleware, trusted_hosts="*")
     app.add_middleware(IdempotencyMiddleware)
 
     cors_origins = [

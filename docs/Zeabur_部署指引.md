@@ -53,6 +53,7 @@ Worker 需與 **api** 相同的核心 env：`LE_DATABASE_URL`、`LE_DATABASE_URL
 | `LE_DATABASE_URL_SYNC` | Neon sync DSN（migration；可用 pooler 或 direct） |
 | `LE_REDIS_URL` | Upstash `rediss://...`（建議與 API 同區域） |
 | `LE_JWT_SECRET` | 生產用強隨機密鑰（勿用 dev 值） |
+| `LE_API_PUBLIC_URL` | API 公開網域，例如 `https://le-api.zeabur.app`（匯出簽名下載連結、SSO callback） |
 | `LE_ENV` | `production` |
 
 6. **Networking → Port**：HTTP `8000`（id: `web`）

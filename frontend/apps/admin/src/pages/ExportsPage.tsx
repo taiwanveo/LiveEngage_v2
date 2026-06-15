@@ -19,6 +19,7 @@ import {
   createExport,
   listAdminSessions,
   listExports,
+  resolveExportDownloadUrl,
   type ExportJobData,
 } from "../lib/adminApi";
 
@@ -61,10 +62,11 @@ function ExportRow({ job }: { job: ExportJobData }) {
       <td className="px-4 py-3">
         {job.download_url ? (
           <a
-            href={job.download_url}
+            href={resolveExportDownloadUrl(job.download_url)}
             className="text-xs text-accent hover:underline"
             target="_blank"
             rel="noreferrer"
+            download
           >
             下載
           </a>
@@ -90,6 +92,13 @@ export function ExportsPage({ onLogout }: Props): React.JSX.Element {
   const exportsQuery = useQuery({
     queryKey: ["admin-exports"],
     queryFn: () => listExports(),
+    refetchInterval: (query) => {
+      const items = query.state.data?.items ?? [];
+      const pending = items.some(
+        (job) => job.status === "pending" || job.status === "processing"
+      );
+      return pending ? 3_000 : false;
+    },
   });
 
   const mutation = useMutation({

@@ -39,6 +39,7 @@ from app.schemas.admin_stats import (
     EngagementAnalytics,
 )
 from app.schemas.integration import WebhookCreateRequest, WebhookListResponse, WebhookResponse
+from app.core.public_url import api_public_base_url
 from app.services import admin_service, export_service, integration_service
 
 router = APIRouter(prefix="/admin", tags=["admin"])
@@ -217,7 +218,7 @@ async def list_exports(
     session_id: Annotated[uuid.UUID | None, Query()] = None,
 ) -> ExportJobListResponse:
     """列出匯出任務。"""
-    base_url = str(request.base_url).rstrip("/")
+    base_url = api_public_base_url(request=request)
     return await export_service.list_export_jobs(
         db, actor=actor, session_id=session_id, base_url=base_url
     )
@@ -236,7 +237,7 @@ async def create_export(
     actor: Annotated[User, Depends(get_current_user)],
 ) -> ExportJobResponse:
     """建立匯出任務（BE-012）。"""
-    base_url = str(request.base_url).rstrip("/")
+    base_url = api_public_base_url(request=request)
     return await export_service.create_export_job(
         db, actor=actor, payload=payload, base_url=base_url
     )
