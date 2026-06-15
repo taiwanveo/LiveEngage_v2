@@ -7,7 +7,7 @@
 ## SNAPSHOT（2026-06-14）
 
 - **Repo**：https://github.com/ColdRighter/LiveEngage.git（master）
-- **最新 commit**：`f82edc6` — Survey 參與者作答、Quiz 重載還原與全站按鈕缺口修復
+- **最新 commit**：`7d4420d` — 分享連結／QR 改指向 participant 網域
 - **typecheck**：`host`、`participant` 通過
 - **Zeabur**：push `master` 觸發自動 redeploy（**api**、**host**、**participant** 有變更）
 
