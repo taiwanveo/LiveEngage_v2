@@ -7,30 +7,34 @@
 ## SNAPSHOT（2026-06-15）
 
 - **Repo**：https://github.com/ColdRighter/LiveEngage.git（master）
-- **最新 commit**：`e3b1b1b` — UI 按鈕設計系統與投影按鈕統一
-- **typecheck**：`ui`、`host` 通過
-- **Zeabur**：api / host / participant / admin / worker
+- **最新 commit**：`3a36bec` — 組織品牌套用 + 角色模型（host／cohost）
+- **typecheck**：`ui`、`host`、`participant`、`admin` 通過
+- **DB migration**：`0007_user_roles_host_cohost`（部署 api 時需跑 alembic upgrade）
 
 ### 本輪重點
 
 | 區塊 | 內容 |
 |------|------|
-| **設計系統** | `@liveengage/ui` 新增 `Button`、`PresentButton`、`ListAction*`；`theme.css` 擴充 sm/xs、danger/success/muted |
-| **投影按鈕** | 深綠填色 + 白字（修正 `text-accent-fg` 無效導致黑字）；圖示放大；移除「···」內嵌選單；一律 `openPresentWindow` |
-| **列表操作列** | Poll／Quiz 管理「投影」同風格（accent 填色 + 圖示 + sm 尺寸） |
+| **組織品牌** | `GET /api/v1/branding/me`（Host）、`/by-code/{code}`（Participant）；頂欄 Logo、favicon、主色 |
+| **角色** | `member`→`host`（主持人）；新增 `cohost`（助理主持人）；停用 `guest` 邀請 |
+| **助理主持人** | 可控場／投影／審核；不可建立／編輯／刪除 Poll／Quiz（後端 `host_permissions` 強制） |
 
-### 按鈕語意速查
+### 角色速查
 
-| 用途 | variant |
-|------|---------|
-| 建立、投影、開始、開放 | `primary` / `success` |
-| 編輯、控制台、預覽、結束 | `secondary` |
-| 揭曉 | `muted` |
-| 刪除 | `danger` |
+| role | 中文 | 說明 |
+|------|------|------|
+| owner / admin | 擁有者／管理員 | 後台 + 完整控場 |
+| host | 主持人 | 原 member；Host 登入、建立與編輯內容 |
+| cohost | 助理主持人 | 現場控場，不可改 Poll／Quiz 結構 |
+| guest | 訪客 | 已停用邀請；參與者走 QR，不用此帳號 |
 
 ---
 
 ## HISTORY
+
+### 2026-06-15 — 組織品牌 + 角色（3a36bec）
+
+`OrgBrandingProvider`；`host_permissions`；migration 0007。
 
 ### 2026-06-15 — UI 按鈕設計系統（e3b1b1b）
 
