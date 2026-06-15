@@ -7,12 +7,29 @@
 ## SNAPSHOT（2026-06-14）
 
 - **Repo**：https://github.com/ColdRighter/LiveEngage.git（master）
-- **最新 commit**：`1547a3d` — 統一 Host 頂欄 session 列、工作台狀態膠囊與 Quiz 子題結束修復
-- **typecheck**：`host` 通過；後端 `test_quiz_close_active_question` 通過
+- **最新 commit**：`e53e73f` — Poll/Quiz 管理列表對齊與開始結束切換
+- **typecheck**：`host` 通過
 - **接手文件**：[`docs/服務架構.md`](docs/服務架構.md)
 - **api 健康**：https://le-api.zeabur.app/health
 
-### 本輪重點（Host 頂欄統一 + Quiz 子題控場，1547a3d）
+### 本輪重點（Poll/Quiz 管理 Hub 對齊，e53e73f）
+
+| 區塊 | 內容 |
+|------|------|
+| **列表 padding** | Quiz 管理 `px-4 py-3` 與 Poll 管理一致，切頁五鍵不跳位 |
+| **區塊標題** | 「已建立Poll項目（N）」「已建立Quiz項目（N）」；標題列高度一致 |
+| **開始／結束** | `HubInteractionRowActions`：進行中／已鎖定顯示紅色「結束」；閒置顯示「開始」 |
+| **刪除規則** | 進行中或已鎖定須先結束才可刪除 |
+
+### 部署（本輪）
+
+Git push `e53e73f` 後 Zeabur 自動建置；需 redeploy：**host**（僅前端）；**api**／**participant**／**worker** 無變更可略。
+
+---
+
+## SNAPSHOT（2026-06-14，歷史）
+
+- **最新 commit（舊）**：`1547a3d` — 統一 Host 頂欄 session 列、工作台狀態膠囊與 Quiz 子題結束修復
 
 | 區塊 | 內容 |
 |------|------|
