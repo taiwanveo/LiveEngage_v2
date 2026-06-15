@@ -7,7 +7,7 @@
 ## SNAPSHOT（2026-06-15）
 
 - **Repo**：https://github.com/ColdRighter/LiveEngage.git（master）
-- **最新 commit**：`PLACEHOLDER` — 登入輸入框可見性、Host 手機 RWD
+- **最新 commit**：`c74ce13` — 登入輸入框可見性、Host 手機 RWD
 - **api 健康**：https://le-api.zeabur.app/health → 待驗證
 - **Zeabur 部署**：push 後 redeploy **host**（必要）；**admin**、**participant**（登入頁共用 `@liveengage/ui`）
 
