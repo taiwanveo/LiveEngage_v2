@@ -7,10 +7,30 @@
 ## SNAPSHOT（2026-06-15）
 
 - **Repo**：https://github.com/ColdRighter/LiveEngage.git（master）
-- **最新 commit**：`32912f0` — 工作台強化、排序題統計與可設定評分尺度
-- **typecheck**：後端 rating 測試 3 passed；前端含 renderers 變更
+- **最新 commit**：`37e4479` — 統一房間頂欄、Logo 回儀表板與 Poll/Quiz 操作列
+- **typecheck**：`host` build 通過
 - **接手文件**：[`docs/服務架構.md`](docs/服務架構.md)
 - **api 健康**：https://le-api.zeabur.app/health
+
+### 本輪重點（Host 頂欄與管理列表 UX，37e4479）
+
+| 區塊 | 內容 |
+|------|------|
+| **HostRoomNavHeader** | 工作台／總覽／審核／Poll／Quiz 五頁共用頂欄；Logo、導覽、投影／分享固定右上 |
+| **Logo 導覽** | 組織 Logo 點擊回活動儀表板（hover tip「回到活動儀表板」）；頁面標題改純文字 |
+| **即時總覽** | 移除「進行中」徽章、WS 連線字樣、多餘快捷鈕；活動代號 `( CODE )` 併入頂欄 meta |
+| **Poll/Quiz 列表** | 固定五鍵：工作台（主題色）、開始、投影、編輯、刪除；精簡 `le-btn-present-compact` 尺寸 |
+| **分享按鈕** | 與投影同尺寸；無投影 URL 時隱形佔位防位移 |
+
+### 部署（本輪）
+
+Git push `37e4479` 後 Zeabur 自動建置；需 redeploy：**host**（含 `ui` 套件）；**participant** 若共用 ui 變更可選；**api**／**worker** 無後端變更可略。
+
+---
+
+## SNAPSHOT（2026-06-15，歷史）
+
+- **最新 commit（舊）**：`32912f0` — 工作台強化、排序題統計與可設定評分尺度
 
 ### 本輪重點（工作台強化 + 評分尺度，32912f0）
 
@@ -126,6 +146,10 @@ Git push `073bba4` 後 Zeabur 自動建置；本輪僅 **host**（含 `renderers
 ---
 
 ## HISTORY
+
+### 2026-06-15 — 統一房間頂欄、Logo 回儀表板與 Poll/Quiz 操作列（37e4479）
+
+`HostRoomNavHeader` 五頁共用；Logo 取代標題連結回儀表板；即時總覽精簡；`HubInteractionRowActions` 精簡五鍵操作列。
 
 ### 2026-06-15 — 工作台強化、排序題統計與可設定評分尺度（32912f0）
 
