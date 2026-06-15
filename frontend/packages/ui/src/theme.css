@@ -281,14 +281,18 @@
 
 [data-theme="dark"] select[class*="border-slate"],
 [data-theme="dark"] select[class*="border-gray"],
+[data-theme="dark"] select[class*="border-sky"],
 [data-theme="dark"] input[class*="border-slate"],
 [data-theme="dark"] input[class*="border-gray"],
+[data-theme="dark"] input[class*="border-sky"],
 [data-theme="dark"] textarea[class*="border-slate"],
 [data-theme="dark"] textarea[class*="border-gray"],
 [data-theme="cursor"] select[class*="border-slate"],
 [data-theme="cursor"] select[class*="border-gray"],
+[data-theme="cursor"] select[class*="border-sky"],
 [data-theme="cursor"] input[class*="border-slate"],
 [data-theme="cursor"] input[class*="border-gray"],
+[data-theme="cursor"] input[class*="border-sky"],
 [data-theme="cursor"] textarea[class*="border-slate"],
 [data-theme="cursor"] textarea[class*="border-gray"] {
   background-color: rgb(var(--le-surface));
@@ -360,6 +364,18 @@
     -moz-osx-font-smoothing: grayscale;
   }
 
+  [data-theme="light"] html,
+  [data-theme="slido"] html,
+  [data-theme="claude"] html,
+  :root:not([data-theme]) html {
+    color-scheme: light;
+  }
+
+  [data-theme="dark"] html,
+  [data-theme="cursor"] html {
+    color-scheme: dark;
+  }
+
   body {
     min-height: 100%;
     font-family: var(--le-font-sans);
@@ -421,7 +437,18 @@
     font-size: 0.875rem;
     font-weight: 500;
     color: rgb(var(--le-fg));
+    -webkit-text-fill-color: rgb(var(--le-fg));
+    caret-color: rgb(var(--le-fg));
     transition: border-color 0.2s, box-shadow 0.2s;
+  }
+
+  .le-input:-webkit-autofill,
+  .le-input:-webkit-autofill:hover,
+  .le-input:-webkit-autofill:focus {
+    -webkit-text-fill-color: rgb(var(--le-fg));
+    caret-color: rgb(var(--le-fg));
+    -webkit-box-shadow: 0 0 0 1000px rgb(var(--le-surface)) inset;
+    box-shadow: 0 0 0 1000px rgb(var(--le-surface)) inset;
   }
 
   select.le-input {
@@ -657,6 +684,23 @@
     min-height: 2rem;
     padding: 0.375rem 0.5rem;
     font-size: 0.8125rem;
+  }
+
+  @media (max-width: 639px) {
+    .le-nav-link-compact {
+      min-height: 1.75rem;
+      padding: 0.25rem 0.375rem;
+      font-size: 0.75rem;
+    }
+  }
+
+  .le-nav-scroll {
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+
+  .le-nav-scroll::-webkit-scrollbar {
+    display: none;
   }
 
   .le-nav-link-active {

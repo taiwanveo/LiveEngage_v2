@@ -7,12 +7,38 @@
 ## SNAPSHOT（2026-06-15）
 
 - **Repo**：https://github.com/ColdRighter/LiveEngage.git（master）
-- **最新 commit**：`84b76ab` — 問卷填寫明細、頂欄「進行中」膠囊
+- **最新 commit**：`PLACEHOLDER` — 登入輸入框可見性、Host 手機 RWD
+- **api 健康**：https://le-api.zeabur.app/health → 待驗證
+- **Zeabur 部署**：push 後 redeploy **host**（必要）；**admin**、**participant**（登入頁共用 `@liveengage/ui`）
+
+### 本輪重點
+
+| 區塊 | 內容 |
+|------|------|
+| **登入輸入框** | 手機（iOS 深色模式）白字白底看不見；`color-scheme` 對齊主題、`text-foreground`、`-webkit-text-fill-color`；Host／Admin／Participant 登入頁共用 |
+| **Host 頂欄 RWD** | `HostRoomNavHeader` 改為品牌列 → 標題 → 分頁橫向滑動 → 投影／分享獨列；控場列可換行 |
+| **Hub 列表 RWD** | Poll／Quiz 管理列改直向堆疊；操作鈕 `flex-wrap`；`HubCreateCard` 手機全寬表單 |
+
+### 部署（本輪）
+
+| 服務 | URL | 變更 |
+|------|-----|------|
+| host | https://le-host.zeabur.app | 頂欄 RWD、工作台控場列 |
+| admin | https://le-admin.zeabur.app | 登入輸入框可見性（ui） |
+| participant | https://le-participant.zeabur.app | 加入頁輸入框可見性（ui） |
+| api | https://le-api.zeabur.app | 本輪無變更 |
+| worker | （內部） | 本輪無變更 |
+
+---
+
+## SNAPSHOT（2026-06-15，歷史）
+
+- **最新 commit（舊）**：`84b76ab` — 問卷填寫明細、頂欄「進行中」膠囊
 - **測試**：`test_fe012_survey_multiple_choice_and_open_text` 涵蓋 `GET /surveys/{id}/submissions`
 - **api 健康**：https://le-api.zeabur.app/health → 200
 - **Zeabur 部署**：push `84b76ab` 後 `zeabur service redeploy`；**api**、**host** 皆 `RUNNING`（2026-06-15 15:47 UTC）
 
-### 本輪重點
+### 本輪重點（問卷填寫明細／頂欄膠囊）
 
 | 區塊 | 內容 |
 |------|------|
@@ -24,8 +50,8 @@
 
 | 服務 | URL | 變更 |
 |------|-----|------|
-| api | https://le-api.zeabur.app | Survey submissions API |
-| host | https://le-host.zeabur.app | 填寫明細 UI、頂欄膠囊（含 `@liveengage/ui`） |
+| api | https://le-api.zeabur.app | Survey submissions API — RUNNING |
+| host | https://le-host.zeabur.app | 填寫明細 UI、頂欄膠囊 — RUNNING |
 | participant | https://le-participant.zeabur.app | 本輪無變更 |
 | admin | https://le-admin.zeabur.app | 本輪無變更 |
 | worker | （內部） | 本輪無變更 |

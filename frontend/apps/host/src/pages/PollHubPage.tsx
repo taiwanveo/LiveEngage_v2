@@ -168,7 +168,7 @@ export function PollHubPage({ roomId, onLogout }: Props): React.JSX.Element {
               return (
                 <li
                   key={poll.id}
-                  className="flex flex-wrap items-center justify-between gap-3 px-4 py-3"
+                  className="flex flex-col gap-3 px-4 py-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between"
                 >
                   <div className="min-w-0 flex-1">
                     <p className="font-medium text-foreground">{label}</p>

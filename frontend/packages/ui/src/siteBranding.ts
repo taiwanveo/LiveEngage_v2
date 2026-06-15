@@ -44,7 +44,7 @@ export function formatProductTitle(displayName: string | null | undefined): stri
 
 /** 登入／加入表單輸入框（淺藍 pill 造型）。 */
 export const AUTH_INPUT_CLASS =
-  "le-input border-sky-100 bg-sky-50/90 focus:border-sky-300 focus:ring-2 focus:ring-sky-200/60 dark:border-sky-900/50 dark:bg-sky-950/25 dark:focus:border-sky-700";
+  "le-input text-foreground caret-accent border-sky-100 bg-sky-50/90 focus:border-sky-300 focus:ring-2 focus:ring-sky-200/60 dark:border-sky-900/50 dark:bg-sky-950/25 dark:text-foreground dark:focus:border-sky-700";
 
 export function resolveBrandedLogoUrl(logoUrl: string | null | undefined): string {
   return logoUrl?.trim() || DEFAULT_LIVEENGAGE_LOGO;

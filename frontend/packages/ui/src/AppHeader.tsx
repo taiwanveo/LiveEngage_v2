@@ -55,13 +55,17 @@ export function AppHeaderChrome({
 }): React.JSX.Element {
   return (
     <div
-      className="flex min-w-[7.25rem] shrink-0 flex-col items-end gap-1.5"
+      className="flex min-w-0 shrink-0 flex-col items-end gap-1.5 sm:min-w-[7.25rem]"
       aria-label="顯示設定與帳號"
     >
-      <div className="flex items-center gap-2">
+      <div className="flex flex-wrap items-center justify-end gap-1.5 sm:gap-2">
         <ThemeSwitcher compact />
         {onLogout ? (
-          <button type="button" onClick={onLogout} className="le-btn-ghost !min-h-[40px]">
+          <button
+            type="button"
+            onClick={onLogout}
+            className="le-btn-ghost !min-h-[36px] !px-2.5 !text-xs sm:!min-h-[40px] sm:!px-3 sm:!text-sm"
+          >
             {logoutLabel}
           </button>
         ) : null}

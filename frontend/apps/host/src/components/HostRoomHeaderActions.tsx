@@ -39,7 +39,7 @@ export function HostRoomHeaderActions({
 
   return (
     <>
-      <div className="flex min-h-[1.75rem] items-center justify-end gap-1.5">
+      <div className="flex min-h-[1.75rem] flex-wrap items-center justify-end gap-1.5">
         {presentHref ? (
           <PresentButton href={presentHref} compact />
         ) : (

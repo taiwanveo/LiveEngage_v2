@@ -70,7 +70,7 @@ export function HubInteractionRowActions({
   };
 
   return (
-    <div className="flex shrink-0 items-center gap-1.5">
+    <div className="flex w-full max-w-full flex-wrap items-center justify-end gap-1.5 sm:w-auto sm:shrink-0 sm:justify-start">
       <ListActionCompactPrimary href={workbenchHref}>工作台</ListActionCompactPrimary>
 
       {running ? (

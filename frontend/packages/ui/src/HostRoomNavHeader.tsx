@@ -89,10 +89,10 @@ function SessionMetaRow({
       {activityLabel || statusLabel ? (
         <>
           <span className="hidden h-3 w-px bg-border sm:inline-block" />
-          <span className="inline-flex min-w-0 items-center gap-2">
+          <span className="inline-flex min-w-0 max-w-full items-center gap-2">
             {activityLabel ? (
               <span
-                className="max-w-[12rem] truncate text-[10px] text-accent"
+                className="max-w-[10rem] truncate text-[10px] text-accent sm:max-w-[12rem]"
                 title={activityLabel}
               >
                 {activityLabel}
@@ -118,6 +118,44 @@ function SessionMetaRow({
   );
 }
 
+function RoomNavLinks({
+  navItems,
+  actions,
+}: {
+  navItems: HostRoomNavItem[];
+  actions?: React.ReactNode;
+}): React.JSX.Element {
+  return (
+    <nav
+      className="le-nav-scroll -mx-4 flex shrink-0 items-center gap-0.5 overflow-x-auto px-4 pb-0.5 sm:-mx-6 sm:px-6 lg:mx-0 lg:max-w-full lg:flex-wrap lg:justify-end lg:overflow-visible lg:px-0 lg:pb-0"
+      aria-label="房間頁面導覽"
+    >
+      {navItems.map((item) => (
+        <a
+          key={item.href}
+          href={item.href}
+          className={`le-nav-link le-nav-link-compact shrink-0 ${
+            item.active ? "le-nav-link-active" : ""
+          }`}
+        >
+          <span className="relative inline-block">
+            {item.label}
+            {item.liveIndicator ? (
+              <span
+                className="pointer-events-none absolute bottom-0 right-0 translate-x-[20%] translate-y-[85%] whitespace-nowrap rounded-full bg-[rgb(var(--le-success))] px-1 py-px text-[9px] font-semibold leading-tight text-white"
+                aria-hidden
+              >
+                進行中
+              </span>
+            ) : null}
+          </span>
+        </a>
+      ))}
+      {actions}
+    </nav>
+  );
+}
+
 export function HostRoomNavHeader({
   title,
   brandHref,
@@ -137,20 +175,30 @@ export function HostRoomNavHeader({
   const widthClass =
     maxWidth === "full" ? "w-full" : `mx-auto w-full ${MAX_W[maxWidth]}`;
 
+  const chromeFooterDesktop = chromeFooterActions ? (
+    <div className="hidden sm:flex">{chromeFooterActions}</div>
+  ) : undefined;
+
   return (
     <header className="sticky top-0 z-40 border-b border-border/80 bg-surface/80 backdrop-blur-xl">
-      <div className={`flex items-start gap-3 ${APP_HEADER_PADDING}`}>
-        <div className={`flex min-w-0 flex-1 flex-col gap-2 ${widthClass}`}>
-          <OrgBrandMark
-            fallback="LiveEngage"
-            className="font-display text-xs font-semibold tracking-wide text-muted"
-            {...(brandHref ? { href: brandHref } : {})}
-          />
+      <div className={APP_HEADER_PADDING}>
+        <div className={`${widthClass} flex flex-col gap-2 sm:gap-3`}>
+          <div className="flex items-start justify-between gap-2">
+            <OrgBrandMark
+              fallback="LiveEngage"
+              className="min-w-0 font-display text-xs font-semibold tracking-wide text-muted"
+              {...(brandHref ? { href: brandHref } : {})}
+            />
+            <AppHeaderChrome
+              {...(onLogout ? { onLogout } : {})}
+              {...(chromeFooterDesktop ? { footerActions: chromeFooterDesktop } : {})}
+            />
+          </div>
 
-          <div className="flex items-start justify-between gap-3">
+          <div className="flex flex-col gap-2 lg:flex-row lg:items-start lg:justify-between lg:gap-3">
             <div className="min-w-0 flex-1">
               <div className="flex min-w-0 items-center gap-2">
-                <h1 className="min-w-0 truncate font-display text-lg font-bold tracking-tight text-foreground">
+                <h1 className="min-w-0 truncate font-display text-base font-bold tracking-tight text-foreground sm:text-lg">
                   <TitleText title={title} />
                 </h1>
                 {titleExtra ? <div className="shrink-0">{titleExtra}</div> : null}
@@ -160,49 +208,26 @@ export function HostRoomNavHeader({
               {tagline ? (
                 <div className="mt-0.5 truncate text-xs text-muted">{tagline}</div>
               ) : null}
-              {meta ? <div className="mt-0.5 font-mono text-[10px] text-muted">{meta}</div> : null}
+              {meta ? (
+                <div className="mt-0.5 font-mono text-[10px] text-muted">{meta}</div>
+              ) : null}
             </div>
 
-            <nav
-              className="flex shrink-0 items-center gap-0.5 overflow-visible whitespace-nowrap"
-              aria-label="房間頁面導覽"
-            >
-              {navItems.map((item) => (
-                <a
-                  key={item.href}
-                  href={item.href}
-                  className={`le-nav-link le-nav-link-compact ${
-                    item.active ? "le-nav-link-active" : ""
-                  }`}
-                >
-                  <span className="relative inline-block">
-                    {item.label}
-                    {item.liveIndicator ? (
-                      <span
-                        className="pointer-events-none absolute bottom-0 right-0 translate-x-[20%] translate-y-[85%] whitespace-nowrap rounded-full bg-[rgb(var(--le-success))] px-1 py-px text-[9px] font-semibold leading-tight text-white"
-                        aria-hidden
-                      >
-                        進行中
-                      </span>
-                    ) : null}
-                  </span>
-                </a>
-              ))}
-              {actions}
-            </nav>
+            <RoomNavLinks navItems={navItems} {...(actions ? { actions } : {})} />
           </div>
 
+          {chromeFooterActions ? (
+            <div className="flex flex-wrap items-center justify-end gap-1.5 border-t border-border/40 pt-2 sm:hidden">
+              {chromeFooterActions}
+            </div>
+          ) : null}
+
           {navControls ? (
-            <div className="flex flex-wrap items-center gap-1 border-t border-border/60 pt-2 text-[10px]">
+            <div className="flex flex-wrap items-center gap-x-1.5 gap-y-2 border-t border-border/60 pt-2 text-[10px]">
               {navControls}
             </div>
           ) : null}
         </div>
-
-        <AppHeaderChrome
-          {...(onLogout ? { onLogout } : {})}
-          {...(chromeFooterActions ? { footerActions: chromeFooterActions } : {})}
-        />
       </div>
 
       {subRow ? (

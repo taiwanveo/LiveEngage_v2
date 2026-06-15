@@ -453,7 +453,7 @@ export function SessionWorkbenchPage({
               />
             }
             navControls={
-              <div className="flex w-full flex-wrap items-center justify-center gap-2">
+              <div className="flex w-full flex-wrap items-center justify-start gap-x-1.5 gap-y-2 sm:justify-center">
                 {workbenchControls}
               </div>
             }
