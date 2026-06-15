@@ -2,9 +2,9 @@
 
 import * as React from "react";
 import { useEffect, useState } from "react";
+import { formatUserFacingError } from "@liveengage/realtime";
 import { exchangeSsoTicket } from "../lib/authApi";
 import { setAuthTokens } from "../lib/auth";
-import { ApiException } from "../lib/api";
 import { useSystemNotice } from "@liveengage/ui";
 
 interface Props {
@@ -32,7 +32,7 @@ export function SsoCallbackPage({
       })
       .catch((err: unknown) => {
         if (cancelled) return;
-        showError(err instanceof ApiException ? err.error.message : "SSO 登入失敗");
+        showError(formatUserFacingError(err, "SSO 登入失敗，請稍後再試"));
         setFailed(true);
       });
     return () => {

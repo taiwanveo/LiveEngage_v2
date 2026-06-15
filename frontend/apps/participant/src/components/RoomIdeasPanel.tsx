@@ -3,8 +3,8 @@
 import * as React from "react";
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { formatUserFacingError } from "@liveengage/realtime";
 import { useSystemNotice } from "@liveengage/ui";
-import { ApiException } from "../lib/api";
 import { listBoardIdeas, reactIdea, submitIdea } from "../lib/sprint9Api";
 
 interface Props {
@@ -29,7 +29,7 @@ export function RoomIdeasPanel({ boardId }: Props): React.JSX.Element {
       void qc.invalidateQueries({ queryKey: ["ideas-board", boardId] });
     },
     onError: (err: unknown) => {
-      showError(err instanceof ApiException ? err.error.message : "提交失敗");
+      showError(formatUserFacingError(err, "提交失敗"));
     },
   });
 
@@ -37,7 +37,7 @@ export function RoomIdeasPanel({ boardId }: Props): React.JSX.Element {
     mutationFn: (ideaId: string) => reactIdea(ideaId, "👍"),
     onSuccess: () => void qc.invalidateQueries({ queryKey: ["ideas-board", boardId] }),
     onError: (err: unknown) => {
-      showError(err instanceof ApiException ? err.error.message : "反應失敗");
+      showError(formatUserFacingError(err, "反應失敗"));
     },
   });
 

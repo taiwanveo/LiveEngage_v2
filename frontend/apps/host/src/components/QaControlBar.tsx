@@ -2,8 +2,8 @@
 
 import * as React from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { formatUserFacingError } from "@liveengage/realtime";
 import { useSystemNotice } from "@liveengage/ui";
-import { ApiException } from "../lib/api";
 import {
   createInteraction,
   findLatestQaInteraction,
@@ -49,9 +49,7 @@ export function QaControlBar({ roomId }: Props): React.JSX.Element {
     },
     onSuccess: () => void qc.invalidateQueries({ queryKey: ["interactions", roomId] }),
     onError: (err: unknown) => {
-      showError(
-        err instanceof ApiException ? err.error.message : "開啟 Q&A 失敗，請稍後再試"
-      );
+      showError(formatUserFacingError(err, "開啟 Q&A 失敗，請稍後再試"));
     },
   });
 
@@ -59,9 +57,7 @@ export function QaControlBar({ roomId }: Props): React.JSX.Element {
     mutationFn: () => updateInteractionStatus(qa!.id, "stopped"),
     onSuccess: () => void qc.invalidateQueries({ queryKey: ["interactions", roomId] }),
     onError: (err: unknown) => {
-      showError(
-        err instanceof ApiException ? err.error.message : "關閉 Q&A 失敗，請稍後再試"
-      );
+      showError(formatUserFacingError(err, "關閉 Q&A 失敗，請稍後再試"));
     },
   });
 
@@ -72,9 +68,7 @@ export function QaControlBar({ roomId }: Props): React.JSX.Element {
       }),
     onSuccess: () => void qc.invalidateQueries({ queryKey: ["interactions", roomId] }),
     onError: (err: unknown) => {
-      showError(
-        err instanceof ApiException ? err.error.message : "切換審核失敗，請稍後再試"
-      );
+      showError(formatUserFacingError(err, "切換審核失敗，請稍後再試"));
     },
   });
 

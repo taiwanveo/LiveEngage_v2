@@ -5,6 +5,7 @@ import { useCallback, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   QUIZ_EVENT_TYPES,
+  formatUserFacingError,
   useRoomWebSocket,
   type WsEvent,
 } from "@liveengage/realtime";
@@ -13,7 +14,6 @@ import { HostRoomDetailBreadcrumb } from "../components/HostBreadcrumb";
 import { HostShell } from "../components/HostShell";
 import { HostTitleLink } from "../components/HostTitleActions";
 import { sprint9PresentUrl } from "../lib/presentUrl";
-import { ApiException } from "../lib/api";
 import { getAccessToken } from "../lib/auth";
 import { listInteractions } from "../lib/interactionApi";
 import {
@@ -44,12 +44,6 @@ const QUIZ_ACTION_SUCCESS: Record<
   reveal: "已揭曉答案",
   close: "子題已結束",
 };
-
-function formatMutationError(err: unknown): string {
-  if (err instanceof ApiException) return err.error.message;
-  if (err instanceof Error) return err.message;
-  return "操作失敗，請稍後再試";
-}
 
 export function Sprint9ConsolePage({
   roomId,
@@ -131,7 +125,7 @@ export function Sprint9ConsolePage({
       showSuccess("子題已新增");
       void qc.invalidateQueries({ queryKey: ["quiz-questions", interactionId] });
     },
-    onError: (err: unknown) => showError(formatMutationError(err)),
+    onError: (err: unknown) => showError(formatUserFacingError(err)),
   });
 
   const actionMutation = useMutation({
@@ -153,7 +147,7 @@ export function Sprint9ConsolePage({
       showSuccess(QUIZ_ACTION_SUCCESS[variables.action]);
       void refreshQuizData();
     },
-    onError: (err: unknown) => showError(formatMutationError(err)),
+    onError: (err: unknown) => showError(formatUserFacingError(err)),
   });
 
   const deleteQuestionMutation = useMutation({
@@ -162,13 +156,13 @@ export function Sprint9ConsolePage({
       showSuccess("子題已刪除");
       void qc.invalidateQueries({ queryKey: ["quiz-questions", interactionId] });
     },
-    onError: (err: unknown) => showError(formatMutationError(err)),
+    onError: (err: unknown) => showError(formatUserFacingError(err)),
   });
 
   const hideMutation = useMutation({
     mutationFn: hideIdea,
     onSuccess: () => void qc.invalidateQueries({ queryKey: ["ideas", interactionId] }),
-    onError: (err: unknown) => showError(formatMutationError(err)),
+    onError: (err: unknown) => showError(formatUserFacingError(err)),
   });
 
   const addSurveyQMutation = useMutation({
@@ -180,7 +174,7 @@ export function Sprint9ConsolePage({
       }),
     onSuccess: () =>
       void qc.invalidateQueries({ queryKey: ["survey-results", interactionId] }),
-    onError: (err: unknown) => showError(formatMutationError(err)),
+    onError: (err: unknown) => showError(formatUserFacingError(err)),
   });
 
   const backToList = (

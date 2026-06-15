@@ -3,8 +3,8 @@
 import * as React from "react";
 import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { formatUserFacingError } from "@liveengage/realtime";
 import { useSystemNotice } from "@liveengage/ui";
-import { ApiException } from "../lib/api";
 import { HostRoomHubBreadcrumb } from "../components/HostBreadcrumb";
 import { HostShell } from "../components/HostShell";
 import { createInteraction, deleteInteraction, listInteractions } from "../lib/interactionApi";
@@ -36,7 +36,7 @@ export function PollHubPage({ roomId, onLogout }: Props): React.JSX.Element {
     onSuccess: () =>
       void queryClient.invalidateQueries({ queryKey: ["interactions", roomId] }),
     onError: (err: unknown) => {
-      showError(err instanceof ApiException ? err.error.message : "刪除失敗");
+      showError(formatUserFacingError(err, "刪除失敗"));
     },
   });
 
@@ -51,14 +51,14 @@ export function PollHubPage({ roomId, onLogout }: Props): React.JSX.Element {
       window.location.hash = `#/rooms/${roomId}/polls/${created.id}/builder`;
     },
     onError: (err: unknown) => {
-      showError(err instanceof ApiException ? err.error.message : "建立失敗");
+      showError(formatUserFacingError(err, "建立失敗"));
     },
   });
 
   const polls = (items ?? []).filter((i) => isPollType(i.type));
 
   useEffect(() => {
-    if (error) showError(`載入失敗：${(error as Error).message}`);
+    if (error) showError(`載入失敗：${formatUserFacingError(error)}`);
   }, [error, showError]);
 
   return (

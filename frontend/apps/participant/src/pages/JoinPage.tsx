@@ -2,8 +2,8 @@
 
 import * as React from "react";
 import { useEffect, useState } from "react";
+import { formatUserFacingError } from "@liveengage/realtime";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { ApiException } from "../lib/api";
 import {
   getParticipantContext,
   setParticipantSession,
@@ -46,11 +46,7 @@ export function JoinPage({ code }: Props): React.JSX.Element {
 
   useEffect(() => {
     if (sessionQuery.error) {
-      const msg =
-        sessionQuery.error instanceof ApiException
-          ? sessionQuery.error.error.message
-          : (sessionQuery.error as Error).message;
-      showError(msg);
+      showError(formatUserFacingError(sessionQuery.error, "無法載入活動資訊"));
     }
   }, [sessionQuery.error, showError]);
 
@@ -83,11 +79,7 @@ export function JoinPage({ code }: Props): React.JSX.Element {
       window.location.hash = "#/room";
     },
     onError: (err: unknown) => {
-      if (err instanceof ApiException) {
-        showError(err.error.message);
-      } else {
-        showError((err as Error).message);
-      }
+      showError(formatUserFacingError(err, "加入失敗，請稍後再試"));
     },
   });
 

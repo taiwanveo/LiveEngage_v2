@@ -1,9 +1,9 @@
 import * as React from "react";
 import { useEffect, useState } from "react";
+import { formatUserFacingError } from "@liveengage/realtime";
 import { AuthCard, useSystemNotice } from "@liveengage/ui";
 import { fetchSsoConfig, login, ssoAuthorizeUrl } from "../lib/authApi";
 import { setAuthTokens } from "../lib/auth";
-import { ApiException } from "../lib/api";
 
 interface Props {
   onLoggedIn: () => void;
@@ -34,11 +34,7 @@ export function LoginPage({ onLoggedIn }: Props): React.JSX.Element {
       setAuthTokens(res.access_token, res.refresh_token);
       onLoggedIn();
     } catch (err) {
-      if (err instanceof ApiException) {
-        showError(err.error.message);
-      } else {
-        showError("登入失敗（login failed）");
-      }
+      showError(formatUserFacingError(err, "登入失敗，請檢查帳號密碼"));
     } finally {
       setLoading(false);
     }

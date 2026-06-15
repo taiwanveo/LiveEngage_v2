@@ -10,7 +10,7 @@
 import * as React from "react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
-import { QA_EVENT_TYPES, useRoomWebSocket, type WsEvent } from "@liveengage/realtime";
+import { QA_EVENT_TYPES, formatUserFacingError, useRoomWebSocket, type WsEvent } from "@liveengage/realtime";
 import { useSystemNotice } from "@liveengage/ui";
 import { HostRoomHubBreadcrumb } from "../components/HostBreadcrumb";
 import { HostShell } from "../components/HostShell";
@@ -85,7 +85,7 @@ export function ModerationPage({ roomId, onLogout }: Props): React.JSX.Element {
     }) => moderate(questionId, action),
     onSuccess: () =>
       queryClient.invalidateQueries({ queryKey: ["moderation", roomId] }),
-    onError: (err: unknown) => showError((err as Error).message),
+    onError: (err: unknown) => showError(formatUserFacingError(err)),
   });
 
   const grouped = useMemo(() => {
@@ -104,7 +104,7 @@ export function ModerationPage({ roomId, onLogout }: Props): React.JSX.Element {
   }, [items]);
 
   useEffect(() => {
-    if (error) showError(`載入失敗：${(error as Error).message}`);
+    if (error) showError(`載入失敗：${formatUserFacingError(error)}`);
   }, [error, showError]);
 
   if (!validRoom) {
@@ -379,7 +379,7 @@ function ReplyForm(props: {
       });
     },
     onError: (err: unknown) => {
-      showError((err as Error).message);
+      showError(formatUserFacingError(err));
     },
   });
 

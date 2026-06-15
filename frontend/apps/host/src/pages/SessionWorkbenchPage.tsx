@@ -4,6 +4,7 @@ import * as React from "react";
 import { useCallback, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
+  formatUserFacingError,
   POLL_EVENT_TYPES,
   useRoomWebSocket,
   type WsEvent,
@@ -15,7 +16,6 @@ import {
   WorkbenchLayout,
   useSystemNotice,
 } from "@liveengage/ui";
-import { ApiException } from "../lib/api";
 import { getAccessToken } from "../lib/auth";
 import { createInteraction, listInteractions } from "../lib/interactionApi";
 import { getPoll, getPollResults, pollAction } from "../lib/pollApi";
@@ -135,7 +135,7 @@ export function SessionWorkbenchPage({ roomId, pollId, onLogout }: Props): React
       window.location.hash = `#/rooms/${roomId}/workbench/${created.id}`;
     },
     onError: (err: unknown) => {
-      showError(err instanceof ApiException ? err.error.message : "建立失敗");
+      showError(formatUserFacingError(err, "建立失敗"));
     },
   });
 
@@ -153,7 +153,7 @@ export function SessionWorkbenchPage({ roomId, pollId, onLogout }: Props): React
       });
     },
     onError: (err: unknown) => {
-      showError(err instanceof ApiException ? err.error.message : "操作失敗");
+      showError(formatUserFacingError(err, "操作失敗"));
     },
   });
 

@@ -3,11 +3,11 @@
 import * as React from "react";
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { formatUserFacingError } from "@liveengage/realtime";
 import { useSystemNotice } from "@liveengage/ui";
 import { HostRoomHubBreadcrumb } from "../components/HostBreadcrumb";
 import { HostShell } from "../components/HostShell";
 import { sprint9PresentUrl } from "../lib/presentUrl";
-import { ApiException } from "../lib/api";
 import {
   createInteraction,
   deleteInteraction,
@@ -52,7 +52,7 @@ export function Sprint9HubPage({ roomId, onLogout }: Props): React.JSX.Element {
       window.location.hash = `#/rooms/${roomId}/sprint9/${created.id}/console`;
     },
     onError: (err: unknown) => {
-      showError(err instanceof ApiException ? err.error.message : "建立失敗");
+      showError(formatUserFacingError(err, "建立失敗"));
     },
   });
 
@@ -63,9 +63,7 @@ export function Sprint9HubPage({ roomId, onLogout }: Props): React.JSX.Element {
       void qc.invalidateQueries({ queryKey: ["interactions", roomId] });
     },
     onError: (err: unknown) => {
-      showError(
-        err instanceof ApiException ? err.error.message : "開放失敗，請稍後再試"
-      );
+      showError(formatUserFacingError(err, "開放失敗，請稍後再試"));
     },
   });
 
@@ -73,7 +71,7 @@ export function Sprint9HubPage({ roomId, onLogout }: Props): React.JSX.Element {
     mutationFn: (id: string) => deleteInteraction(id),
     onSuccess: () => void qc.invalidateQueries({ queryKey: ["interactions", roomId] }),
     onError: (err: unknown) => {
-      showError(err instanceof ApiException ? err.error.message : "刪除失敗");
+      showError(formatUserFacingError(err, "刪除失敗"));
     },
   });
 

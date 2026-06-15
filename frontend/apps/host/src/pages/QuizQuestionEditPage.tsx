@@ -3,8 +3,8 @@
 import * as React from "react";
 import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { formatUserFacingError } from "@liveengage/realtime";
 import { useSystemNotice } from "@liveengage/ui";
-import { ApiException } from "../lib/api";
 import { HostRoomDetailBreadcrumb } from "../components/HostBreadcrumb";
 import { HostShell } from "../components/HostShell";
 import { listInteractions } from "../lib/interactionApi";
@@ -86,7 +86,7 @@ export function QuizQuestionEditPage({
       void qc.invalidateQueries({ queryKey: ["quiz-questions", quizId] });
     },
     onError: (err: unknown) => {
-      showError(err instanceof ApiException ? err.error.message : "儲存失敗");
+      showError(formatUserFacingError(err, "儲存失敗"));
     },
   });
 

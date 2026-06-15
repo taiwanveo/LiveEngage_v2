@@ -1,6 +1,6 @@
 /** API client：JWT bearer + 401 自動 refresh + 統一錯誤信封解析。 */
 
-import { apiUrl } from "@liveengage/realtime";
+import { apiUrl, messageForFetchFailure, messageForHttpStatus } from "@liveengage/realtime";
 import {
   getAccessToken,
   getRefreshToken,
@@ -104,11 +104,21 @@ export async function api<T>(
   if (token) headers["Authorization"] = `Bearer ${token}`;
   if (options.idempotencyKey) headers["Idempotency-Key"] = options.idempotencyKey;
 
-  const res = await fetch(apiUrl(path), {
-    method: options.method ?? "GET",
-    headers,
-    body: options.body !== undefined ? JSON.stringify(options.body) : null,
-  });
+  let res: Response;
+  try {
+    res = await fetch(apiUrl(path), {
+      method: options.method ?? "GET",
+      headers,
+      body: options.body !== undefined ? JSON.stringify(options.body) : null,
+    });
+  } catch (err: unknown) {
+    throw new ApiException(0, {
+      code: "NETWORK_ERROR",
+      message: messageForFetchFailure(err),
+      details: {},
+      request_id: "",
+    });
+  }
 
   if (
     res.status === 401 &&
@@ -131,7 +141,7 @@ export async function api<T>(
     }
     const err: ApiError = payload.error ?? {
       code: "INTERNAL",
-      message: `HTTP ${res.status}`,
+      message: messageForHttpStatus(res.status),
       details: {},
       request_id: "",
     };

@@ -3,6 +3,7 @@
 import * as React from "react";
 import { useEffect, useState } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
+import { formatUserFacingError } from "@liveengage/realtime";
 import { PollRenderer } from "@liveengage/renderers";
 import { useSystemNotice } from "@liveengage/ui";
 import { HostRoomDetailBreadcrumb } from "../components/HostBreadcrumb";
@@ -50,7 +51,7 @@ export function PollAnswerPage({
   const poll = pollQuery.data;
 
   useEffect(() => {
-    if (pollQuery.error) showError((pollQuery.error as Error).message);
+    if (pollQuery.error) showError(formatUserFacingError(pollQuery.error));
   }, [pollQuery.error, showError]);
 
   useEffect(() => {

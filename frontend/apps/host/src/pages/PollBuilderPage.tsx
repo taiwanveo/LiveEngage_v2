@@ -3,6 +3,7 @@
 import * as React from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { formatUserFacingError } from "@liveengage/realtime";
 import { PollRenderer } from "@liveengage/renderers";
 import { useSystemNotice } from "@liveengage/ui";
 import { HostRoomDetailBreadcrumb } from "../components/HostBreadcrumb";
@@ -70,7 +71,7 @@ export function PollBuilderPage({
   const lastAutosavedOptionsRef = useRef("");
 
   useEffect(() => {
-    if (error) showError((error as Error).message);
+    if (error) showError(`載入失敗：${formatUserFacingError(error)}`);
   }, [error, showError]);
 
   useEffect(() => {
@@ -100,7 +101,7 @@ export function PollBuilderPage({
       showSuccess("題目資訊已儲存");
     },
     onError: (err: unknown) => {
-      showError(err instanceof Error ? err.message : "儲存失敗");
+      showError(formatUserFacingError(err, "儲存失敗"));
     },
   });
 
@@ -126,7 +127,7 @@ export function PollBuilderPage({
 
     const timer = window.setTimeout(() => {
       void persistOptions(payload, true).catch((err: unknown) => {
-        showError(err instanceof Error ? err.message : "選項自動儲存失敗");
+        showError(formatUserFacingError(err, "選項自動儲存失敗"));
       });
     }, OPTIONS_AUTOSAVE_MS);
 

@@ -1,4 +1,10 @@
 export { apiUrl, getApiBase, wsUrl } from "./apiBase";
+export {
+  formatUserFacingError,
+  isNetworkFailure,
+  messageForFetchFailure,
+  messageForHttpStatus,
+} from "./apiErrors";
 export { useRoomWebSocket } from "./useRoomWebSocket";
 export type { UseRoomWebSocketOptions, UseRoomWebSocketResult } from "./useRoomWebSocket";
 export {

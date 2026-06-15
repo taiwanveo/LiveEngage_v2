@@ -2,8 +2,8 @@
 
 import * as React from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { formatUserFacingError } from "@liveengage/realtime";
 import { Modal, useSystemNotice } from "@liveengage/ui";
-import { ApiException } from "../lib/api";
 import { listQuestions, submitQuestion, voteQuestion } from "../lib/qaApi";
 
 interface Props {
@@ -33,9 +33,7 @@ export function RoomQaPanel({ roomId }: Props): React.JSX.Element {
     },
     onError: (err: unknown) => {
       setSubmitOk(false);
-      showError(
-        err instanceof ApiException ? err.error.message : "提交失敗"
-      );
+      showError(formatUserFacingError(err, "提交失敗"));
     },
   });
 
@@ -44,7 +42,7 @@ export function RoomQaPanel({ roomId }: Props): React.JSX.Element {
     onSuccess: () =>
       void qc.invalidateQueries({ queryKey: ["qa-public", roomId] }),
     onError: (err: unknown) => {
-      showError(err instanceof ApiException ? err.error.message : "按讚失敗");
+      showError(formatUserFacingError(err, "按讚失敗"));
     },
   });
 

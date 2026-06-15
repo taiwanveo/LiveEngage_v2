@@ -4,6 +4,7 @@ import * as React from "react";
 import { useCallback, useEffect, useRef } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
+  formatUserFacingError,
   POLL_EVENT_TYPES,
   useRoomWebSocket,
   type WsEvent,
@@ -98,7 +99,7 @@ export function PollConsolePage({
   const err = pollQuery.error ?? resultsQuery.error ?? actionMutation.error;
 
   useEffect(() => {
-    if (err) showError((err as Error).message);
+    if (err) showError(formatUserFacingError(err));
   }, [err, showError]);
 
   const runAction = (action: PollAction, needsConfirm?: boolean): void => {

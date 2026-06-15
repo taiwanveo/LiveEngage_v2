@@ -10,7 +10,7 @@ import {
   type SessionHost,
   type SessionStatus,
 } from "../lib/sessionApi";
-import { ApiException } from "../lib/api";
+import { formatUserFacingError } from "@liveengage/realtime";
 import { AppHeader, JoinShareCard, Modal, participantJoinUrl, useSystemNotice } from "@liveengage/ui";
 import { HOST_DASHBOARD_HASH } from "../components/HostShell";
 
@@ -47,7 +47,7 @@ export function SessionsDashboardPage({ onLogout }: Props): React.JSX.Element {
       }
     },
     onError: (err: unknown) => {
-      showError(err instanceof ApiException ? err.error.message : "建立失敗");
+      showError(formatUserFacingError(err, "建立失敗"));
     },
   });
 
@@ -61,7 +61,7 @@ export function SessionsDashboardPage({ onLogout }: Props): React.JSX.Element {
     }) => updateSession(sessionId, { status }),
     onSuccess: () => void qc.invalidateQueries({ queryKey: ["host-sessions"] }),
     onError: (err: unknown) => {
-      showError(err instanceof ApiException ? err.error.message : "更新失敗");
+      showError(formatUserFacingError(err, "更新失敗"));
     },
   });
 
@@ -89,7 +89,7 @@ export function SessionsDashboardPage({ onLogout }: Props): React.JSX.Element {
 
   React.useEffect(() => {
     if (sessionsQuery.error) {
-      showError((sessionsQuery.error as Error).message);
+      showError(formatUserFacingError(sessionsQuery.error));
     }
   }, [sessionsQuery.error, showError]);
 

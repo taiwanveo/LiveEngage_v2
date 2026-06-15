@@ -1,6 +1,6 @@
 /** API client：participant bearer + 統一錯誤信封。 */
 
-import { apiUrl } from "@liveengage/realtime";
+import { apiUrl, messageForFetchFailure, messageForHttpStatus } from "@liveengage/realtime";
 import { getParticipantToken } from "./participantAuth";
 
 export interface ApiError {
@@ -45,11 +45,21 @@ export async function api<T>(
     headers["Idempotency-Key"] = options.idempotencyKey;
   }
 
-  const res = await fetch(apiUrl(path), {
-    method: options.method ?? "GET",
-    headers,
-    body: options.body !== undefined ? JSON.stringify(options.body) : null,
-  });
+  let res: Response;
+  try {
+    res = await fetch(apiUrl(path), {
+      method: options.method ?? "GET",
+      headers,
+      body: options.body !== undefined ? JSON.stringify(options.body) : null,
+    });
+  } catch (err: unknown) {
+    throw new ApiException(0, {
+      code: "NETWORK_ERROR",
+      message: messageForFetchFailure(err),
+      details: {},
+      request_id: "",
+    });
+  }
 
   if (!res.ok) {
     let payload: { error?: ApiError } = {};
@@ -60,7 +70,7 @@ export async function api<T>(
     }
     const err: ApiError = payload.error ?? {
       code: "INTERNAL",
-      message: `HTTP ${res.status}`,
+      message: messageForHttpStatus(res.status),
       details: {},
       request_id: "",
     };

@@ -25,7 +25,7 @@ import { RoomIdeasPanel } from "../components/RoomIdeasPanel";
 import { ParticipantShareActions } from "../components/ParticipantShareActions";
 import { RoomQaPanel } from "../components/RoomQaPanel";
 import { RoomSurveyPanel } from "../components/RoomSurveyPanel";
-import { ApiException } from "../lib/api";
+import { formatUserFacingError } from "@liveengage/realtime";
 import {
   clearParticipantSession,
   getParticipantContext,
@@ -136,7 +136,7 @@ export function RoomPage(): React.JSX.Element {
       })
       .catch((err: unknown) => {
         if (!cancelled) {
-          showError(err instanceof ApiException ? err.error.message : "載入 Quiz 失敗");
+          showError(formatUserFacingError(err, "載入 Quiz 失敗"));
         }
       });
     return () => {
@@ -284,11 +284,7 @@ export function RoomPage(): React.JSX.Element {
     },
     onError: (err: unknown) => {
       setPollSubmitOk(false);
-      if (err instanceof ApiException) {
-        setSubmitError(err.error.message);
-      } else {
-        setSubmitError((err as Error).message);
-      }
+      setSubmitError(formatUserFacingError(err, "提交失敗"));
     },
   });
 
@@ -389,9 +385,7 @@ export function RoomPage(): React.JSX.Element {
                         })
                         .catch((err: unknown) => {
                           setQuizSubmitOk(false);
-                          setSubmitError(
-                            err instanceof ApiException ? err.error.message : "提交失敗"
-                          );
+                          setSubmitError(formatUserFacingError(err, "提交失敗"));
                         })
                         .finally(() => setQuizSubmitting(false));
                     }}

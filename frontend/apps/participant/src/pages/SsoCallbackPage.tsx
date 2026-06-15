@@ -2,8 +2,8 @@
 
 import * as React from "react";
 import { useEffect, useState } from "react";
+import { formatUserFacingError } from "@liveengage/realtime";
 import { joinWithSsoTicket } from "../lib/authApi";
-import { ApiException } from "../lib/api";
 import { setParticipantSession } from "../lib/participantAuth";
 import { useSystemNotice } from "@liveengage/ui";
 
@@ -37,7 +37,7 @@ export function SsoCallbackPage({
       })
       .catch((err: unknown) => {
         if (cancelled) return;
-        showError(err instanceof ApiException ? err.error.message : "SSO 加入失敗");
+        showError(formatUserFacingError(err, "SSO 加入失敗，請稍後再試"));
         setFailed(true);
       });
     return () => {
