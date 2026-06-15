@@ -4,38 +4,31 @@
 
 ---
 
-## SNAPSHOT（2026-06-14）
+## SNAPSHOT（2026-06-15）
 
 - **Repo**：https://github.com/ColdRighter/LiveEngage.git（master）
-- **最新 commit**：`7d4420d` — 分享連結／QR 改指向 participant 網域
+- **最新 commit**：（本輪）移除獨立 Present App 與 `le-present` 部署
 - **typecheck**：`host`、`participant` 通過
-- **Zeabur**：push `master` 觸發自動 redeploy（**api**、**host**、**participant** 有變更）
+- **Zeabur**：api / host / participant / admin / worker（**已刪除** `present` / `le-present`）
 
 ### 已上線服務
 
 | 服務 | URL |
 |------|------|
 | api | https://le-api.zeabur.app |
-| host | https://le-host.zeabur.app |
+| host | https://le-host.zeabur.app（含大螢幕投影 `#/…/present`） |
 | participant | https://le-participant.zeabur.app |
+| admin | https://le-admin.zeabur.app |
 
-### 本輪重點（7d4420d）
-
-| 區塊 | 內容 |
-|------|------|
-| **分享連結修復** | `participantJoinUrl` 不再用 Host 的 `window.location`；QR／複製連結皆指向 `le-participant` |
-
-### 前一輪（f82edc6）
+### 本輪重點
 
 | 區塊 | 內容 |
 |------|------|
-| **Survey 參與者作答** | `GET /surveys/{id}/participant-questions`；`RoomSurveyPanel`（選擇／評分／開放題） |
-| **Quiz 重載還原** | `GET /quizzes/{id}/active-question`；`RoomPage` 依 session state 還原進行中子題 |
-| **Ideas / Survey 投影** | `IdeasPresentPage`、`SurveyPresentPage`、`Sprint9PresentRouter` |
-| **Host 麵包屑** | Poll Builder／Console／Answer、Quiz 子題編輯、Sprint9 控制台 |
-| **按鈕缺口修復** | Q&A 審核觸控可及性；各頁 mutation `onError`；Join SSO 邊界；分享 tooltip |
+| **移除 Present App** | 刪除 `frontend/apps/present`、`Dockerfile.present`；Zeabur `present` 服務已砍掉 |
+| **文件同步** | RUNBOOK、Zeabur 部署指引、實作指引、ARCHITECTURE 不再提及 `le-present` |
+| **投影** | 一律由 Host 同源路由開啟（Poll / Q&A / Quiz / Ideas / Survey） |
 
-### 投影路由速查
+### 投影路由速查（Host）
 
 | 類型 | 路由 |
 |------|------|
@@ -43,22 +36,18 @@
 | Q&A | `#/rooms/{roomId}/moderation/present` |
 | Quiz / Ideas / Survey | `#/rooms/{roomId}/sprint9/{interactionId}/present` |
 
-### 參與者 API 新增
-
-| 端點 | 用途 |
-|------|------|
-| `GET /surveys/{id}/participant-questions` | 問卷題目（含選項） |
-| `GET /quizzes/{id}/active-question` | 可作答 Quiz 子題（reconnect fallback） |
-
 ### 仍可做（非阻塞）
 
 - Neon Pooler 環境變數
-- 獨立 Present App 支援 Sprint9 投影（目前 Host 同源已足夠）
 - Playwright E2E
 
 ---
 
 ## HISTORY
+
+### 2026-06-15 — 移除獨立 Present App（le-present）
+
+刪除 `apps/present` 與 Zeabur 服務；投影僅 Host 同源。
 
 ### 2026-06-14 — 分享連結指向 participant（7d4420d）
 
@@ -76,9 +65,9 @@ Participant Survey 完整流程；Quiz active-question API；Ideas/Survey 投影
 
 `poll_response_submitted` WS 處理；open_text entries 補拉。
 
-### 2026-06-14 — 投影 Token 修復（a416d99）
+### 2026-06-14 — 投影改 Host 同源（a416d99）
 
-`presentAppUrl` 改 Host 同源路由。
+`presentAppUrl` 改 Host hash 路由，不再依賴跨網域 Present 站。
 
 ### 2026-06-14 — Poll 控場延遲優化（edc9f56）
 

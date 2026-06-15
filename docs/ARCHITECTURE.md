@@ -61,7 +61,7 @@ LiveEngage/
 
 | 項目 | 任務 |
 |------|------|
-| React / frontend monorepo（participant/present/host/admin） | 後續 |
+| React / frontend monorepo（participant/host/admin） | 後續 |
 | WebSocket Gateway、Redis Pub/Sub、事件信封、replay | Sprint 1 後續 |
 | 完整 Auth（JWT 簽發/驗證、SSO、participant token） | 任務 2 |
 | Session CRUD、join by code/link、Present join_info view | 任務 2 |

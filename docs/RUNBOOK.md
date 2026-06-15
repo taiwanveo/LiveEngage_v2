@@ -1,7 +1,7 @@
 # LiveEngage 現場運維手冊（Runbook）
 
-> 適用於 Zeabur 五服務部署（api / host / participant / present / admin）。  
-> 最後更新：2026-06-13（Phase C+）
+> 適用於 Zeabur 四前端 + API 部署（api / host / participant / admin）。  
+> 最後更新：2026-06-15
 
 ---
 
@@ -10,9 +10,8 @@
 | 服務 | URL | 用途 |
 |------|-----|------|
 | api | https://le-api.zeabur.app | REST + WebSocket |
-| host | https://le-host.zeabur.app | 主持人 |
+| host | https://le-host.zeabur.app | 主持人（含大螢幕投影，同源 `#/…/present` 路由） |
 | participant | https://le-participant.zeabur.app | 參與者 |
-| present | https://le-present.zeabur.app | 投影 |
 | admin | https://le-admin.zeabur.app | 管理後台 |
 | **worker**（選用） | Celery | 匯出非同步任務 |
 
@@ -28,9 +27,8 @@
 1. Host 登入 → **活動儀表板** 建立活動 → **設為進行中**
 2. 複製參與連結或 QR（儀表板 `JoinShareCard`）
 3. Participant 掃碼／輸入代碼加入
-4. Host：**Q&A 審核**、**Poll 管理** 啟動投票
-5. Present 登入 → 選 live session → 投影 Poll
-6. 活動結束後：Admin **匯出** CSV/XLSX（72h 簽名連結）
+4. Host：**Q&A 審核**、**Poll 管理** 啟動投票；大螢幕點 **投影**（Host 新視窗，`#/rooms/…/present`）
+5. 活動結束後：Admin **匯出** CSV/XLSX（72h 簽名連結）
 
 ---
 

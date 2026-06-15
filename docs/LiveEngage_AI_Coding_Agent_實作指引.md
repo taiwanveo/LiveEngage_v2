@@ -43,7 +43,7 @@ backend/
   alembic/
   tests/             # 測試名稱需含 SRS AC 編號，如 test_fe004_ac1_realtime_receive
 frontend/
-  apps/{participant,present,host,admin}
+  apps/{participant,host,admin}
   packages/{ui,charts,renderers,realtime,api,i18n}
 ```
 
@@ -63,7 +63,7 @@ frontend/
 ```
 
 - Channel：`evt:room:{roomId}`（Redis Pub/Sub）；Stream `stream:room:{id}` 留最近 1000 筆供 replay。
-- 22 個事件型別見 SRS §7.1 / SDS §6.3；participant/present/host 三種 mode 在伺服端過濾。
+- 22 個事件型別見 SRS §7.1 / SDS §6.3；WebSocket 客戶端 `mode` 含 participant / present / host（**present** 指投影視圖連線模式，由 Host 大螢幕路由使用，非獨立網域）。
 - 節流：upvote 計數同題 ≥300ms 合併、poll 聚合 ≥250ms 合併。
 
 ### 4.3 錯誤格式

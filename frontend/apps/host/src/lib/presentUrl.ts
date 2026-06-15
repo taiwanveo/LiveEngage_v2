@@ -1,4 +1,4 @@
-/** 投影 URL：從 Host 開啟時用同源路由，共用 JWT。 */
+/** 投影 URL：Host 同源 hash 路由，共用 JWT（無獨立 Present 靜態站）。 */
 
 function hostHashUrl(hashPath: string): string {
   const normalized = hashPath.startsWith("/") ? hashPath : `/${hashPath}`;
