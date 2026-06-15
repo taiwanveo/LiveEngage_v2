@@ -7,29 +7,30 @@
 ## SNAPSHOT（2026-06-14）
 
 - **Repo**：https://github.com/ColdRighter/LiveEngage.git（master）
-- **最新 commit**：`e53e73f` — Poll/Quiz 管理列表對齊與開始結束切換
+- **最新 commit**：`c51b348` — 三端登入文案、頁面標題與頂欄品牌統一
 - **typecheck**：`host` 通過
 - **接手文件**：[`docs/服務架構.md`](docs/服務架構.md)
 - **api 健康**：https://le-api.zeabur.app/health
 
-### 本輪重點（Poll/Quiz 管理 Hub 對齊，e53e73f）
+### 本輪重點（三端品牌與文案，c51b348）
 
 | 區塊 | 內容 |
 |------|------|
-| **列表 padding** | Quiz 管理 `px-4 py-3` 與 Poll 管理一致，切頁五鍵不跳位 |
-| **區塊標題** | 「已建立Poll項目（N）」「已建立Quiz項目（N）」；標題列高度一致 |
-| **開始／結束** | `HubInteractionRowActions`：進行中／已鎖定顯示紅色「結束」；閒置顯示「開始」 |
-| **刪除規則** | 進行中或已鎖定須先結束才可刪除 |
+| **登入頁文案** | Admin／Host／Participant 登入與加入頁副標、說明文字更新 |
+| **HTML title** | 固定為 `LiveEngage管理後台`、`LiveEngage主持人工作台`、`LiveEngage互動會場`（不再被組織名稱覆寫） |
+| **頂欄單行標題** | Admin「LiveEngage 管理後台」；Host 儀表板「LiveEngage 主持人工作台」；Participant 活動頁「LiveEngage 互動會場」 |
+| **組織 Logo** | `AppHeader` 僅在已上傳 `logo_url` 時顯示 Logo 列；Participant `RoomPage` 依活動代碼載入品牌 |
+| **Host 儀表板** | 「建立新活動」移至「我的活動」右側（`3ch` 間距）；「結束活動」改紅字 |
 
 ### 部署（本輪）
 
-Git push `e53e73f` 後 Zeabur 自動建置；需 redeploy：**host**（僅前端）；**api**／**participant**／**worker** 無變更可略。
+Git push `c51b348` 後 Zeabur 自動建置；需 redeploy：**admin**、**host**、**participant**（皆含 `ui` 套件）；**api**／**worker** 無變更可略。
 
 ---
 
 ## SNAPSHOT（2026-06-14，歷史）
 
-- **最新 commit（舊）**：`1547a3d` — 統一 Host 頂欄 session 列、工作台狀態膠囊與 Quiz 子題結束修復
+- **最新 commit（舊）**：`e53e73f` — Poll/Quiz 管理列表對齊與開始結束切換
 
 | 區塊 | 內容 |
 |------|------|
