@@ -7,10 +7,26 @@
 ## SNAPSHOT（2026-06-15）
 
 - **Repo**：https://github.com/ColdRighter/LiveEngage.git（master）
-- **最新 commit**：`24f4358` — 組織主色可選覆蓋主題、合併後台組織設定
-- **typecheck**：`ui`、`realtime`、`admin`、`host`、`participant` 通過
+- **最新 commit**：`35073c8` — Host 即時總覽、投影唯讀化、文字雲自適應
+- **typecheck**：`renderers`、`ui`、`host`、`participant` 通過；`test_session_overview` 2 passed
 - **接手文件**：[`docs/服務架構.md`](docs/服務架構.md)
 - **api 健康**：https://le-api.zeabur.app/health
+
+### 本輪重點（Host Overview + 投影 + UX，35073c8）
+
+| 區塊 | 內容 |
+|------|------|
+| **Host 即時總覽** | `GET /sessions/{id}/overview`、`/participants`；`RoomOverviewPage`（`#/rooms/:roomId/overview`）；KPI + Live Poll + 熱門 Q&A + Quiz/Survey + 參與者名單；WS + 12s 輪詢 |
+| **Poll 投影** | `PresentPage` 改唯讀（移除底部控場列與快捷鍵）；狀態膠囊配色（綠／琥珀／紅）；移除「投影」標籤 |
+| **文字雲** | `WordCloudDisplay` 依詞數自適應縮放；≥48 詞才捲動 |
+| **Q&A 參與者** | 按讚 FLIP 平滑重排（`useAutoFlipList`、`qaSort`、`qaCache`） |
+| **Join** | 匿名預設不勾選；暱稱空且非匿名時 Modal 提示 |
+| **登入標題** | `productTitleLines()` 兩行（組織名 + 即時互動通） |
+| **Host 控場** | 「結束」danger 紅；「重設」與鎖定／揭示同風格 |
+
+### 部署（本輪）
+
+需 redeploy：**api**、**host**、**participant**、**admin**（OrganizationPage 小改）；**worker** 無程式變更可略。
 
 ### 本輪重點（品牌／主題，24f4358）
 
@@ -73,6 +89,10 @@
 ---
 
 ## HISTORY
+
+### 2026-06-15 — Host 即時總覽、投影唯讀化、文字雲自適應（35073c8）
+
+Session overview/participants API；`RoomOverviewPage`；投影頁唯讀 + 狀態膠囊；文字雲自適應；Q&A FLIP 重排；Join／登入／控場 UX。
 
 ### 2026-06-15 — 組織主色可選覆蓋主題、合併後台組織設定（24f4358）
 
