@@ -4,6 +4,32 @@
 
 ---
 
+## SNAPSHOT（2026-06-16 — Host Screen 同步 CPU／切題修復）
+
+- **最新 commit**：`3bfeec8` — 修復 Host Screen 同步 CPU 飆高與結束切題競態
+- **Zeabur**：僅 **host** redeploy（deployment `6a30c7b0…`）；**screen** 本輪無程式變更，不需重部署
+
+| 症狀 | 根因 | 修復 |
+|------|------|------|
+| 瀏覽器 CPU ~100% | 工作台與頂欄各呼叫 `useScreenControl`；Screen PUT 重複觸發；WS 連線時仍輪詢 | 共用單一 screen 實例；PUT 去重＋佇列；`wsConnected` 時停 poll／nav 輪詢 |
+| 結束 Poll 後切下一題失敗 | 操作進行中仍同步 Screen；Sprint9 狀態綁錯 `selectedId` | `paused` 暫停跟隨；`interactionId` 綁定；`lastSyncedId` 去重 |
+
+### 部署（本輪）
+
+| 服務 | URL | 狀態 |
+|------|-----|------|
+| **host** | https://le-host.zeabur.app | **RUNNING**（deployment `6a30c7b0…`） |
+| screen | https://le-screen.zeabur.app | **無變更**（沿用現版） |
+| api／join／admin | （同前） | 無變更 |
+
+### 驗收（上線後手測）
+
+- [ ] 工作台開啟後工作管理員 CPU 應明顯低於修復前
+- [ ] Poll A「結束」→ 選 Poll B → Screen 穩定切到 B
+- [ ] 頂欄 Screen「測試」／「全螢幕」仍正常
+
+---
+
 ## SNAPSHOT（2026-06-16 — 測試／全螢幕按鈕修復）
 
 - **最新 commit**：`7d385fc` — 測試畫面與全螢幕遙控可感知
