@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { useState } from "react";
-import { JoinShareCard, Modal, participantJoinUrl } from "@liveengage/ui";
+import { JoinShareCard, Modal, joinUrl } from "@liveengage/ui";
 
 const BTN_SECONDARY =
   "inline-flex min-h-[28px] items-center gap-1 rounded-full border border-border bg-surface px-2.5 text-[11px] font-medium text-accent hover:border-accent/40";
@@ -37,7 +37,7 @@ export function ParticipantShareActions({ sessionCode }: Props): React.JSX.Eleme
         <JoinShareCard
           variant="modal"
           code={sessionCode}
-          joinUrl={participantJoinUrl(sessionCode)}
+          joinUrl={joinUrl(sessionCode)}
           onClose={() => setShareOpen(false)}
         />
       </Modal>

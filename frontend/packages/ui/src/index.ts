@@ -5,7 +5,7 @@ export type { NoticeTone, SystemNotice } from "./useSystemNotice";
 export { interactionTypeLabel, INTERACTION_TYPE_LABEL } from "./interactionLabels";
 export { JoinShareCard } from "./JoinShareCard";
 export type { JoinShareCardProps } from "./JoinShareCard";
-export { participantJoinUrl } from "./participantJoinUrl";
+export { joinUrl, participantJoinUrl } from "./joinUrl";
 export { AuthCard } from "./AuthCard";
 export { BrandedAuthShell } from "./BrandedAuthShell";
 export {

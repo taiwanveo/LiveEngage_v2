@@ -1,17 +1,6 @@
-FROM node:22-bookworm-slim AS build
-
-WORKDIR /src
-COPY frontend ./frontend
-WORKDIR /src/frontend/apps/participant
-
-ARG VITE_API_BASE=https://le-api.zeabur.app
-ENV VITE_API_BASE=$VITE_API_BASE
-
-RUN npm install --prefix ../../packages/renderers \
-    && npm install --prefix ../../packages/realtime \
-    && npm install \
-    && npx vite build
+# le-participant.zeabur.app → le-join.zeabur.app（保留舊 QR／書籤）
+# 注意：SPA hash（#/join/…）無法靠 HTTP 301 傳遞，故以 HTML+JS 永久導向並保留 fragment。
 
 FROM docker.io/zeabur/caddy-static:latest
 
-COPY --from=build /src/frontend/apps/participant/dist /usr/share/caddy
+COPY frontend/redirect-participant/ /usr/share/caddy/

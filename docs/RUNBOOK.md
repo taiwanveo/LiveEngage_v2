@@ -1,6 +1,6 @@
 # LiveEngage 現場運維手冊（Runbook）
 
-> 適用於 Zeabur **五大服務**部署（api / host / participant / admin / worker）。  
+> 適用於 Zeabur 部署（api / host / join / admin / worker；`le-participant` 為舊網域轉址）。  
 > 各服務職責詳見 [服務架構.md](./服務架構.md)。  
 > 最後更新：2026-06-15
 
@@ -14,7 +14,8 @@
 |------|-----|------|
 | api | https://le-api.zeabur.app | REST + WebSocket（即時互動主 API） |
 | host | https://le-host.zeabur.app | 主持人（含大螢幕投影，同源 `#/…/present` 路由） |
-| participant | https://le-participant.zeabur.app | 參與者（掃碼加入、投票／Quiz／Q&A） |
+| join | https://le-join.zeabur.app | 參與者加入與作答（掃碼、投票／Quiz／Q&A） |
+| participant（轉址） | https://le-participant.zeabur.app | 舊 QR／書籤 → 導向 join |
 | admin | https://le-admin.zeabur.app | 管理後台（成員、匯出、稽核、組織設定） |
 | **worker** | （無公開網域） | Celery 背景 Worker（活動資料匯出） |
 

@@ -24,7 +24,7 @@ export function CodeEntryPage(): React.JSX.Element {
 
   return (
     <BrandedAuthShell
-      appTagline="互動會場（participant）"
+      appTagline="加入活動（Join）"
       title="加入活動"
       subtitle="請輸入活動主辦方提供的活動代碼（例如 ABC123）"
       branding={brandingQuery.data ?? null}

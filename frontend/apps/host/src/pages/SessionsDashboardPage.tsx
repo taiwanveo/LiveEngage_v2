@@ -11,7 +11,7 @@ import {
   type SessionStatus,
 } from "../lib/sessionApi";
 import { formatUserFacingError } from "@liveengage/realtime";
-import { AppHeader, JoinShareCard, Modal, participantJoinUrl, useSystemNotice } from "@liveengage/ui";
+import { AppHeader, JoinShareCard, Modal, joinUrl, useSystemNotice } from "@liveengage/ui";
 import { HOST_DASHBOARD_HASH } from "../components/HostShell";
 
 interface Props {
@@ -266,7 +266,7 @@ function SessionCard(props: {
 
       <JoinShareCard
         code={session.code}
-        joinUrl={participantJoinUrl(session.code)}
+        joinUrl={joinUrl(session.code)}
       />
     </li>
   );

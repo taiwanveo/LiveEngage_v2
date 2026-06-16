@@ -170,7 +170,7 @@ def _frontend_base(settings: Settings, app: str) -> str:
     if app == "admin":
         return settings.sso_admin_frontend_url.rstrip("/")
     if app == "participant":
-        return settings.sso_participant_frontend_url.rstrip("/")
+        return settings.sso_join_frontend_url.rstrip("/")
     return settings.sso_host_frontend_url.rstrip("/")
 
 

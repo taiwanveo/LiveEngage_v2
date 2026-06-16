@@ -95,7 +95,7 @@ class Settings(BaseSettings):
     api_public_url: str = "http://localhost:8000"
     sso_host_frontend_url: str = "http://localhost:5173"
     sso_admin_frontend_url: str = "http://localhost:5176"
-    sso_participant_frontend_url: str = "http://localhost:5174"
+    sso_join_frontend_url: str = "http://localhost:5174"
 
     # AI（OpenAI-compatible）
     ai_model: str = "gpt-4o-mini"

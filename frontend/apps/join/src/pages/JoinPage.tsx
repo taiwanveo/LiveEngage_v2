@@ -118,7 +118,7 @@ export function JoinPage({ code }: Props): React.JSX.Element {
   return (
     <>
       <BrandedAuthShell
-        appTagline="互動會場（participant）"
+        appTagline="加入活動（Join）"
         title={session.title}
         subtitle={`狀態：${statusLabel(session.status)}`}
         branding={brandingQuery.data ?? null}

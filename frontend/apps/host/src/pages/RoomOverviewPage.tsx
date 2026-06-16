@@ -11,7 +11,7 @@ import {
   useRoomWebSocket,
   type WsEvent,
 } from "@liveengage/realtime";
-import { JoinShareCard, participantJoinUrl, useSystemNotice } from "@liveengage/ui";
+import { JoinShareCard, joinUrl, useSystemNotice } from "@liveengage/ui";
 import { getAccessToken } from "../lib/auth";
 import {
   getSessionOverview,
@@ -138,7 +138,7 @@ export function RoomOverviewPage({ roomId, onLogout }: Props): React.JSX.Element
           <p className="text-sm text-muted">載入總覽中…</p>
         )}
 
-        <JoinShareCard code={session.code} joinUrl={participantJoinUrl(session.code)} />
+        <JoinShareCard code={session.code} joinUrl={joinUrl(session.code)} />
       </div>
       {systemNoticeModal}
     </HostShell>

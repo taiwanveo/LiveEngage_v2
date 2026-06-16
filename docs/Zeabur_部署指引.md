@@ -21,7 +21,8 @@ LiveEngage 是 **monorepo**（單一 repo 多目錄），不能直接把 repo �
 |------|------|-------------------|
 | **api** | https://le-api.zeabur.app | 根目錄 `Dockerfile` |
 | **host** | https://le-host.zeabur.app | `frontend/Dockerfile.host` |
-| **participant** | https://le-participant.zeabur.app | `frontend/Dockerfile.participant` |
+| **join** | https://le-join.zeabur.app | `frontend/Dockerfile.join` |
+| **participant**（舊網域轉址） | https://le-participant.zeabur.app → join | `frontend/Dockerfile.participant` |
 | **admin** | https://le-admin.zeabur.app | `frontend/Dockerfile.admin` |
 | **worker** | （無公開網域） | 根目錄 `Dockerfile.worker` — Celery 匯出 Worker |
 
@@ -54,6 +55,7 @@ Worker 需與 **api** 相同的核心 env：`LE_DATABASE_URL`、`LE_DATABASE_URL
 | `LE_REDIS_URL` | Upstash `rediss://...`（建議與 API 同區域） |
 | `LE_JWT_SECRET` | 生產用強隨機密鑰（勿用 dev 值） |
 | `LE_API_PUBLIC_URL` | API 公開網域，例如 `https://le-api.zeabur.app`（匯出簽名下載連結、SSO callback） |
+| `LE_SSO_JOIN_FRONTEND_URL` | Join App 網域，例如 `https://le-join.zeabur.app`（SSO 回跳） |
 | `LE_ENV` | `production` |
 
 6. **Networking → Port**：HTTP `8000`（id: `web`）
@@ -75,7 +77,8 @@ MCP 部署 Dockerfile 路徑若報 `path not found`，可改傳 `dockerfile.cont
 | App | Dockerfile | 網域前綴 |
 |-----|------------|----------|
 | Host | `frontend/Dockerfile.host` | `le-host`（含投影路由） |
-| Participant | `frontend/Dockerfile.participant` | `le-participant` |
+| Join | `frontend/Dockerfile.join` | `le-join` |
+| Participant（舊網域轉址） | `frontend/Dockerfile.participant` | `le-participant` → `le-join` |
 | Admin | `frontend/Dockerfile.admin` | `le-admin` |
 
 MCP 部署時 `ref` 請用 `master`（勿寫 `refs/heads/master`，會重複前綴導致 clone 失敗）。

@@ -9,7 +9,7 @@ import {
   PresentButton,
   PresentIcon,
   ShareIcon,
-  participantJoinUrl,
+  joinUrl,
 } from "@liveengage/ui";
 import { listSessions } from "../lib/sessionApi";
 
@@ -73,7 +73,7 @@ export function HostRoomHeaderActions({
           <JoinShareCard
             variant="modal"
             code={session.code}
-            joinUrl={participantJoinUrl(session.code)}
+            joinUrl={joinUrl(session.code)}
             onClose={() => setShareOpen(false)}
           />
         </Modal>

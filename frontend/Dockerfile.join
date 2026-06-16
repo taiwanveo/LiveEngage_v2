@@ -2,12 +2,10 @@ FROM node:22-bookworm-slim AS build
 
 WORKDIR /src
 COPY frontend ./frontend
-WORKDIR /src/frontend/apps/host
+WORKDIR /src/frontend/apps/join
 
 ARG VITE_API_BASE=https://le-api.zeabur.app
-ARG VITE_JOIN_BASE=https://le-join.zeabur.app
 ENV VITE_API_BASE=$VITE_API_BASE
-ENV VITE_JOIN_BASE=$VITE_JOIN_BASE
 
 RUN npm install --prefix ../../packages/renderers \
     && npm install --prefix ../../packages/realtime \
@@ -16,4 +14,4 @@ RUN npm install --prefix ../../packages/renderers \
 
 FROM docker.io/zeabur/caddy-static:latest
 
-COPY --from=build /src/frontend/apps/host/dist /usr/share/caddy
+COPY --from=build /src/frontend/apps/join/dist /usr/share/caddy

@@ -51,5 +51,5 @@ export async function updateSession(
   });
 }
 
-/** 參與者加入連結（生產預設 le-participant.zeabur.app）。 */
-export { participantJoinUrl } from "@liveengage/ui";
+/** 參與者加入連結（生產預設 le-join.zeabur.app）。 */
+export { joinUrl, participantJoinUrl } from "@liveengage/ui";

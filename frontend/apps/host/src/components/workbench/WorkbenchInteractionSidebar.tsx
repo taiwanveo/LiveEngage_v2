@@ -1,7 +1,7 @@
-/** 工作台左欄：Poll + Sprint9 互動清單、建立與拖曳排序。 */
+/** 工作台左欄：Poll + Sprint9 互動清單、建立與拖曳排序（滑鼠 + 觸控）與 ↑↓ 微調。 */
 
 import * as React from "react";
-import { useCallback, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import {
   interactionStatusLabel,
   interactionTypeLabel,
@@ -29,16 +29,64 @@ interface Props {
   onReorder?: (orderedIds: string[]) => void;
 }
 
+function ReorderMoveButton(props: {
+  direction: "up" | "down";
+  disabled?: boolean;
+  label: string;
+  onClick: () => void;
+}): React.JSX.Element {
+  const { direction, disabled = false, label, onClick } = props;
+  return (
+    <button
+      type="button"
+      disabled={disabled}
+      aria-label={label}
+      onClick={(e) => {
+        e.stopPropagation();
+        onClick();
+      }}
+      className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-md border text-muted transition-colors ${
+        disabled
+          ? "cursor-not-allowed border-border/60 text-muted/40"
+          : "border-border bg-surface hover:border-accent/40 hover:bg-accent-muted hover:text-accent active:bg-accent-muted"
+      }`}
+    >
+      <svg
+        width="12"
+        height="12"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        aria-hidden
+      >
+        {direction === "up" ? <path d="M18 15l-6-6-6 6" /> : <path d="M6 9l6 6 6-6" />}
+      </svg>
+    </button>
+  );
+}
+
 function DragHandle(props: {
   disabled: boolean;
   onDragStart: (e: React.DragEvent) => void;
   onDragEnd: () => void;
+  onPointerDown: (e: React.PointerEvent<HTMLSpanElement>) => void;
+  onPointerMove: (e: React.PointerEvent<HTMLSpanElement>) => void;
+  onPointerUp: (e: React.PointerEvent<HTMLSpanElement>) => void;
+  onPointerCancel: (e: React.PointerEvent<HTMLSpanElement>) => void;
 }): React.JSX.Element {
   return (
     <span
       draggable={!props.disabled}
       onDragStart={props.onDragStart}
       onDragEnd={props.onDragEnd}
+      onPointerDown={props.onPointerDown}
+      onPointerMove={props.onPointerMove}
+      onPointerUp={props.onPointerUp}
+      onPointerCancel={props.onPointerCancel}
+      style={{ touchAction: "none" }}
       className={`flex shrink-0 touch-none select-none items-center self-stretch px-1 ${
         props.disabled
           ? "cursor-default text-muted/30"
@@ -62,6 +110,8 @@ function DragHandle(props: {
 export function WorkbenchInteractionSidebar(props: Props): React.JSX.Element {
   const [dragIndex, setDragIndex] = useState<number | null>(null);
   const [overIndex, setOverIndex] = useState<number | null>(null);
+  const dragFromRef = useRef<number | null>(null);
+  const overRef = useRef<number | null>(null);
 
   const reorderable =
     props.reorderable !== false &&
@@ -70,15 +120,18 @@ export function WorkbenchInteractionSidebar(props: Props): React.JSX.Element {
     !props.reordering;
 
   const resetDrag = useCallback(() => {
+    dragFromRef.current = null;
+    overRef.current = null;
     setDragIndex(null);
     setOverIndex(null);
   }, []);
 
-  const handleDrop = useCallback(
+  const finishDrag = useCallback(
     (targetIndex: number) => {
+      const from = dragFromRef.current;
       if (
-        dragIndex === null ||
-        dragIndex === targetIndex ||
+        from === null ||
+        from === targetIndex ||
         !props.onReorder ||
         !reorderable
       ) {
@@ -86,10 +139,44 @@ export function WorkbenchInteractionSidebar(props: Props): React.JSX.Element {
         return;
       }
       const ids = props.items.map((item) => item.id);
-      props.onReorder(reorderWorkbenchIds(ids, dragIndex, targetIndex));
+      props.onReorder(reorderWorkbenchIds(ids, from, targetIndex));
       resetDrag();
     },
-    [dragIndex, props, reorderable, resetDrag]
+    [props, reorderable, resetDrag]
+  );
+
+  const updateOverIndexFromPoint = useCallback((clientX: number, clientY: number): void => {
+    const el = document.elementFromPoint(clientX, clientY);
+    const row = el?.closest<HTMLElement>("[data-workbench-index]");
+    if (!row) return;
+    const idx = Number(row.dataset.workbenchIndex);
+    if (Number.isNaN(idx)) return;
+    overRef.current = idx;
+    setOverIndex(idx);
+  }, []);
+
+  const handleGripPointerMove = (e: React.PointerEvent<HTMLSpanElement>): void => {
+    if (dragFromRef.current === null || !reorderable) return;
+    updateOverIndexFromPoint(e.clientX, e.clientY);
+  };
+
+  const handleGripPointerUp = (e: React.PointerEvent<HTMLSpanElement>): void => {
+    if (dragFromRef.current === null) return;
+    if (e.currentTarget.hasPointerCapture(e.pointerId)) {
+      e.currentTarget.releasePointerCapture(e.pointerId);
+    }
+    finishDrag(overRef.current ?? dragFromRef.current);
+  };
+
+  const moveByArrow = useCallback(
+    (index: number, direction: "up" | "down"): void => {
+      if (!props.onReorder || !reorderable) return;
+      const to = direction === "up" ? index - 1 : index + 1;
+      if (to < 0 || to >= props.items.length) return;
+      const ids = props.items.map((item) => item.id);
+      props.onReorder(reorderWorkbenchIds(ids, index, to));
+    },
+    [props, reorderable]
   );
 
   return (
@@ -146,12 +233,14 @@ export function WorkbenchInteractionSidebar(props: Props): React.JSX.Element {
             return (
               <li
                 key={item.id}
-                className={`mb-1.5 rounded-lg transition-opacity ${
+                data-workbench-index={index}
+                className={`mb-1.5 select-none rounded-lg transition-opacity ${
                   isDragging ? "opacity-40" : ""
                 } ${isOver ? "ring-2 ring-accent/50 ring-offset-1" : ""}`}
                 onDragOver={(e) => {
                   if (!reorderable) return;
                   e.preventDefault();
+                  overRef.current = index;
                   setOverIndex(index);
                 }}
                 onDragLeave={() => {
@@ -160,7 +249,7 @@ export function WorkbenchInteractionSidebar(props: Props): React.JSX.Element {
                 onDrop={(e) => {
                   if (!reorderable) return;
                   e.preventDefault();
-                  handleDrop(index);
+                  finishDrag(index);
                 }}
               >
                 <div
@@ -176,14 +265,29 @@ export function WorkbenchInteractionSidebar(props: Props): React.JSX.Element {
                       if (!reorderable) return;
                       e.dataTransfer.effectAllowed = "move";
                       e.dataTransfer.setData("text/plain", String(index));
+                      dragFromRef.current = index;
                       setDragIndex(index);
+                      overRef.current = index;
+                      setOverIndex(index);
                     }}
                     onDragEnd={resetDrag}
+                    onPointerDown={(e) => {
+                      if (!reorderable) return;
+                      e.preventDefault();
+                      dragFromRef.current = index;
+                      setDragIndex(index);
+                      overRef.current = index;
+                      setOverIndex(index);
+                      e.currentTarget.setPointerCapture(e.pointerId);
+                    }}
+                    onPointerMove={handleGripPointerMove}
+                    onPointerUp={handleGripPointerUp}
+                    onPointerCancel={handleGripPointerUp}
                   />
                   <button
                     type="button"
                     onClick={() => props.onSelect(item.id)}
-                    className="min-w-0 flex-1 px-2 py-2 text-left"
+                    className="min-w-0 flex-1 px-2 py-2 text-left select-text"
                   >
                     <p className="truncate text-xs font-medium text-foreground">
                       {item.title ?? "未命名"}
@@ -193,6 +297,24 @@ export function WorkbenchInteractionSidebar(props: Props): React.JSX.Element {
                       {interactionStatusLabel(item.status)}
                     </p>
                   </button>
+                  {reorderable ? (
+                    <span className="flex shrink-0 items-center gap-0.5 self-center pr-1">
+                      {index > 0 ? (
+                        <ReorderMoveButton
+                          direction="up"
+                          label={`將「${item.title ?? "未命名"}」上移`}
+                          onClick={() => moveByArrow(index, "up")}
+                        />
+                      ) : null}
+                      {index < props.items.length - 1 ? (
+                        <ReorderMoveButton
+                          direction="down"
+                          label={`將「${item.title ?? "未命名"}」下移`}
+                          onClick={() => moveByArrow(index, "down")}
+                        />
+                      ) : null}
+                    </span>
+                  ) : null}
                 </div>
               </li>
             );

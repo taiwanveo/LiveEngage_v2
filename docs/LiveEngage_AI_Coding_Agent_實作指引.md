@@ -43,7 +43,7 @@ backend/
   alembic/
   tests/             # 測試名稱需含 SRS AC 編號，如 test_fe004_ac1_realtime_receive
 frontend/
-  apps/{participant,host,admin}
+  apps/{join,host,admin}
   packages/{ui,charts,renderers,realtime,api,i18n}
 ```
 
