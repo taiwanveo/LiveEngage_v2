@@ -831,3 +831,10 @@ Participant Survey 完整流程；Quiz active-question API；Ideas/Survey 投影
 - 保留必要失敗提示：若瀏覽器阻擋彈窗，仍顯示「請允許瀏覽器彈出視窗」。
 - 修正淺色主題白底白字：`screen/index.css` 追加 `text-white`、`text-slate-50` 到主題前景覆寫，確保淺色投影文字對比可讀。
 - Deploy（push 後自動觸發）：host deployment `6a310a353850703aa49b5aa8`、screen deployment `6a310a323850703aa49b5aa2`（皆 RUNNING）。
+
+### 2026-06-16 — Q&A 投影後自動導向 Q&A 審核頁（62a2251）
+
+- 操作優化：主持人在任一 Host 頁面按下 `Q&A 投影` 時，除了切換 Screen 顯示 Q&A 外，Host 會立刻自動切到 `#/rooms/{roomId}/moderation`。
+- 目的：避免主持人投影切換後還要手動切頁，流程更符合「先投影、立刻審核」的實際操作習慣。
+- 影響範圍：共用的 `HostRoomHeaderActions`／`ScreenControlPanel`，因此五個 Host 頁面都一致生效。
+- Deploy（push 後自動觸發）：host deployment `6a310da53850703aa49b5d12`、screen deployment `6a310da23850703aa49b5d10`（皆 RUNNING）。
