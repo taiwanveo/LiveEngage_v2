@@ -114,7 +114,7 @@ export function SessionWorkbenchPage({
     [sessionsQuery.data, roomId]
   );
 
-  const screen = useScreenControl(roomId, session?.code ?? null);
+  const screen = useScreenControl(roomId);
 
   const interactionsQuery = useQuery({
     queryKey: ["interactions", roomId],

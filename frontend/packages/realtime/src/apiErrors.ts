@@ -34,6 +34,19 @@ export function isNetworkFailure(err: unknown): boolean {
   return err instanceof Error && NETWORK_PATTERNS.test(err.message);
 }
 
+/** 登入失敗專用：401 統一為帳密錯誤提示，其餘沿用 formatUserFacingError。 */
+export function formatLoginError(
+  err: unknown,
+  fallback = "登入失敗，請檢查帳號密碼"
+): string {
+  if (err && typeof err === "object" && "status" in err) {
+    const status = (err as { status?: number }).status;
+    if (status === 401) return "帳號或密碼錯誤";
+    if (status === 429) return "登入嘗試過於頻繁，請稍後再試";
+  }
+  return formatUserFacingError(err, fallback);
+}
+
 /** 供 UI 顯示：優先後端 `error.message`，否則將英文網路錯誤轉中文。 */
 export function formatUserFacingError(
   err: unknown,

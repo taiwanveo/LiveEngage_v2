@@ -34,7 +34,6 @@ export async function getScreenState(roomId: string): Promise<ScreenDisplayState
 
 export async function resolveSessionByCode(code: string): Promise<{
   id: string;
-  default_room_id: string;
   title: string;
   code: string;
 }> {

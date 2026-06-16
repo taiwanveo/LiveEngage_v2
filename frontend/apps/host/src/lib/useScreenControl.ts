@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { screenUrlByEvent, screenUrlByRoom } from "@liveengage/ui";
+import { screenUrlByRoom } from "@liveengage/ui";
 import {
   mintScreenToken,
   updateScreenState,
@@ -45,7 +45,7 @@ function interactionToScreenView(
   return { view: "standby", interaction_id: null };
 }
 
-export function useScreenControl(roomId: string, sessionCode?: string | null) {
+export function useScreenControl(roomId: string) {
   const qc = useQueryClient();
   const screenWindowRef = useRef<Window | null>(null);
   const [followEnabled, setFollowEnabled] = useScreenFollowEnabled();
@@ -66,11 +66,9 @@ export function useScreenControl(roomId: string, sessionCode?: string | null) {
   const buildScreenHref = useCallback((): string | undefined => {
     const token = tokenQuery.data?.token;
     if (!token) return undefined;
-    if (sessionCode) {
-      return screenUrlByEvent(sessionCode, token);
-    }
+    // room= 直接帶入，避免 event= 模式依賴 by-code（公開 API 不含 default_room_id）
     return screenUrlByRoom(roomId, token);
-  }, [roomId, sessionCode, tokenQuery.data?.token]);
+  }, [roomId, tokenQuery.data?.token]);
 
   const openScreen = useCallback(() => {
     const href = buildScreenHref();

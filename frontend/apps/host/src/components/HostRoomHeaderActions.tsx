@@ -19,7 +19,7 @@ export function HostRoomHeaderActions({ roomId }: Props): React.JSX.Element {
   });
 
   const session = sessionsQuery.data?.find((s) => s.default_room_id === roomId) ?? null;
-  const screen = useScreenControl(roomId, session?.code ?? null);
+  const screen = useScreenControl(roomId);
 
   return (
     <ScreenControlPanel

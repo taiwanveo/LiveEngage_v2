@@ -26,7 +26,8 @@ export {
   productTitleLines,
   resolveBrandedLogoUrl,
 } from "./siteBranding";
-export { onLoginFieldKeyDown } from "./loginForm";
+export { onLoginFieldKeyDown, validateEmailPasswordLogin, LOGIN_ERROR_BANNER_CLASS } from "./loginForm";
+export { LoginErrorBanner } from "./LoginErrorBanner";
 export { AppHeader, APP_HEADER_PADDING, AppHeaderChrome } from "./AppHeader";
 export { AdminSidebarShell } from "./AdminSidebarShell";
 export type { SidebarNavItem } from "./AdminSidebarShell";

@@ -4,7 +4,7 @@ import * as React from "react";
 import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { isThemeId, sanitizeScreenColor } from "@liveengage/ui";
-import { parseHashQuery, getScreenToken } from "./lib/screenAuth";
+import { getScreenToken, parseHashQuery, parseScreenTokenPayload } from "./lib/screenAuth";
 import { resolveSessionByCode } from "./lib/screenApi";
 import { useScreenDisplay, useScreenFullscreen } from "./hooks/useScreenDisplay";
 import { ScreenRouter } from "./views/ScreenRouter";
@@ -16,17 +16,26 @@ export interface ScreenContext {
 
 export function App(): React.JSX.Element {
   const params = useMemo(() => parseHashQuery(), []);
+  const token = getScreenToken();
+  const tokenPayload = useMemo(
+    () => (token ? parseScreenTokenPayload(token) : null),
+    [token]
+  );
+
   const eventCode = params.get("event")?.toUpperCase() ?? null;
   const roomFromUrl = params.get("room");
-  const token = getScreenToken();
+  const roomFromToken = tokenPayload?.room_id ?? null;
+  const sessionFromToken = tokenPayload?.session_id ?? null;
 
-  const [sessionId, setSessionId] = useState<string | null>(null);
-  const [roomId, setRoomId] = useState<string | null>(roomFromUrl);
+  const [sessionId, setSessionId] = useState<string | null>(sessionFromToken);
+  const [roomId, setRoomId] = useState<string | null>(roomFromUrl ?? roomFromToken);
+
+  const needsCodeLookup = Boolean(eventCode && !roomFromUrl && !roomFromToken);
 
   const codeQuery = useQuery({
     queryKey: ["session-by-code", eventCode],
     queryFn: () => resolveSessionByCode(eventCode!),
-    enabled: Boolean(eventCode && !roomFromUrl),
+    enabled: needsCodeLookup,
   });
 
   useEffect(() => {
@@ -36,11 +45,16 @@ export function App(): React.JSX.Element {
   }, [roomFromUrl]);
 
   useEffect(() => {
-    if (codeQuery.data) {
-      setRoomId(codeQuery.data.default_room_id);
-      setSessionId(codeQuery.data.id);
+    if (roomFromToken) {
+      setRoomId(roomFromToken);
     }
-  }, [codeQuery.data]);
+  }, [roomFromToken]);
+
+  useEffect(() => {
+    if (sessionFromToken) {
+      setSessionId(sessionFromToken);
+    }
+  }, [sessionFromToken]);
 
   useEffect(() => {
     const theme = params.get("theme");
@@ -70,7 +84,7 @@ export function App(): React.JSX.Element {
     );
   }
 
-  if (eventCode && codeQuery.isLoading) {
+  if (needsCodeLookup && codeQuery.isLoading) {
     return (
       <main className="flex min-h-dvh items-center justify-center bg-slate-950 text-slate-400">
         解析活動代碼…
@@ -78,7 +92,7 @@ export function App(): React.JSX.Element {
     );
   }
 
-  if (eventCode && codeQuery.isError) {
+  if (needsCodeLookup && codeQuery.isError) {
     return (
       <main className="flex min-h-dvh items-center justify-center bg-slate-950 text-red-300">
         找不到活動代碼 {eventCode}
@@ -88,8 +102,18 @@ export function App(): React.JSX.Element {
 
   if (!roomId) {
     return (
-      <main className="flex min-h-dvh items-center justify-center bg-slate-950 text-slate-400">
-        請提供 <code className="text-sky-400">event=</code> 或 <code className="text-sky-400">room=</code> 參數
+      <main className="flex min-h-dvh items-center justify-center bg-slate-950 px-6 text-center text-slate-400">
+        <div>
+          <p>
+            無法取得投影房間。請確認 URL 含有 <code className="text-sky-400">room=</code> 或有效的{" "}
+            <code className="text-sky-400">token=</code>。
+          </p>
+          {eventCode ? (
+            <p className="mt-3 text-sm text-slate-500">
+              僅有活動代碼無法啟動投影，請由主持端重新開啟 Screen 連結。
+            </p>
+          ) : null}
+        </div>
       </main>
     );
   }
