@@ -12,6 +12,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.errors import AppError, ErrorCode
 from app.core.ids import uuid7
+from app.core.tokens import ScreenTokenClaims
 from app.models.enums import InteractionStatus, InteractionType
 from app.models.interaction import Interaction
 from app.models.participant import Participant
@@ -31,7 +32,7 @@ from app.schemas.survey import (
     SurveySubmitRequest,
     SurveySubmitResult,
 )
-from app.services import audit_service, interaction_service
+from app.services import audit_service, interaction_service, screen_service
 
 
 _SURVEY_CHILD_TYPES = frozenset(
@@ -55,6 +56,25 @@ async def _load_survey_for_host(
     await interaction_service.ensure_room_access(db, survey.room_id, host)
     if survey.type != InteractionType.SURVEY:
         raise AppError(ErrorCode.VALIDATION_ERROR, "此互動項目不是 Survey")
+    return survey
+
+
+async def _load_survey_for_screen(
+    db: AsyncSession, survey_interaction_id: uuid.UUID, screen: ScreenTokenClaims
+) -> Interaction:
+    result = await db.execute(
+        select(Interaction).where(Interaction.id == survey_interaction_id)
+    )
+    survey = result.scalar_one_or_none()
+    if survey is None:
+        raise AppError(ErrorCode.NOT_FOUND, "找不到互動項目")
+    if survey.type != InteractionType.SURVEY:
+        raise AppError(ErrorCode.VALIDATION_ERROR, "此互動項目不是 Survey")
+    if survey.room_id != screen.room_id:
+        raise AppError(ErrorCode.FORBIDDEN, "無權讀取此 Survey")
+    await screen_service.validate_screen_token_epoch(
+        screen.room_id, screen.token_epoch
+    )
     return survey
 
 
@@ -372,10 +392,16 @@ async def get_results(
     db: AsyncSession,
     *,
     survey_interaction_id: uuid.UUID,
-    host: User,
+    host: User | None = None,
+    screen: ScreenTokenClaims | None = None,
 ) -> SurveyResultsResponse:
     """Survey 結果聚合（各子題作答數）。"""
-    survey = await _load_survey_for_host(db, survey_interaction_id, host)
+    if host is not None:
+        await _load_survey_for_host(db, survey_interaction_id, host)
+    elif screen is not None:
+        await _load_survey_for_screen(db, survey_interaction_id, screen)
+    else:
+        raise AppError(ErrorCode.UNAUTHENTICATED, "缺少授權")
 
     submission_count = await db.execute(
         select(func.count())

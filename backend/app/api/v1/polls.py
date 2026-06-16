@@ -17,7 +17,9 @@ from app.core.tokens import (
     ParticipantTokenClaims,
     decode_access_token,
     decode_participant_token,
+    decode_screen_token,
 )
+from app.services import screen_service
 from app.models.user import User
 from app.schemas.poll import (
     PollActionRequest,
@@ -36,10 +38,11 @@ router = APIRouter(tags=["polls"])
 
 @dataclass(frozen=True, slots=True)
 class PollViewer:
-    """Poll 讀取端身分（Host 或 Participant）。"""
+    """Poll 讀取端身分（Host、Screen 或 Participant）。"""
 
     viewer_id: uuid.UUID
     is_host: bool
+    screen_room_id: uuid.UUID | None = None
 
 
 def _parse_idempotency_key(raw: str | None) -> uuid.UUID | None:
@@ -69,6 +72,20 @@ async def get_poll_viewer(
     except AppError:
         pass
 
+    try:
+        screen_claims = decode_screen_token(token)
+        await screen_service.validate_screen_token_epoch(
+            screen_claims.room_id, screen_claims.token_epoch
+        )
+        return PollViewer(
+            viewer_id=screen_claims.room_id,
+            is_host=True,
+            screen_room_id=screen_claims.room_id,
+        )
+    except AppError as exc:
+        if exc.code != ErrorCode.UNAUTHENTICATED:
+            raise
+
     access_claims = decode_access_token(token)
     return PollViewer(viewer_id=access_claims.user_id, is_host=True)
 
@@ -85,6 +102,7 @@ async def get_poll(
         interaction_id,
         viewer_id=viewer.viewer_id,
         is_host=viewer.is_host,
+        screen_room_id=viewer.screen_room_id,
     )
 
 
@@ -118,7 +136,10 @@ async def get_poll_results(
 ) -> PollResults:
     """結果聚合（後端絕對值；participant 受 result_visible 控制）。"""
     return await poll_service.get_poll_results(
-        db, interaction_id, is_host=viewer.is_host
+        db,
+        interaction_id,
+        is_host=viewer.is_host,
+        screen_room_id=viewer.screen_room_id,
     )
 
 

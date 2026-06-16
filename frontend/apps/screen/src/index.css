@@ -1,0 +1,40 @@
+@import "../../../packages/ui/src/theme.css";
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer components {
+  .qa-flip-list > li {
+    position: relative;
+    z-index: 0;
+  }
+
+  .qa-flip-list > li[data-flip-id] {
+    transform: translateZ(0);
+  }
+
+  @keyframes qa-vote-bump {
+    0% {
+      transform: scale(1);
+    }
+    45% {
+      transform: scale(1.18);
+    }
+    100% {
+      transform: scale(1);
+    }
+  }
+
+  .qa-vote-count--bump {
+    animation: qa-vote-bump 280ms ease-out;
+    color: rgb(var(--le-accent));
+    font-weight: 600;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .qa-vote-count--bump {
+    animation: none;
+  }
+}

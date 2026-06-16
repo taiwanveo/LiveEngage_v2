@@ -4,10 +4,66 @@
 
 ---
 
-## SNAPSHOT（2026-06-16）
+## SNAPSHOT（2026-06-16 — Screen 獨立投影 App）
 
 - **Repo**：https://github.com/ColdRighter/LiveEngage.git（master）
-- **最新 commit**：`f29e616` — Participant App 更名為 Join App
+- **最新 commit**：（push 後填入）
+- **api 健康**：https://le-api.zeabur.app/health → 200
+- **Zeabur**：push 後新增 **screen** 服務；api／host 隨 master 自動 redeploy
+
+### 本輪重點（重大變動）
+
+| 區塊 | 內容 |
+|------|------|
+| **架構** | 投影從 Host 同源 `#/present` 升級為獨立 **Screen App**（`le-screen.zeabur.app`）；Host 經 REST 寫入 display state，Screen 經 WS `screen_view_changed` 切畫面 |
+| **後端** | `screen.py`、`screen_service`（Redis `screen:room:{id}`）、`screen` JWT + epoch 撤銷、`WsMode.SCREEN`、Idempotency middleware |
+| **讀取授權** | Screen token 擴及 Poll／Quiz／Survey／Overview／Ideas 唯讀 API（`screen_reader_auth.py`）；Poll 另驗 `screen_room_id` 防跨房讀取 |
+| **Screen App** | `frontend/apps/screen` + `Dockerfile.screen`；standby／test／poll／qa／quiz／ideas／survey／overview 全覆蓋 |
+| **Host** | `ScreenControlPanel`、`useScreenControl`（跟隨工作台、Poll 揭曉同步）、`VITE_SCREEN_BASE` |
+| **URL** | `screenUrlByEvent` / `screenUrlByRoom`；`?theme` `?bg` `?fg` |
+| **過渡** | Host 內 `#/…/present` 路由保留；頂欄改開 Screen |
+
+### 部署（本輪）
+
+| 服務 | URL | 變更 |
+|------|-----|------|
+| **screen**（新） | https://le-screen.zeabur.app | `frontend/Dockerfile.screen` |
+| **api** | https://le-api.zeabur.app | Screen REST + WS |
+| **host** | https://le-host.zeabur.app | `VITE_SCREEN_BASE`、Screen 控制 UI |
+| join／admin／worker | （同前） | 本輪無變更 |
+
+### Screen 使用流程
+
+1. Host 登入 → 進 Room → 頂欄 **Screen** 開投影窗（拖到外接螢幕一次）
+2. 勾選「跟隨工作台」→ 切 Poll／Quiz 等時投影自動切換（**不換網址**）
+3. 投影端按 **F** 全螢幕；同機 Host 可按「全螢幕」`postMessage`
+4. Screen token 在 URL 中 — 視為機密連結；可 `POST …/screen-token/revoke` 輪換
+
+### 踩雷與教訓（本輪）
+
+| 問題 | 原因 | 解法 |
+|------|------|------|
+| Screen 開了 Poll 但 API 401 | 舊設計僅 participant／host JWT 可讀 `/polls/{id}`；screen token 未被 `get_poll_viewer` 接受 | 擴充 viewer 鏈：participant → **screen** → host；Poll service 加 `screen_room_id` 校驗 |
+| Quiz／Survey／Overview 投影無資料 | 原端點硬綁 `get_current_user` | `HostOrScreenAuth` + service 層 `_load_*_for_screen` |
+| `idempotent_response` 不存在 | 計畫草稿引用不存在的 helper | 改依現有 **IdempotencyMiddleware**（寫入帶 `Idempotency-Key` 即可） |
+| `room=` URL 缺 sessionId | Overview 需 `session_id` 打 `/sessions/{id}/overview` | display state 持久化 **`session_id`**；Screen App 從 state 或 by-code 解析 |
+| TypeScript `exactOptionalPropertyTypes` | `session_title: undefined` 不能賦給 `string \| null` | 用條件 spread `...(title != null ? { session_title: title } : {})` |
+| `isPollType` import 錯誤 | 從 `workbenchTypes` 匯入但未 re-export | 改從 `pollTypes` 匯入 |
+| Overview 複製到 screen | `OverviewDashboard` 依賴 host 路徑 | 複製到 `apps/screen/src/components` 並改 import；內嵌 `pollTypeLabel` |
+| Zeabur 新前端服務 | `dockerfile.path` 有時失敗（Join 建服務時） | 與 join 相同：用 **`deploy-from-specification` + `dockerfile.content`** 內嵌 Dockerfile |
+| 外接螢幕無法程式指定 | 瀏覽器安全限制 | 僅能第一次手動拖曳；文件與 UI 需說明按 F |
+
+### 驗收清單（上線後手測）
+
+- [ ] Host 開 Screen → standby 顯示連線綠點
+- [ ] 工作台切 Poll + 揭曉 → 投影切題／長條圖不換 URL
+- [ ] Q&A／Quiz／Ideas／Survey／Overview 各切一次
+- [ ] `event=CODE` 與 `room=UUID` 雙 URL 皆可開
+- [ ] 斷網 10s 後 WS 自動重連
+
+---
+
+## SNAPSHOT（2026-06-16，Join 更名）
 - **api 健康**：https://le-api.zeabur.app/health → 200
 - **Zeabur 部署**：push `f29e616` 後；**join**、**host**、**participant（轉址）** 皆 `RUNNING`（2026-06-16 01:01 UTC）
 

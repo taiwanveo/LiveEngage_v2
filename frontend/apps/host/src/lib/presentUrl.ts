@@ -1,4 +1,4 @@
-/** 投影 URL：Host 同源 hash 路由，共用 JWT（無獨立 Present 靜態站）。 */
+/** 投影 URL：Host 同源 hash 路由（過渡保留）；新投影請用 `@liveengage/ui` 的 `screenUrl*`。 */
 
 function hostHashUrl(hashPath: string): string {
   const normalized = hashPath.startsWith("/") ? hashPath : `/${hashPath}`;

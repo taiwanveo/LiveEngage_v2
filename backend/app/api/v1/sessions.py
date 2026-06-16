@@ -11,6 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.client_ip import get_client_ip
 from app.core.db import get_session
 from app.core.deps import get_current_user
+from app.core.screen_reader_auth import HostOrScreenAuth, get_host_or_screen_auth
 from app.models.user import User
 from app.schemas.room import RoomCreateRequest, RoomListResponse, RoomResponse
 from app.schemas.session import (
@@ -115,15 +116,16 @@ async def join_session(
 async def list_session_participants(
     session_id: uuid.UUID,
     db: Annotated[AsyncSession, Depends(get_session)],
-    host: Annotated[User, Depends(get_current_user)],
+    auth: Annotated[HostOrScreenAuth, Depends(get_host_or_screen_auth)],
     cursor: str | None = None,
     limit: int = Query(default=20, ge=1, le=100),
 ) -> ParticipantListResponse:
-    """Host 參與者名單（分頁、mask_identity）。"""
+    """Host／Screen 參與者名單（分頁、mask_identity）。"""
     return await overview_service.list_session_participants(
         db,
         session_id=session_id,
-        host=host,
+        host=auth.host,
+        screen=auth.screen,
         cursor=cursor,
         limit=limit,
     )
@@ -133,14 +135,15 @@ async def list_session_participants(
 async def get_session_overview(
     session_id: uuid.UUID,
     db: Annotated[AsyncSession, Depends(get_session)],
-    host: Annotated[User, Depends(get_current_user)],
+    auth: Annotated[HostOrScreenAuth, Depends(get_host_or_screen_auth)],
     room_id: uuid.UUID | None = None,
 ) -> SessionOverviewResponse:
-    """Host 單一活動即時總覽（KPI + active poll + top Q&A + quiz/survey 摘要）。"""
+    """Host／Screen 單一活動即時總覽（KPI + active poll + top Q&A + quiz/survey 摘要）。"""
     return await overview_service.get_session_overview(
         db,
         session_id=session_id,
-        host=host,
+        host=auth.host,
+        screen=auth.screen,
         room_id=room_id,
     )
 

@@ -19,6 +19,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.errors import AppError, ErrorCode
 from app.core.host_permissions import assert_can_edit_content
 from app.core.ids import uuid7
+from app.core.tokens import ScreenTokenClaims
 from app.models.enums import InteractionStatus, InteractionType, QuizQuestionState
 from app.models.interaction import Interaction
 from app.models.participant import Participant
@@ -40,7 +41,7 @@ from app.schemas.quiz import (
     QuizQuestionPublic,
     QuizQuestionUpdateRequest,
 )
-from app.services import audit_service, interaction_service
+from app.services import audit_service, interaction_service, screen_service
 
 _GRACE_S = 2
 
@@ -74,6 +75,26 @@ async def _load_quiz_for_host(
     if interaction.type != InteractionType.QUIZ:
         raise AppError(ErrorCode.VALIDATION_ERROR, "此互動項目不是 Quiz")
     return interaction, room.id
+
+
+async def _load_quiz_for_screen(
+    db: AsyncSession, quiz_interaction_id: uuid.UUID, screen: ScreenTokenClaims
+) -> tuple[Interaction, uuid.UUID]:
+    """載入 Quiz 並驗證 screen token 房間權限。"""
+    result = await db.execute(
+        select(Interaction).where(Interaction.id == quiz_interaction_id)
+    )
+    interaction = result.scalar_one_or_none()
+    if interaction is None:
+        raise AppError(ErrorCode.NOT_FOUND, "找不到互動項目")
+    if interaction.type != InteractionType.QUIZ:
+        raise AppError(ErrorCode.VALIDATION_ERROR, "此互動項目不是 Quiz")
+    if interaction.room_id != screen.room_id:
+        raise AppError(ErrorCode.FORBIDDEN, "無權讀取此 Quiz")
+    await screen_service.validate_screen_token_epoch(
+        screen.room_id, screen.token_epoch
+    )
+    return interaction, screen.room_id
 
 
 async def _load_quiz_question(
@@ -230,10 +251,16 @@ async def list_questions(
     db: AsyncSession,
     *,
     quiz_interaction_id: uuid.UUID,
-    host: User,
+    host: User | None = None,
+    screen: ScreenTokenClaims | None = None,
 ) -> list[QuizQuestionPublic]:
-    """列出 Quiz 全部子題（Host）；主持人端一律回傳 ``is_correct`` 供編輯。"""
-    await _load_quiz_for_host(db, quiz_interaction_id, host)
+    """列出 Quiz 全部子題（Host／Screen）；主持人端一律回傳 ``is_correct`` 供編輯。"""
+    if host is not None:
+        await _load_quiz_for_host(db, quiz_interaction_id, host)
+    elif screen is not None:
+        await _load_quiz_for_screen(db, quiz_interaction_id, screen)
+    else:
+        raise AppError(ErrorCode.UNAUTHENTICATED, "缺少授權")
     result = await db.execute(
         select(QuizQuestion, Interaction)
         .join(Interaction, QuizQuestion.child_interaction_id == Interaction.id)
@@ -387,10 +414,13 @@ async def get_leaderboard(
     *,
     quiz_interaction_id: uuid.UUID,
     host: User | None = None,
+    screen: ScreenTokenClaims | None = None,
 ) -> QuizLeaderboardResponse:
     """排行榜：總分 DESC → 累計 elapsed ASC。"""
     if host is not None:
         await _load_quiz_for_host(db, quiz_interaction_id, host)
+    elif screen is not None:
+        await _load_quiz_for_screen(db, quiz_interaction_id, screen)
 
     agg = await db.execute(
         select(

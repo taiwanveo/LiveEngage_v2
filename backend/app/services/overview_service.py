@@ -8,6 +8,8 @@ from sqlalchemy import func, or_, select, union
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.errors import AppError, ErrorCode
+from app.core.screen_reader_auth import ensure_screen_session
+from app.core.tokens import ScreenTokenClaims
 from app.models.enums import InteractionStatus, InteractionType
 from app.models.interaction import Interaction
 from app.models.participant import Participant
@@ -82,12 +84,18 @@ async def list_session_participants(
     db: AsyncSession,
     *,
     session_id: uuid.UUID,
-    host: User,
+    host: User | None = None,
+    screen: ScreenTokenClaims | None = None,
     cursor: str | None = None,
     limit: int = _DEFAULT_PARTICIPANT_PAGE,
 ) -> ParticipantListResponse:
-    """Host 參與者名單（分頁、mask_identity）。"""
-    await _get_session_for_host(db, session_id=session_id, host=host)
+    """Host／Screen 參與者名單（分頁、mask_identity）。"""
+    if screen is not None:
+        await ensure_screen_session(db, screen, session_id)
+    elif host is not None:
+        await _get_session_for_host(db, session_id=session_id, host=host)
+    else:
+        raise AppError(ErrorCode.UNAUTHENTICATED, "缺少授權")
     page_size = min(max(limit, 1), _MAX_PARTICIPANT_PAGE)
     offset = _parse_cursor(cursor)
 
@@ -274,7 +282,11 @@ async def _top_questions(
 
 
 async def _active_poll_overview(
-    db: AsyncSession, *, room_id: uuid.UUID, host: User
+    db: AsyncSession,
+    *,
+    room_id: uuid.UUID,
+    host: User | None = None,
+    screen_room_id: uuid.UUID | None = None,
 ) -> ActivePollOverview | None:
     result = await db.execute(
         select(Interaction).where(
@@ -287,11 +299,21 @@ async def _active_poll_overview(
     if interaction is None:
         return None
 
+    viewer_id = host.id if host is not None else screen_room_id
+    if viewer_id is None:
+        return None
     detail = await poll_service.get_poll_detail(
-        db, interaction.id, viewer_id=host.id, is_host=True
+        db,
+        interaction.id,
+        viewer_id=viewer_id,
+        is_host=True,
+        screen_room_id=screen_room_id,
     )
     results = await poll_service.get_poll_results(
-        db, interaction.id, is_host=True
+        db,
+        interaction.id,
+        is_host=True,
+        screen_room_id=screen_room_id,
     )
     return ActivePollOverview(
         interaction_id=interaction.id,
@@ -304,7 +326,11 @@ async def _active_poll_overview(
 
 
 async def _quiz_leaderboard_top(
-    db: AsyncSession, *, room_id: uuid.UUID, host: User
+    db: AsyncSession,
+    *,
+    room_id: uuid.UUID,
+    host: User | None = None,
+    screen: ScreenTokenClaims | None = None,
 ) -> QuizLeaderboardTop | None:
     quiz_child_ids = select(QuizQuestion.child_interaction_id)
     result = await db.execute(
@@ -323,7 +349,10 @@ async def _quiz_leaderboard_top(
         return None
 
     leaderboard = await quiz_service.get_leaderboard(
-        db, quiz_interaction_id=quiz.id, host=host
+        db,
+        quiz_interaction_id=quiz.id,
+        host=host,
+        screen=screen,
     )
     top_entries: list[LeaderboardEntry] = []
     for entry in leaderboard.entries[:_LEADERBOARD_TOP_LIMIT]:
@@ -390,11 +419,23 @@ async def get_session_overview(
     db: AsyncSession,
     *,
     session_id: uuid.UUID,
-    host: User,
+    host: User | None = None,
+    screen: ScreenTokenClaims | None = None,
     room_id: uuid.UUID | None = None,
 ) -> SessionOverviewResponse:
-    """Host 單一活動即時總覽（KPI + active poll + top Q&A + quiz/survey 摘要）。"""
-    session = await _get_session_for_host(db, session_id=session_id, host=host)
+    """Host／Screen 單一活動即時總覽（KPI + active poll + top Q&A + quiz/survey 摘要）。"""
+    if screen is not None:
+        await ensure_screen_session(db, screen, session_id, room_id=room_id)
+        sess_row = await db.execute(
+            select(Session).where(Session.id == session_id)
+        )
+        session = sess_row.scalar_one_or_none()
+        if session is None:
+            raise AppError(ErrorCode.NOT_FOUND, "找不到活動")
+    elif host is not None:
+        session = await _get_session_for_host(db, session_id=session_id, host=host)
+    else:
+        raise AppError(ErrorCode.UNAUTHENTICATED, "缺少授權")
     focus_room_id = await _resolve_focus_room(
         db, session_id=session_id, room_id=room_id
     )
@@ -405,12 +446,22 @@ async def get_session_overview(
     quiz_leaderboard_top = None
     survey_summary = None
     if focus_room_id is not None:
-        active_poll = await _active_poll_overview(
-            db, room_id=focus_room_id, host=host
-        )
-        quiz_leaderboard_top = await _quiz_leaderboard_top(
-            db, room_id=focus_room_id, host=host
-        )
+        if screen is not None:
+            active_poll = await _active_poll_overview(
+                db,
+                room_id=focus_room_id,
+                screen_room_id=screen.room_id,
+            )
+            quiz_leaderboard_top = await _quiz_leaderboard_top(
+                db, room_id=focus_room_id, screen=screen
+            )
+        else:
+            active_poll = await _active_poll_overview(
+                db, room_id=focus_room_id, host=host
+            )
+            quiz_leaderboard_top = await _quiz_leaderboard_top(
+                db, room_id=focus_room_id, host=host
+            )
         survey_summary = await _survey_summary(db, room_id=focus_room_id)
 
     return SessionOverviewResponse(

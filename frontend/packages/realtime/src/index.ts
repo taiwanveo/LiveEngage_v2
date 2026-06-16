@@ -40,5 +40,6 @@ export {
   SESSION_EVENT_TYPES,
   INTERACTION_STARTED,
   INTERACTION_EVENT_TYPES,
+  SCREEN_VIEW_CHANGED,
 } from "./types";
 export type { WsEvent, WsMode } from "./types";

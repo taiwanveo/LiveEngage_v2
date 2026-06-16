@@ -6,6 +6,13 @@ export { interactionTypeLabel, INTERACTION_TYPE_LABEL } from "./interactionLabel
 export { JoinShareCard } from "./JoinShareCard";
 export type { JoinShareCardProps } from "./JoinShareCard";
 export { joinUrl, participantJoinUrl } from "./joinUrl";
+export {
+  screenUrl,
+  screenUrlByEvent,
+  screenUrlByRoom,
+  sanitizeScreenColor,
+} from "./screenUrl";
+export type { ScreenUrlParams } from "./screenUrl";
 export { AuthCard } from "./AuthCard";
 export { BrandedAuthShell } from "./BrandedAuthShell";
 export {

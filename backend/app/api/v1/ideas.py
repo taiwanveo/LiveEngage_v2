@@ -14,7 +14,8 @@ from app.core.db import get_session
 from app.core.deps import bearer_scheme, get_current_user, get_participant_claims
 from app.core.tokens import ParticipantTokenClaims
 from app.core.errors import AppError, ErrorCode
-from app.core.tokens import decode_access_token, decode_participant_token
+from app.core.tokens import decode_access_token, decode_participant_token, decode_screen_token
+from app.services import screen_service
 from app.models.user import User
 from app.schemas.ideas import (
     IdeaListResponse,
@@ -46,8 +47,18 @@ async def get_ideas_viewer(
         claims = decode_participant_token(token)
         return IdeasViewer(participant_id=claims.participant_id, is_host=False)
     except AppError:
-        decode_access_token(token)
+        pass
+    try:
+        screen = decode_screen_token(token)
+        await screen_service.validate_screen_token_epoch(
+            screen.room_id, screen.token_epoch
+        )
         return IdeasViewer(participant_id=None, is_host=True)
+    except AppError as exc:
+        if exc.code != ErrorCode.UNAUTHENTICATED:
+            raise
+    decode_access_token(token)
+    return IdeasViewer(participant_id=None, is_host=True)
 
 
 @router.post(

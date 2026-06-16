@@ -522,6 +522,8 @@ async def get_poll_detail(
     interaction_id: uuid.UUID,
     viewer_id: uuid.UUID,
     is_host: bool,
+    *,
+    screen_room_id: uuid.UUID | None = None,
 ) -> PollDetail:
     """組裝 PollDetail；揭示前不含 is_correct（PM-003-FR5）。"""
     result = await db.execute(
@@ -530,6 +532,8 @@ async def get_poll_detail(
     interaction = result.scalars().first()
     if interaction is None:
         raise AppError(ErrorCode.NOT_FOUND, "找不到互動項目")
+    if screen_room_id is not None and interaction.room_id != screen_room_id:
+        raise AppError(ErrorCode.FORBIDDEN, "無權讀取此 Poll")
 
     hide_correct = not (is_host or interaction.result_visible)
     options = await _get_options(db, interaction_id, hide_correct=hide_correct)
@@ -1025,6 +1029,7 @@ async def get_poll_results(
     interaction_id: uuid.UUID,
     *,
     is_host: bool,
+    screen_room_id: uuid.UUID | None = None,
 ) -> PollResults:
     """讀取結果；participant 受 ``result_visible`` 控制。"""
     result = await db.execute(
@@ -1033,6 +1038,8 @@ async def get_poll_results(
     interaction = result.scalars().first()
     if interaction is None:
         raise AppError(ErrorCode.NOT_FOUND, "找不到互動項目")
+    if screen_room_id is not None and interaction.room_id != screen_room_id:
+        raise AppError(ErrorCode.FORBIDDEN, "無權讀取此 Poll 結果")
     if interaction.type not in POLL_TYPES:
         raise AppError(ErrorCode.VALIDATION_ERROR, "此互動項目不是 Poll 題型")
 

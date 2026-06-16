@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import uuid
 from collections.abc import Callable
 from typing import Annotated
 
@@ -15,8 +16,10 @@ from app.core.errors import AppError, ErrorCode
 from app.core.tokens import (
     AccessTokenClaims,
     ParticipantTokenClaims,
+    ScreenTokenClaims,
     decode_access_token,
     decode_participant_token,
+    decode_screen_token,
 )
 from app.models.enums import UserRole
 from app.models.user import User
@@ -53,6 +56,15 @@ async def get_current_user(
     if user is None:
         raise AppError(ErrorCode.UNAUTHENTICATED, "使用者不存在")
     return user
+
+
+async def get_screen_claims(
+    credentials: Annotated[HTTPAuthorizationCredentials | None, Depends(bearer_scheme)],
+) -> ScreenTokenClaims:
+    """解析 Bearer screen token。"""
+    if credentials is None or credentials.scheme.lower() != "bearer":
+        raise AppError(ErrorCode.UNAUTHENTICATED, "缺少或無效的 Authorization")
+    return decode_screen_token(credentials.credentials)
 
 
 async def get_participant_claims(

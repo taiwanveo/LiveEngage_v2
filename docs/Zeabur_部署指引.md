@@ -22,11 +22,14 @@ LiveEngage 是 **monorepo**（單一 repo 多目錄），不能直接把 repo �
 | **api** | https://le-api.zeabur.app | 根目錄 `Dockerfile` |
 | **host** | https://le-host.zeabur.app | `frontend/Dockerfile.host` |
 | **join** | https://le-join.zeabur.app | `frontend/Dockerfile.join` |
+| **screen** | https://le-screen.zeabur.app | `frontend/Dockerfile.screen` |
 | **participant**（舊網域轉址） | https://le-participant.zeabur.app → join | `frontend/Dockerfile.participant` |
 | **admin** | https://le-admin.zeabur.app | `frontend/Dockerfile.admin` |
 | **worker** | （無公開網域） | 根目錄 `Dockerfile.worker` — Celery 匯出 Worker |
 
-> **大螢幕投影**已整合在 **Host**（`#/rooms/…/present` 同源路由），不再部署獨立 Present 靜態站。
+> **大螢幕投影**使用獨立 **Screen App**（`le-screen`）；Host 頂欄「Screen」開啟投影並遙控切換。舊 `#/…/present` 路由過渡保留。
+
+**新增 screen 服務**：Add Service → GitHub → 同 repo；Dockerfile 路徑 `frontend/Dockerfile.screen`；網域 `le-screen.zeabur.app`。Host 建置需 `VITE_SCREEN_BASE=https://le-screen.zeabur.app`。
 
 Worker 需與 **api** 相同的核心 env：`LE_DATABASE_URL`、`LE_DATABASE_URL_SYNC`、`LE_REDIS_URL`、`LE_JWT_SECRET`、`LE_ENV=production`。建議另設 `LE_CELERY_TASK_ALWAYS_EAGER=false`。
 

@@ -6,8 +6,10 @@ WORKDIR /src/frontend/apps/host
 
 ARG VITE_API_BASE=https://le-api.zeabur.app
 ARG VITE_JOIN_BASE=https://le-join.zeabur.app
+ARG VITE_SCREEN_BASE=https://le-screen.zeabur.app
 ENV VITE_API_BASE=$VITE_API_BASE
 ENV VITE_JOIN_BASE=$VITE_JOIN_BASE
+ENV VITE_SCREEN_BASE=$VITE_SCREEN_BASE
 
 RUN npm install --prefix ../../packages/renderers \
     && npm install --prefix ../../packages/realtime \

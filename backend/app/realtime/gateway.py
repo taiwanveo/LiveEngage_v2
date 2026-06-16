@@ -12,6 +12,7 @@ from app.core.errors import AppError, ErrorCode
 from app.core.tokens import (
     decode_access_token,
     decode_participant_token,
+    decode_screen_token,
 )
 from app.realtime.manager import manager
 from app.realtime.redis_pubsub import fetch_replay
@@ -27,6 +28,7 @@ class WsMode(StrEnum):
     PARTICIPANT = "participant"
     PRESENT = "present"
     HOST = "host"
+    SCREEN = "screen"
 
 
 def _authenticate(token: str, mode: WsMode, room: str) -> tuple[str, str]:
@@ -41,6 +43,12 @@ def _authenticate(token: str, mode: WsMode, room: str) -> tuple[str, str]:
         if not token_room or token_room != room:
             raise AppError(ErrorCode.FORBIDDEN, "無權訂閱此房間")
         return str(pclaims.participant_id), token_room
+    if mode == WsMode.SCREEN:
+        sclaims = decode_screen_token(token)
+        token_room = str(sclaims.room_id)
+        if token_room != room:
+            raise AppError(ErrorCode.FORBIDDEN, "無權訂閱此房間")
+        return token_room, token_room
     # Host／Present 模式：access token 已驗證；房間所屬 org 檢查留待
     # Redis Pub/Sub 與 DB 房間查驗階段補強。
     aclaims = decode_access_token(token)
@@ -64,6 +72,16 @@ async def websocket_gateway(
     except AppError as exc:
         await websocket.close(code=4401, reason=exc.message)
         return
+
+    if mode == WsMode.SCREEN:
+        import uuid as _uuid
+
+        from app.services import screen_service
+
+        sclaims = decode_screen_token(token)
+        await screen_service.validate_screen_token_epoch(
+            _uuid.UUID(room), sclaims.token_epoch
+        )
 
     room_id = room
     await manager.connect(room_id, websocket, mode=mode.value)

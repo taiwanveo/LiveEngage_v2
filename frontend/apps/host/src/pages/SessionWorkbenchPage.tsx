@@ -46,13 +46,16 @@ import { useHostRoomNavLiveState } from "../lib/useHostRoomNavLiveState";
 import { HostRoomHubBreadcrumb } from "../components/HostBreadcrumb";
 import { HostRoomHeaderActions } from "../components/HostRoomHeaderActions";
 import {
+  useScreenControl,
+  useScreenWorkbenchSync,
+} from "../lib/useScreenControl";
+import {
   ControlAction,
   ControlToggle,
   canRevealPollResult,
   POLL_REVEAL_REQUIRES_STARTED_HINT,
 } from "../components/PollControlBar";
 import { isPollRunning } from "../lib/pollTypes";
-import { presentAppUrl, sprint9PresentUrl } from "../lib/presentUrl";
 import {
   applyHostPollActionSuccess,
   createSelfPollActionGuard,
@@ -111,6 +114,8 @@ export function SessionWorkbenchPage({
     [sessionsQuery.data, roomId]
   );
 
+  const screen = useScreenControl(roomId, session?.code ?? null);
+
   const interactionsQuery = useQuery({
     queryKey: ["interactions", roomId],
     queryFn: () => listInteractions(roomId),
@@ -126,6 +131,8 @@ export function SessionWorkbenchPage({
   const selectedId = interactionId ?? workbenchItems[0]?.id ?? null;
   const selectedItem =
     workbenchItems.find((i) => i.id === selectedId) ?? null;
+
+  useScreenWorkbenchSync(selectedItem, session?.title ?? null, screen);
 
   const pollQuery = useQuery({
     queryKey: ["poll", selectedId],
@@ -166,6 +173,11 @@ export function SessionWorkbenchPage({
         action: variables.action,
         data,
       });
+      if (variables.action === "reveal") {
+        screen.syncPollSubView(selectedId, "results", session?.title ?? null);
+      } else if (variables.action === "hide") {
+        screen.syncPollSubView(selectedId, "question", session?.title ?? null);
+      }
     },
     onError: (err: unknown) => {
       showError(formatUserFacingError(err, "操作失敗"));
@@ -287,13 +299,6 @@ export function SessionWorkbenchPage({
     if (needsConfirm && !window.confirm("確定要重置並清除所有作答？")) return;
     actionMutation.mutate({ action, confirm: needsConfirm ?? false });
   };
-
-  const presentHref = useMemo(() => {
-    if (!selectedId || !selectedItem) return undefined;
-    if (isPollType(selectedItem.type)) return presentAppUrl(roomId, selectedId);
-    if (isSprint9Type(selectedItem.type)) return sprint9PresentUrl(roomId, selectedId);
-    return undefined;
-  }, [roomId, selectedId, selectedItem]);
 
   const dateLabel = session
     ? new Date(session.created_at).toLocaleDateString("en-US", {
@@ -452,12 +457,7 @@ export function SessionWorkbenchPage({
                 : {}),
             }}
             navItems={hostRoomNavItems(roomId, "workbench", navLive)}
-            chromeFooterActions={
-              <HostRoomHeaderActions
-                roomId={roomId}
-                {...(presentHref ? { presentHref } : {})}
-              />
-            }
+            chromeFooterActions={<HostRoomHeaderActions roomId={roomId} />}
             onLogout={onLogout}
             subRow={<HostRoomHubBreadcrumb roomId={roomId} currentLabel="工作台" />}
             titleExtra={

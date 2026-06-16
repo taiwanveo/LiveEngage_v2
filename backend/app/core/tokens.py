@@ -20,6 +20,7 @@ from app.models.enums import UserRole
 TOKEN_TYPE_ACCESS = "access"
 TOKEN_TYPE_REFRESH = "refresh"
 TOKEN_TYPE_PARTICIPANT = "participant"
+TOKEN_TYPE_SCREEN = "screen"
 
 
 @dataclass(frozen=True, slots=True)
@@ -46,6 +47,15 @@ class ParticipantTokenClaims:
     session_id: uuid.UUID
     room_id: uuid.UUID | None
     anon_allowed: bool
+
+
+@dataclass(frozen=True, slots=True)
+class ScreenTokenClaims:
+    """Screen 投影唯讀 token。"""
+
+    room_id: uuid.UUID
+    session_id: uuid.UUID
+    token_epoch: int
 
 
 def _settings() -> Settings:
@@ -145,6 +155,47 @@ def decode_refresh_token(token: str) -> RefreshTokenClaims:
     if payload.get("typ") != TOKEN_TYPE_REFRESH:
         raise AppError(ErrorCode.UNAUTHENTICATED, "Token 類型錯誤")
     return RefreshTokenClaims(user_id=uuid.UUID(str(payload["sub"])))
+
+
+def create_screen_token(
+    *,
+    room_id: uuid.UUID,
+    session_id: uuid.UUID,
+    session_end_at: dt.datetime | None,
+    token_epoch: int,
+) -> str:
+    """簽發 screen 唯讀 token。"""
+    if session_end_at is not None:
+        end = session_end_at
+        if end.tzinfo is None:
+            end = end.replace(tzinfo=dt.UTC)
+        expires = end + dt.timedelta(hours=24)
+    else:
+        expires = dt.datetime.now(dt.UTC) + dt.timedelta(days=7)
+    ttl = expires - dt.datetime.now(dt.UTC)
+    if ttl.total_seconds() <= 0:
+        ttl = dt.timedelta(hours=1)
+    return _encode(
+        {
+            "typ": TOKEN_TYPE_SCREEN,
+            "room_id": str(room_id),
+            "session_id": str(session_id),
+            "token_epoch": token_epoch,
+        },
+        expires_delta=ttl,
+    )
+
+
+def decode_screen_token(token: str) -> ScreenTokenClaims:
+    """解析並驗證 screen token。"""
+    payload = _decode(token)
+    if payload.get("typ") != TOKEN_TYPE_SCREEN:
+        raise AppError(ErrorCode.UNAUTHENTICATED, "Token 類型錯誤")
+    return ScreenTokenClaims(
+        room_id=uuid.UUID(str(payload["room_id"])),
+        session_id=uuid.UUID(str(payload["session_id"])),
+        token_epoch=int(payload.get("token_epoch", 0)),
+    )
 
 
 def decode_participant_token(token: str) -> ParticipantTokenClaims:

@@ -20,12 +20,14 @@ from app.api.v1 import (
     polls,
     questions,
     quizzes,
+    screen,
     sessions,
     surveys,
 )
 
 api_router = APIRouter(prefix="/api/v1")
 api_router.include_router(auth.router)
+api_router.include_router(screen.router)
 api_router.include_router(sessions.router)
 api_router.include_router(interactions.router)
 api_router.include_router(questions.router)

@@ -1,6 +1,6 @@
 /** WS 事件型別定義（對應後端 EventEnvelope + events.py）。 */
 
-export type WsMode = "participant" | "host" | "present";
+export type WsMode = "participant" | "host" | "present" | "screen";
 
 /** 從後端接收到的 WS 事件信封（SDS §6.2）。 */
 export interface WsEvent {
@@ -85,3 +85,6 @@ export const INTERACTION_STARTED = "interaction_started";
 export const SESSION_EVENT_TYPES = new Set([SESSION_STARTED, SESSION_ENDED]);
 
 export const INTERACTION_EVENT_TYPES = new Set([INTERACTION_STARTED]);
+
+/** Screen 投影遙控 */
+export const SCREEN_VIEW_CHANGED = "screen_view_changed";

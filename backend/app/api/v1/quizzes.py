@@ -10,6 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.db import get_session
 from app.core.deps import get_current_user, get_participant_claims
+from app.core.screen_reader_auth import HostOrScreenAuth, get_host_or_screen_auth
 from app.core.tokens import ParticipantTokenClaims
 from app.models.user import User
 from app.schemas.quiz import (
@@ -54,11 +55,14 @@ async def add_quiz_question(
 async def list_quiz_questions(
     quiz_interaction_id: uuid.UUID,
     db: Annotated[AsyncSession, Depends(get_session)],
-    host: Annotated[User, Depends(get_current_user)],
+    auth: Annotated[HostOrScreenAuth, Depends(get_host_or_screen_auth)],
 ) -> list[QuizQuestionPublic]:
-    """列出 Quiz 子題（Host）。"""
+    """列出 Quiz 子題（Host／Screen）。"""
     return await quiz_service.list_questions(
-        db, quiz_interaction_id=quiz_interaction_id, host=host
+        db,
+        quiz_interaction_id=quiz_interaction_id,
+        host=auth.host,
+        screen=auth.screen,
     )
 
 
@@ -112,11 +116,14 @@ async def delete_quiz_question(
 async def quiz_leaderboard(
     quiz_interaction_id: uuid.UUID,
     db: Annotated[AsyncSession, Depends(get_session)],
-    host: Annotated[User, Depends(get_current_user)],
+    auth: Annotated[HostOrScreenAuth, Depends(get_host_or_screen_auth)],
 ) -> QuizLeaderboardResponse:
-    """Quiz 排行榜。"""
+    """Quiz 排行榜（Host／Screen）。"""
     return await quiz_service.get_leaderboard(
-        db, quiz_interaction_id=quiz_interaction_id, host=host
+        db,
+        quiz_interaction_id=quiz_interaction_id,
+        host=auth.host,
+        screen=auth.screen,
     )
 
 

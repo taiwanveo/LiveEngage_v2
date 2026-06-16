@@ -52,7 +52,12 @@ INTERACTION_STARTED = "interaction_started"
 # 接收端 mode 集合
 MODE_HOST = {"host"}
 MODE_PRESENT_HOST = {"present", "host"}
-MODE_ALL = {"participant", "present", "host"}
+MODE_SCREEN = {"screen"}
+MODE_SCREEN_HOST = {"screen", "host"}
+MODE_ALL = {"participant", "present", "host", "screen"}
+
+# Screen 投影遙控
+SCREEN_VIEW_CHANGED = "screen_view_changed"
 
 
 async def publish(

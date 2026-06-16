@@ -10,6 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.db import get_session
 from app.core.deps import get_current_user, get_participant_claims
+from app.core.screen_reader_auth import HostOrScreenAuth, get_host_or_screen_auth
 from app.core.tokens import ParticipantTokenClaims
 from app.models.user import User
 from app.schemas.survey import (
@@ -105,11 +106,14 @@ async def submit_survey(
 async def survey_results(
     survey_interaction_id: uuid.UUID,
     db: Annotated[AsyncSession, Depends(get_session)],
-    host: Annotated[User, Depends(get_current_user)],
+    auth: Annotated[HostOrScreenAuth, Depends(get_host_or_screen_auth)],
 ) -> SurveyResultsResponse:
-    """Survey 結果聚合。"""
+    """Survey 結果聚合（Host／Screen）。"""
     return await survey_service.get_results(
-        db, survey_interaction_id=survey_interaction_id, host=host
+        db,
+        survey_interaction_id=survey_interaction_id,
+        host=auth.host,
+        screen=auth.screen,
     )
 
 
