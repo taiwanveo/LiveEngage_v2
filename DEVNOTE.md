@@ -853,3 +853,11 @@ Participant Survey 完整流程；Quiz active-question API；Ideas/Survey 投影
 - 右上角 WS 連線指示點提高可見度：Screen 五個主要視圖（Poll/Overview/Ideas/Quiz/Q&A）從 `opacity-40` 提升到 `opacity-90`。
 - 目標：讓你截圖中標示的「已結束、選項標籤、綠色圓點」在淺色投影都清楚可辨識。
 - Deploy（push 後自動觸發）：host deployment `6a3110bff8d987ed9d736d0b`、screen deployment `6a3113ddf8d987ed9d736f42`（皆 RUNNING）。
+
+### 2026-06-16 — Screen 淺色主題全域重構（8a54d17）
+
+- 依「不要逐點修補」要求，將 Screen light 主題改為全域映射：統一背景、卡片、邊框、文字層級、狀態色、圖表文字的色彩規則。
+- 採用 `html[data-theme="light"][data-screen-theme-bg]` 範圍化覆寫，確保只影響 Screen 投影，不干擾 Host/Admin/Join。
+- 新增 light token：`--le-screen-light-bg/surface/surface-soft/border/text-*`，並覆寫常見 `bg-slate-*`、`text-slate-*`、`border-slate-*`、`text-emerald/amber/sky-*` 與圖表字色。
+- 目的：讓 Screen 的「所有元素、每個文字、每個按鈕」在淺色主題都維持與「專業淺色」一致的清晰對比。
+- Deploy（push 後自動觸發）：host deployment `6a311487f8d987ed9d736fc4`、screen deployment `6a311484f8d987ed9d736fbf`（皆 RUNNING）。
