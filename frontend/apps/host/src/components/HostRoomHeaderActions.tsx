@@ -32,6 +32,7 @@ function ScreenControlPanelWithSession({
 
   return (
     <ScreenControlPanel
+      roomId={roomId}
       sessionCode={session?.code ?? null}
       sessionTitle={session?.title ?? null}
       screen={screen}

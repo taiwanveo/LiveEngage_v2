@@ -14,6 +14,7 @@ import {
 import type { useScreenControl } from "../lib/useScreenControl";
 
 interface Props {
+  roomId: string;
   sessionCode: string | null;
   sessionTitle: string | null;
   screen: ReturnType<typeof useScreenControl>;
@@ -22,6 +23,7 @@ interface Props {
 }
 
 export function ScreenControlPanel({
+  roomId,
   sessionCode,
   sessionTitle,
   screen,
@@ -58,6 +60,7 @@ export function ScreenControlPanel({
 
   const handleQaProjection = (): void => {
     screen.showQa(sessionTitle);
+    window.location.hash = `#/rooms/${roomId}/moderation`;
     showSuccess("投影已切換至 Q&A 問題列表（熱門已核准問題）");
   };
 
