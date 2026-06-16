@@ -4,6 +4,65 @@
 
 ---
 
+## SNAPSHOT（2026-06-16 — 即時聚合雙 Toggle）
+
+- **最新 commit**：`68bfe88` — 投影／Join 即時聚合雙開關（`live_aggregate_screen` / `live_aggregate_join`）
+- **Zeabur**：**api**、**host**、**screen**、**join** redeploy
+
+| 層級 | 變更 |
+|------|------|
+| 後端 | `live_aggregate_settings.py`；`get_poll_results` 依身分與開關授權；WS `poll_response_submitted` / Ideas 事件依開關決定 `target_modes` |
+| renderers | `shouldShowAggregateResults` 取代文字雲特例；Poll 全系預設 screen ON / join OFF；Ideas 預設兩邊 ON |
+| Host | 工作台控場列「投影即時」「Join 即時」雙 Toggle |
+| Screen / Join | 僅在開關或揭曉後拉取／顯示聚合結果 |
+
+### 顯示邏輯（共識）
+
+| 端 | 規則 |
+|----|------|
+| Host 工作台 | 永遠可看聚合 |
+| Screen | `(active/locked && live_aggregate_screen) \|\| result_visible` |
+| Join | `(active/locked && live_aggregate_join) \|\| result_visible` |
+| 揭曉答案 | 維持既有流程，揭曉後 Join/Screen 一律可看最終結果 |
+
+### 部署（本輪）
+
+| 服務 | deployment | URL |
+|------|------------|-----|
+| **api** | `6a30ec19…` | https://le-api.zeabur.app |
+| **host** | `6a30ec1b…` | https://le-host.zeabur.app |
+| **screen** | `6a30ec1e…` | https://le-screen.zeabur.app |
+| **join** | `6a30ec1f…` | https://le-join.zeabur.app |
+
+### 驗收建議
+
+1. 建立選擇題 → 預設投影即時 ON、Join 即時 OFF → 參與者作答後投影即時更新、Join 不顯示票數
+2. 開啟 Join 即時 → 參與者端即時看到長條圖／文字雲
+3. 關閉投影即時 → Screen 進行中不顯示聚合；揭曉後仍顯示
+4. 點子牆預設兩邊 ON；關閉 Join 即時後參與者僅見自己的點子
+
+---
+
+## SNAPSHOT（2026-06-16 — 長條圖中央票數與動畫）
+
+- **最新 commit**：`cc8ed7f` — 投影選擇題長條圖中央顯示票數、增加時彈跳動畫
+- **Zeabur**：**host**、**screen** redeploy（共用 `@liveengage/renderers`）
+
+| 變更 | 說明 |
+|------|------|
+| `BarCountLabel` | 長條正中白色粗體票數 |
+| `useCountBumps` | 票數增加時標籤 scale 彈跳 |
+| `ResultBarChart` | 長條寬度 480ms 過渡 + `LabelList` |
+
+### 部署
+
+| 服務 | URL |
+|------|-----|
+| **host** | https://le-host.zeabur.app |
+| **screen** | https://le-screen.zeabur.app |
+
+---
+
 ## SNAPSHOT（2026-06-16 — 文字雲即時顯示修復）
 
 - **最新 commit**：`3a66613` — 文字雲進行中即時顯示於 Host 與 Screen
