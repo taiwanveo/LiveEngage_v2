@@ -104,6 +104,7 @@ interface Props {
 
 export function AuditPage({ onLogout }: Props): React.JSX.Element {
   const [params, setParams] = useState<ListAuditLogsParams>({ page: 1, page_size: 50 });
+  const [keyword, setKeyword] = useState("");
   const [action, setAction] = useState("");
   const [targetType, setTargetType] = useState("");
   const [dateFrom, setDateFrom] = useState("");
@@ -116,6 +117,8 @@ export function AuditPage({ onLogout }: Props): React.JSX.Element {
 
   const applyFilter = () => {
     const next: ListAuditLogsParams = { page: 1, page_size: 50 };
+    const trimmedKeyword = keyword.trim();
+    if (trimmedKeyword) next.actor_keyword = trimmedKeyword;
     if (action) next.action = action;
     if (targetType) next.target_type = targetType;
     if (dateFrom) next.date_from = dateFrom;
@@ -135,6 +138,18 @@ export function AuditPage({ onLogout }: Props): React.JSX.Element {
 
         <AdminPanel className="p-4">
           <div className="flex flex-wrap items-end gap-3">
+            <AdminFormField label="關鍵字">
+              <input
+                type="search"
+                className={adminInputClass}
+                value={keyword}
+                placeholder="執行者 Email，如 host"
+                onChange={(e) => setKeyword(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") applyFilter();
+                }}
+              />
+            </AdminFormField>
             <AdminFormField label="動作">
               <select
                 className={adminInputClass}
@@ -185,6 +200,7 @@ export function AuditPage({ onLogout }: Props): React.JSX.Element {
             <button
               className={adminBtnSecondary}
               onClick={() => {
+                setKeyword("");
                 setAction("");
                 setTargetType("");
                 setDateFrom("");

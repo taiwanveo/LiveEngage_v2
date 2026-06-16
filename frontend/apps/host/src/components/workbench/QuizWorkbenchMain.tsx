@@ -56,6 +56,29 @@ export function QuizWorkbenchMain({ roomId, item }: Props): React.JSX.Element {
   const { showError, showSuccess } = useSystemNotice();
   const editable = canEditHostContent();
   const interactionId = item.id;
+  const currentScreenState = screen.screenState;
+  const isCurrentQuizProjected =
+    currentScreenState?.view === "quiz" &&
+    currentScreenState.interaction_id === interactionId;
+  const projectedSubView = isCurrentQuizProjected
+    ? currentScreenState?.sub_view
+    : null;
+  const isQuestionProjected =
+    projectedSubView === "question" || projectedSubView === "results";
+  const isLeaderboardProjected =
+    projectedSubView === "leaderboard" || projectedSubView === "results";
+
+  const pushQuizProjection = (showQuestion: boolean, showLeaderboard: boolean): void => {
+    if (!showQuestion && !showLeaderboard) {
+      screen.pushScreen({ view: "standby", interaction_id: null, sub_view: null });
+      return;
+    }
+
+    const subView = showQuestion
+      ? (showLeaderboard ? "results" : "question")
+      : "leaderboard";
+    screen.pushScreen({ view: "quiz", interaction_id: item.id, sub_view: subView });
+  };
 
   const questionsQuery = useQuery({
     queryKey: ["quiz-questions", interactionId],
@@ -272,18 +295,22 @@ export function QuizWorkbenchMain({ roomId, item }: Props): React.JSX.Element {
           <button
             type="button"
             disabled={screen.updating}
-            onClick={() => screen.pushScreen({ view: "quiz", interaction_id: item.id, sub_view: "question" })}
+            onClick={() =>
+              pushQuizProjection(!isQuestionProjected, isLeaderboardProjected)
+            }
             className="le-btn-secondary le-btn-sm"
           >
-            投影題目
+            {isQuestionProjected ? "隱藏題目" : "投影題目"}
           </button>
           <button
             type="button"
             disabled={screen.updating}
-            onClick={() => screen.pushScreen({ view: "quiz", interaction_id: item.id, sub_view: "leaderboard" })}
+            onClick={() =>
+              pushQuizProjection(isQuestionProjected, !isLeaderboardProjected)
+            }
             className="le-btn-secondary le-btn-sm"
           >
-            投影排行榜
+            {isLeaderboardProjected ? "隱藏排行榜" : "投影排行榜"}
           </button>
         </div>
       </section>

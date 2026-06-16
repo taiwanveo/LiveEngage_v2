@@ -141,6 +141,8 @@ export const archiveSession = (sessionId: string): Promise<AdminSessionData> =>
 
 export interface ListAuditLogsParams {
   action?: string;
+  /** 執行者 Email 部分字串（不分大小寫） */
+  actor_keyword?: string;
   actor_user_id?: string;
   session_id?: string;
   target_type?: string;

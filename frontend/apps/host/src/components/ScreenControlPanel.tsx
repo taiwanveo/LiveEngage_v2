@@ -33,6 +33,7 @@ export function ScreenControlPanel({
   const [testingProjection, setTestingProjection] = useState(false);
   const { showError, showInfo, showSuccess, systemNoticeModal } = useSystemNotice();
   const href = screen.buildScreenHref();
+  const isStandbyProjected = screen.screenState?.view === "standby";
 
   const copyScreen = async (): Promise<void> => {
     if (!href) return;
@@ -76,6 +77,11 @@ export function ScreenControlPanel({
   };
 
   const handleStandbyProjection = (): void => {
+    if (isStandbyProjected) {
+      screen.showOverview(sessionTitle);
+      showSuccess("已取消待機，切換至即時總覽");
+      return;
+    }
     screen.showStandby(sessionTitle, {
       onSuccess: () => {
         showSuccess("投影已切換至待機畫面");
@@ -124,9 +130,13 @@ export function ScreenControlPanel({
             disabled={screen.updating}
             onClick={handleStandbyProjection}
             className="le-btn-secondary le-btn-present-compact disabled:opacity-50"
-            title="投影切換至待機畫面，暫不顯示互動項目"
+            title={
+              isStandbyProjected
+                ? "取消待機，切換至即時總覽"
+                : "投影切換至待機畫面，暫不顯示互動項目"
+            }
           >
-            待機畫面
+            {isStandbyProjected ? "取消待機" : "待機畫面"}
           </button>
           <button
             type="button"

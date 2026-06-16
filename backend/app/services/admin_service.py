@@ -373,6 +373,7 @@ async def list_audit_logs(
     *,
     actor: User,
     action_filter: str | None = None,
+    actor_keyword: str | None = None,
     actor_user_id: uuid.UUID | None = None,
     session_id: uuid.UUID | None = None,
     target_type: str | None = None,
@@ -405,6 +406,9 @@ async def list_audit_logs(
 
     if action_filter:
         base = base.where(AuditLog.action == action_filter)
+    if actor_keyword:
+        term = f"%{actor_keyword.strip().lower()}%"
+        base = base.where(func.lower(ActorUser.c.email).like(term))
     if actor_user_id:
         base = base.where(AuditLog.actor_user_id == actor_user_id)
     if session_id:

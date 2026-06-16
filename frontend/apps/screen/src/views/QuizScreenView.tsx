@@ -74,7 +74,9 @@ export function QuizScreenView({ roomId, quizId, subView }: Props): React.JSX.El
   );
 
   const entries = leaderboardQuery.data?.entries ?? [];
-  const showLeaderboard = subView === "leaderboard";
+  const showQuestion = subView === "question" || subView === "results";
+  const showLeaderboard = subView === "leaderboard" || subView === "results";
+  const leaderboardOnly = showLeaderboard && !showQuestion;
 
   return (
     <div className="relative flex min-h-dvh flex-col bg-slate-950 text-slate-100">
@@ -82,7 +84,7 @@ export function QuizScreenView({ roomId, quizId, subView }: Props): React.JSX.El
         <span className={`inline-block h-2 w-2 rounded-full ${connected ? "bg-emerald-400" : "bg-red-400"}`} />
       </div>
       <div className="flex flex-1 flex-col gap-8 p-8 md:flex-row md:p-12 lg:p-16">
-        {!showLeaderboard ? (
+        {showQuestion ? (
           <section className="flex min-h-0 flex-1 flex-col">
             {activeQuestion ? (
               <QuizQuestionBlock question={activeQuestion} />
@@ -94,8 +96,8 @@ export function QuizScreenView({ roomId, quizId, subView }: Props): React.JSX.El
             )}
           </section>
         ) : null}
-        {(showLeaderboard || entries.length > 0) && (
-          <aside className={`w-full shrink-0 ${showLeaderboard ? "flex-1" : "md:w-80 lg:w-96"}`}>
+        {showLeaderboard && (
+          <aside className={`w-full shrink-0 ${leaderboardOnly ? "flex-1" : "md:w-80 lg:w-96"}`}>
             <div className="rounded-2xl border border-slate-800 bg-slate-900/80 p-6">
               <h2 className="font-display text-lg font-semibold text-slate-200">排行榜</h2>
               {entries.length === 0 ? (

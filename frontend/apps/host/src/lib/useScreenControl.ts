@@ -5,8 +5,10 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { screenUrlByRoom } from "@liveengage/ui";
 import type { ThemeId } from "@liveengage/ui";
 import {
+  getScreenState,
   mintScreenToken,
   updateScreenState,
+  type ScreenDisplayState,
   type ScreenStateUpdate,
 } from "./screenApi";
 import type { InteractionSummary } from "./pollTypes";
@@ -63,6 +65,12 @@ export function useScreenControl(roomId: string) {
     queryKey: ["screen-token", roomId],
     queryFn: () => mintScreenToken(roomId),
     staleTime: 60 * 60 * 1000,
+  });
+
+  const screenStateQuery = useQuery<ScreenDisplayState>({
+    queryKey: ["screen-state", roomId],
+    queryFn: () => getScreenState(roomId),
+    refetchInterval: 5_000,
   });
 
   const updateMutation = useMutation({
@@ -299,6 +307,7 @@ export function useScreenControl(roomId: string) {
     isManualOverrideActive,
     tokenLoading: tokenQuery.isLoading,
     updating: screenUpdatePending,
+    screenState: screenStateQuery.data,
     screenTheme,
   };
 }

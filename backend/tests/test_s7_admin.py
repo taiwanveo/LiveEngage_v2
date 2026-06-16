@@ -336,3 +336,31 @@ class TestBE010AuditLogs:
         assert data["page"] == 1
         assert data["page_size"] == 5
         assert len(data["items"]) <= 5
+
+    def test_audit_log_filter_by_actor_keyword(
+        self, client: TestClient, host_token: tuple[str, str]
+    ) -> None:
+        """BE-010-AC5：以執行者 Email 部分字串篩選。"""
+        token, email = host_token
+        client.patch(
+            "/api/v1/admin/organization",
+            headers=_auth_headers(token),
+            json={"name": f"AuditKw-{uuid.uuid4().hex[:6]}"},
+        )
+        partial = email.split("@")[0]
+        resp = client.get(
+            f"/api/v1/admin/audit-logs?actor_keyword={partial}",
+            headers=_auth_headers(token),
+        )
+        assert resp.status_code == 200, resp.text
+        data = resp.json()
+        assert data["total"] >= 1
+        for item in data["items"]:
+            assert partial.lower() in (item.get("actor_email") or "").lower()
+
+        resp_nomatch = client.get(
+            "/api/v1/admin/audit-logs?actor_keyword=nonexistent_actor_xyz",
+            headers=_auth_headers(token),
+        )
+        assert resp_nomatch.status_code == 200
+        assert resp_nomatch.json()["total"] == 0
