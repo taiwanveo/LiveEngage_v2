@@ -4,6 +4,26 @@
 
 ---
 
+## SNAPSHOT（2026-06-16 — 待機投影按鈕與跟隨工作台對比）
+
+- **最新 commit**：`4033056` — 待機畫面投影按鈕、跟隨工作台標籤深色主題可讀性
+- **Zeabur**：**host** redeploy 完成
+
+| 變更 | 說明 |
+|------|------|
+| `ScreenControlPanel` | 「投影（淺色主題）」右側新增「待機畫面」按鈕（呼叫 `showStandby`） |
+| `ScreenControlPanel` | 「跟隨工作台」核取方塊改 `text-foreground` + `border-border bg-surface-elevated/80`，深色／Cursor 主題可讀 |
+
+### 部署
+
+| 服務 | deployment | 狀態 |
+|------|------------|------|
+| host | `6a315f86204e8577fc43614a` | RUNNING |
+
+**備註**：push 後 webhook 部署失敗（`GitTrigger` 曾為 null）；改以 MCP `deploy-from-specification`（GitHub `master` + Dockerfile content）手動觸發成功。
+
+---
+
 ## SNAPSHOT（2026-06-16 — 17 項 UI/UX 修正）
 
 - **最新 commit**：`4f51e69` — 17 項 UI/UX 問題批次修正
