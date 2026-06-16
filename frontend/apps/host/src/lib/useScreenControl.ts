@@ -14,6 +14,10 @@ import { isSprint9Type } from "./workbenchTypes";
 
 const FOLLOW_KEY = "liveengage-screen-follow";
 
+function screenPayloadKey(payload: ScreenStateUpdate): string {
+  return `${payload.view}:${payload.interaction_id ?? ""}:${payload.sub_view ?? ""}`;
+}
+
 export function useScreenFollowEnabled(): [boolean, (v: boolean) => void] {
   const [enabled, setEnabled] = useState(() => {
     try {
@@ -49,6 +53,8 @@ export function useScreenControl(roomId: string) {
   const qc = useQueryClient();
   const screenWindowRef = useRef<Window | null>(null);
   const manualOverrideUntilRef = useRef(0);
+  const lastSyncedKeyRef = useRef<string | null>(null);
+  const queuedPayloadRef = useRef<ScreenStateUpdate | null>(null);
   const [followEnabled, setFollowEnabled] = useScreenFollowEnabled();
 
   const tokenQuery = useQuery({
@@ -64,17 +70,56 @@ export function useScreenControl(roomId: string) {
     },
   });
 
+  const { mutate: mutateScreenState, isPending: screenUpdatePending } =
+    updateMutation;
+
+  const screenUpdatePendingRef = useRef(screenUpdatePending);
+  screenUpdatePendingRef.current = screenUpdatePending;
+
+  const flushScreenQueue = useCallback(() => {
+    const next = queuedPayloadRef.current;
+    if (!next) return;
+    queuedPayloadRef.current = null;
+    const key = screenPayloadKey(next);
+    lastSyncedKeyRef.current = key;
+    mutateScreenState(next, {
+      onSettled: () => {
+        flushScreenQueue();
+      },
+    });
+  }, [mutateScreenState]);
+
+  const sendScreenState = useCallback(
+    (payload: ScreenStateUpdate, opts?: { force?: boolean }) => {
+      const key = screenPayloadKey(payload);
+      if (!opts?.force && lastSyncedKeyRef.current === key) {
+        return;
+      }
+
+      if (screenUpdatePendingRef.current) {
+        queuedPayloadRef.current = payload;
+        return;
+      }
+
+      lastSyncedKeyRef.current = key;
+      mutateScreenState(payload, {
+        onSettled: () => {
+          flushScreenQueue();
+        },
+      });
+    },
+    [flushScreenQueue, mutateScreenState]
+  );
+
   const buildScreenHref = useCallback((): string | undefined => {
     const token = tokenQuery.data?.token;
     if (!token) return undefined;
-    // room= 直接帶入，避免 event= 模式依賴 by-code（公開 API 不含 default_room_id）
     return screenUrlByRoom(roomId, token);
   }, [roomId, tokenQuery.data?.token]);
 
   const openScreen = useCallback((): Window | null => {
     const href = buildScreenHref();
     if (!href) return null;
-    // 勿加 noopener：需保留視窗參考，才能 postMessage 遙控（全螢幕提示等）
     const win = window.open(href, "liveengage-screen");
     if (win) screenWindowRef.current = win;
     return win;
@@ -95,7 +140,6 @@ export function useScreenControl(roomId: string) {
     return null;
   }, []);
 
-  /** 通知 Screen 顯示「點擊進入全螢幕」提示（跨網域無法由 Host 直接 requestFullscreen）。 */
   const requestFullscreen = useCallback((): "sent" | "no-window" => {
     const win = resolveScreenWindow();
     if (!win) return "no-window";
@@ -112,15 +156,12 @@ export function useScreenControl(roomId: string) {
     manualOverrideUntilRef.current = Date.now() + ms;
   }, []);
 
-  const { mutate: mutateScreenState, isPending: screenUpdatePending } =
-    updateMutation;
-
   const pushScreen = useCallback(
     (payload: ScreenStateUpdate) => {
       if (!followEnabled) return;
-      mutateScreenState(payload);
+      sendScreenState(payload);
     },
-    [followEnabled, mutateScreenState]
+    [followEnabled, sendScreenState]
   );
 
   const syncWorkbenchItem = useCallback(
@@ -154,20 +195,23 @@ export function useScreenControl(roomId: string) {
       handlers?: { onSuccess?: () => void; onError?: (err: unknown) => void }
     ) => {
       armManualOverride(8000);
-      mutateScreenState(
-        {
-          view: "test",
-          interaction_id: null,
-          sub_view: null,
-          ...(sessionTitle != null ? { session_title: sessionTitle } : {}),
+      lastSyncedKeyRef.current = null;
+      const payload: ScreenStateUpdate = {
+        view: "test",
+        interaction_id: null,
+        sub_view: null,
+        ...(sessionTitle != null ? { session_title: sessionTitle } : {}),
+      };
+      mutateScreenState(payload, {
+        onSuccess: (data) => {
+          lastSyncedKeyRef.current = screenPayloadKey(payload);
+          qc.setQueryData(["screen-state", roomId], data);
+          handlers?.onSuccess?.();
         },
-        {
-          ...(handlers?.onSuccess ? { onSuccess: handlers.onSuccess } : {}),
-          ...(handlers?.onError ? { onError: handlers.onError } : {}),
-        }
-      );
+        ...(handlers?.onError ? { onError: handlers.onError } : {}),
+      });
     },
-    [armManualOverride, mutateScreenState]
+    [armManualOverride, mutateScreenState, qc, roomId]
   );
 
   const showOverview = useCallback(
@@ -215,23 +259,38 @@ export function useScreenControl(roomId: string) {
 export function useScreenWorkbenchSync(
   selectedItem: InteractionSummary | null | undefined,
   sessionTitle: string | null | undefined,
-  screen: ReturnType<typeof useScreenControl>
+  screen: ReturnType<typeof useScreenControl>,
+  opts?: { paused?: boolean }
 ): void {
   const syncRef = useRef(screen.syncWorkbenchItem);
+  const overrideRef = useRef(screen.isManualOverrideActive);
+  const lastSyncedIdRef = useRef<string | null>(null);
   syncRef.current = screen.syncWorkbenchItem;
+  overrideRef.current = screen.isManualOverrideActive;
 
   useEffect(() => {
+    if (opts?.paused) return;
     if (!screen.followEnabled) return;
-    if (screen.isManualOverrideActive()) return;
+    if (overrideRef.current()) return;
     if (!selectedItem) return;
     if (!isPollType(selectedItem.type) && !isSprint9Type(selectedItem.type)) return;
+    if (lastSyncedIdRef.current === selectedItem.id) return;
 
     const item = selectedItem;
     const title = sessionTitle ?? null;
     const timer = window.setTimeout(() => {
+      if (overrideRef.current()) return;
+      if (lastSyncedIdRef.current === item.id) return;
+      lastSyncedIdRef.current = item.id;
       syncRef.current(item, title);
-    }, 120);
+    }, 200);
 
     return () => window.clearTimeout(timer);
-  }, [selectedItem?.id, selectedItem?.type, sessionTitle, screen.followEnabled, screen.isManualOverrideActive]);
+  }, [
+    opts?.paused,
+    selectedItem?.id,
+    selectedItem?.type,
+    sessionTitle,
+    screen.followEnabled,
+  ]);
 }

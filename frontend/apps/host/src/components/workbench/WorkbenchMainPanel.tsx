@@ -17,6 +17,8 @@ import { WorkbenchSurveyPreview } from "./previews/WorkbenchSurveyPreview";
 interface Props {
   roomId: string;
   item: InteractionSummary | null;
+  /** WS 連線時停用 poll 備援輪詢 */
+  wsConnected?: boolean;
 }
 
 function EmptyMain({ message }: { message: string }): React.JSX.Element {
@@ -30,19 +32,22 @@ function EmptyMain({ message }: { message: string }): React.JSX.Element {
 export function WorkbenchMainPanel({
   roomId,
   item,
+  wsConnected = false,
 }: Props): React.JSX.Element {
+  const pollBackupRefetch = wsConnected ? false : POLL_RESULTS_BACKUP_REFETCH_MS;
+
   const pollQuery = useQuery({
     queryKey: ["poll", item?.id],
     queryFn: () => getPoll(item!.id),
     enabled: Boolean(item && isPollType(item.type)),
-    refetchInterval: POLL_RESULTS_BACKUP_REFETCH_MS,
+    refetchInterval: pollBackupRefetch,
   });
 
   const resultsQuery = useQuery({
     queryKey: ["poll-results", item?.id],
     queryFn: () => getPollResults(item!.id),
     enabled: Boolean(item && isPollType(item.type)),
-    refetchInterval: POLL_RESULTS_BACKUP_REFETCH_MS,
+    refetchInterval: pollBackupRefetch,
   });
 
   if (!item) {
@@ -81,8 +86,10 @@ export function WorkbenchMainPanel({
 
 export function WorkbenchPreviewPanel({
   item,
+  wsConnected = false,
 }: {
   item: InteractionSummary | null;
+  wsConnected?: boolean;
 }): React.JSX.Element {
   if (!item) {
     return (
@@ -91,7 +98,7 @@ export function WorkbenchPreviewPanel({
   }
 
   if (isPollType(item.type)) {
-    return <WorkbenchPollPreviewLoader item={item} />;
+    return <WorkbenchPollPreviewLoader item={item} wsConnected={wsConnected} />;
   }
 
   if (item.type === "quiz") {
@@ -111,19 +118,23 @@ export function WorkbenchPreviewPanel({
 
 function WorkbenchPollPreviewLoader({
   item,
+  wsConnected = false,
 }: {
   item: InteractionSummary;
+  wsConnected?: boolean;
 }): React.JSX.Element {
+  const pollBackupRefetch = wsConnected ? false : POLL_RESULTS_BACKUP_REFETCH_MS;
+
   const pollQuery = useQuery({
     queryKey: ["poll", item.id],
     queryFn: () => getPoll(item.id),
-    refetchInterval: POLL_RESULTS_BACKUP_REFETCH_MS,
+    refetchInterval: pollBackupRefetch,
   });
 
   const resultsQuery = useQuery({
     queryKey: ["poll-results", item.id],
     queryFn: () => getPollResults(item.id),
-    refetchInterval: POLL_RESULTS_BACKUP_REFETCH_MS,
+    refetchInterval: pollBackupRefetch,
   });
 
   if (pollQuery.isLoading || !pollQuery.data) {

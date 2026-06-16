@@ -11,11 +11,15 @@ export interface HostRoomNavLiveState {
   quizRunning: boolean;
 }
 
-export function useHostRoomNavLiveState(roomId: string): HostRoomNavLiveState {
+export function useHostRoomNavLiveState(
+  roomId: string,
+  opts?: { wsConnected?: boolean }
+): HostRoomNavLiveState {
   const interactionsQuery = useQuery({
     queryKey: ["interactions", roomId],
     queryFn: () => listInteractions(roomId),
-    refetchInterval: 5_000,
+    // WS 已連線時靠事件 invalidation；僅斷線時輪詢備援
+    refetchInterval: opts?.wsConnected ? false : 5_000,
   });
 
   const items = interactionsQuery.data ?? [];

@@ -121,8 +121,6 @@ export function SessionWorkbenchPage({
     queryFn: () => listInteractions(roomId),
   });
 
-  const navLive = useHostRoomNavLiveState(roomId);
-
   const workbenchItems = useMemo(
     () => workbenchInteractions(interactionsQuery.data),
     [interactionsQuery.data]
@@ -131,8 +129,6 @@ export function SessionWorkbenchPage({
   const selectedId = interactionId ?? workbenchItems[0]?.id ?? null;
   const selectedItem =
     workbenchItems.find((i) => i.id === selectedId) ?? null;
-
-  useScreenWorkbenchSync(selectedItem, session?.title ?? null, screen);
 
   const pollQuery = useQuery({
     queryKey: ["poll", selectedId],
@@ -192,8 +188,13 @@ export function SessionWorkbenchPage({
   });
 
   const sprint9StatusMutation = useMutation({
-    mutationFn: (status: "active" | "stopped") =>
-      updateInteractionStatus(selectedId!, status),
+    mutationFn: ({
+      interactionId,
+      status,
+    }: {
+      interactionId: string;
+      status: "active" | "stopped";
+    }) => updateInteractionStatus(interactionId, status),
     onSuccess: () => {
       showSuccess("狀態已更新");
       void qc.invalidateQueries({ queryKey: ["interactions", roomId] });
@@ -264,6 +265,12 @@ export function SessionWorkbenchPage({
     token: getAccessToken(),
     mode: "host",
     onEvent: handleWsEvent,
+  });
+
+  const navLive = useHostRoomNavLiveState(roomId, { wsConnected: connected });
+
+  useScreenWorkbenchSync(selectedItem, session?.title ?? null, screen, {
+    paused: actionMutation.isPending || sprint9StatusMutation.isPending,
   });
 
   const poll = pollQuery.data;
@@ -398,7 +405,7 @@ export function SessionWorkbenchPage({
               disabled={sprint9StatusMutation.isPending}
               showDot={false}
               size="compact"
-              onClick={() => sprint9StatusMutation.mutate("active")}
+              onClick={() => sprint9StatusMutation.mutate({ interactionId: selectedItem.id, status: "active" })}
             />
           ) : (
             <ControlToggle
@@ -409,7 +416,7 @@ export function SessionWorkbenchPage({
               accent="danger"
               showDot={false}
               size="compact"
-              onClick={() => sprint9StatusMutation.mutate("stopped")}
+              onClick={() => sprint9StatusMutation.mutate({ interactionId: selectedItem.id, status: "stopped" })}
             />
           )}
         </>
@@ -505,9 +512,10 @@ export function SessionWorkbenchPage({
           <WorkbenchMainPanel
             roomId={roomId}
             item={selectedItem}
+            wsConnected={connected}
           />
         }
-        preview={<WorkbenchPreviewPanel item={selectedItem} />}
+        preview={<WorkbenchPreviewPanel item={selectedItem} wsConnected={connected} />}
       />
       {systemNoticeModal}
     </>
