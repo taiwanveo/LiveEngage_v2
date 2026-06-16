@@ -4,6 +4,30 @@
 
 ---
 
+## SNAPSHOT（2026-06-16 — 文字雲即時顯示修復）
+
+- **最新 commit**：`3a66613` — 文字雲進行中即時顯示於 Host 與 Screen
+- **Zeabur**：**api**、**host**、**screen** 皆 redeploy → RUNNING
+
+| 症狀 | 根因 | 修復 |
+|------|------|------|
+| 參與者送詞後 Host／投影皆空白 | ① `poll_response_submitted` 只廣播至 `present`+`host`，**Screen WS 收不到** ② 投影 `showResults` 需 `result_visible` 才帶入 results ③ Host 右欄預覽 `shouldShowParticipantResults` 在 `result_visible=false` 時直接 return | 後端 `MODE_POLL_LIVE_AGG` 含 screen；`shouldPresentPollResults` 文字雲進行中即顯示；修正 host 預覽邏輯 |
+
+### 部署（本輪）
+
+| 服務 | URL | 狀態 |
+|------|-----|------|
+| **api** | https://le-api.zeabur.app | **RUNNING**（deployment `6a30cb83…`） |
+| **host** | https://le-host.zeabur.app | **RUNNING** |
+| **screen** | https://le-screen.zeabur.app | **RUNNING** |
+
+### 驗收
+
+- [ ] 文字雲 Poll 開始後，Join 送詞 → Host 中欄「投影預覽」與右欄即時出現詞彙
+- [ ] 同一時間 Screen 投影同步更新（無需按「揭曉答案」）
+
+---
+
 ## SNAPSHOT（2026-06-16 — Host Screen 同步 CPU／切題修復）
 
 - **最新 commit**：`3bfeec8` — 修復 Host Screen 同步 CPU 飆高與結束切題競態
