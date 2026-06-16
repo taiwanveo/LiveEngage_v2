@@ -4,6 +4,7 @@ import * as React from "react";
 import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { isThemeId, sanitizeScreenColor } from "@liveengage/ui";
+import { ScreenBrandingRoot } from "./components/ScreenBrandingRoot";
 import { getScreenToken, parseHashQuery, parseScreenTokenPayload } from "./lib/screenAuth";
 import { resolveSessionByCode } from "./lib/screenApi";
 import { ScreenFullscreenPrompt } from "./ScreenFullscreenPrompt";
@@ -58,6 +59,12 @@ export function App(): React.JSX.Element {
   }, [sessionFromToken]);
 
   useEffect(() => {
+    if (codeQuery.data?.id) {
+      setSessionId(codeQuery.data.id);
+    }
+  }, [codeQuery.data?.id]);
+
+  useEffect(() => {
     const theme = params.get("theme");
     if (theme && isThemeId(theme)) {
       document.documentElement.setAttribute("data-theme", theme);
@@ -69,9 +76,12 @@ export function App(): React.JSX.Element {
   }, [params]);
 
   const { state, connected, isLoading } = useScreenDisplay(roomId);
+  const resolvedSessionId = sessionId ?? state?.session_id ?? null;
+
+  let content: React.JSX.Element;
 
   if (!token) {
-    return (
+    content = (
       <main className="flex min-h-dvh items-center justify-center bg-slate-950 px-6 text-center text-slate-300">
         <div>
           <h1 className="text-xl font-semibold text-white">缺少 Screen token</h1>
@@ -81,26 +91,20 @@ export function App(): React.JSX.Element {
         </div>
       </main>
     );
-  }
-
-  if (needsCodeLookup && codeQuery.isLoading) {
-    return (
+  } else if (needsCodeLookup && codeQuery.isLoading) {
+    content = (
       <main className="flex min-h-dvh items-center justify-center bg-slate-950 text-slate-400">
         解析活動代碼…
       </main>
     );
-  }
-
-  if (needsCodeLookup && codeQuery.isError) {
-    return (
+  } else if (needsCodeLookup && codeQuery.isError) {
+    content = (
       <main className="flex min-h-dvh items-center justify-center bg-slate-950 text-red-300">
         找不到活動代碼 {eventCode}
       </main>
     );
-  }
-
-  if (!roomId) {
-    return (
+  } else if (!roomId) {
+    content = (
       <main className="flex min-h-dvh items-center justify-center bg-slate-950 px-6 text-center text-slate-400">
         <div>
           <p>
@@ -115,20 +119,24 @@ export function App(): React.JSX.Element {
         </div>
       </main>
     );
+  } else {
+    content = (
+      <>
+        <ScreenFullscreenPrompt />
+        <ScreenRouter
+          roomId={roomId}
+          sessionId={resolvedSessionId ?? ""}
+          state={state}
+          connected={connected}
+          isLoading={isLoading}
+        />
+      </>
+    );
   }
 
-  const resolvedSessionId = sessionId ?? state?.session_id ?? "";
-
   return (
-    <>
-      <ScreenFullscreenPrompt />
-      <ScreenRouter
-        roomId={roomId}
-        sessionId={resolvedSessionId}
-        state={state}
-        connected={connected}
-        isLoading={isLoading}
-      />
-    </>
+    <ScreenBrandingRoot sessionId={resolvedSessionId}>
+      {content}
+    </ScreenBrandingRoot>
   );
 }

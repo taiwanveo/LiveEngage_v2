@@ -59,6 +59,25 @@ class TestS74Branding:
         assert data["primary_color"] == "#112233"
         assert data["display_name"] == org["name"]
 
+    def test_public_branding_by_session(
+        self, client: TestClient, host_token: tuple[str, str]
+    ) -> None:
+        token, _ = host_token
+        create = client.post(
+            "/api/v1/sessions",
+            headers=_headers(token),
+            json={"title": "Screen 品牌測試"},
+        )
+        session_id = create.json()["id"]
+        client.patch(
+            "/api/v1/admin/branding",
+            headers=_headers(token),
+            json={"favicon_url": "https://example.com/favicon.ico"},
+        )
+        pub = client.get(f"/api/v1/branding/by-session/{session_id}")
+        assert pub.status_code == 200, pub.text
+        assert pub.json()["favicon_url"] == "https://example.com/favicon.ico"
+
     def test_site_branding_respects_override_flag(
         self, client: TestClient, host_token: tuple[str, str]
     ) -> None:

@@ -1,7 +1,7 @@
 /** 組織品牌：favicon、Logo；可選覆寫主題 accent 色。 */
 
 import * as React from "react";
-import { brandedLogoUrl } from "./siteBranding";
+import { DEFAULT_LIVEENGAGE_FAVICON, brandedLogoUrl } from "./siteBranding";
 
 export interface PublicBranding {
   display_name: string | null;
@@ -61,17 +61,14 @@ function setActiveOrgBranding(branding: PublicBranding | null): void {
 }
 
 export function applyOrgBranding(branding: PublicBranding | null | undefined): void {
-  if (!branding) return;
-
-  if (branding.favicon_url) {
-    let link = document.querySelector<HTMLLinkElement>("link[rel='icon']");
-    if (!link) {
-      link = document.createElement("link");
-      link.rel = "icon";
-      document.head.appendChild(link);
-    }
-    link.href = branding.favicon_url;
+  const faviconUrl = branding?.favicon_url?.trim() || DEFAULT_LIVEENGAGE_FAVICON;
+  let link = document.querySelector<HTMLLinkElement>("link[rel='icon']");
+  if (!link) {
+    link = document.createElement("link");
+    link.rel = "icon";
+    document.head.appendChild(link);
   }
+  link.href = faviconUrl;
 }
 
 const OrgBrandingContext = React.createContext<PublicBranding | null>(null);

@@ -17,6 +17,7 @@ export { AuthCard } from "./AuthCard";
 export { BrandedAuthShell } from "./BrandedAuthShell";
 export {
   AUTH_INPUT_CLASS,
+  DEFAULT_LIVEENGAGE_FAVICON,
   DEFAULT_LIVEENGAGE_LOGO,
   DEFAULT_PRODUCT_TITLE,
   brandedLogoUrl,

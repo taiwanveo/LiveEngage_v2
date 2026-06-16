@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import uuid
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, Request
@@ -36,6 +37,15 @@ async def get_branding_by_code(
     return await admin_service.get_public_branding_by_code(
         db, code, client_ip=get_client_ip(request)
     )
+
+
+@router.get("/by-session/{session_id}", response_model=PublicBrandingResponse)
+async def get_branding_by_session(
+    session_id: uuid.UUID,
+    db: Annotated[AsyncSession, Depends(get_session)],
+) -> PublicBrandingResponse:
+    """依活動 ID 取得組織品牌（Screen 投影，公開）。"""
+    return await admin_service.get_public_branding_by_session_id(db, session_id)
 
 
 @router.get("/site", response_model=PublicBrandingResponse)

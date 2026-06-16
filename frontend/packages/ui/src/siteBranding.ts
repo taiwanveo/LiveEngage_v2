@@ -5,6 +5,9 @@ import type { PublicBranding } from "./orgBranding";
 /** 未設定 Logo 時使用的預設 LiveEngage 圖示（各 app 的 public/）。 */
 export const DEFAULT_LIVEENGAGE_LOGO = "/liveengage-logo.png";
 
+/** 未設定組織 favicon 時使用的預設圖示（各 app 的 public/favicon.png）。 */
+export const DEFAULT_LIVEENGAGE_FAVICON = "/favicon.png";
+
 /** 未設定組織名稱時的完整產品標題。 */
 export const DEFAULT_PRODUCT_TITLE = "LiveEngage 即時互動通";
 

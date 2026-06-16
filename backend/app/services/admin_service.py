@@ -531,6 +531,22 @@ async def get_public_branding_by_code(
     return _public_branding_from_org(org)
 
 
+async def get_public_branding_by_session_id(
+    db: AsyncSession, session_id: uuid.UUID
+) -> PublicBrandingResponse:
+    """依活動 ID 回傳公開品牌（Screen 投影等）。"""
+    result = await db.execute(
+        select(Session, Organization)
+        .join(Organization, Session.org_id == Organization.id)
+        .where(Session.id == session_id)
+    )
+    row = result.first()
+    if row is None:
+        raise AppError(ErrorCode.SESSION_NOT_FOUND, "找不到活動")
+    _session, org = row
+    return _public_branding_from_org(org)
+
+
 async def _resolve_site_organization(db: AsyncSession) -> Organization | None:
     """部署站點的預設組織（Admin／Host 登入頁品牌）。
 
