@@ -838,3 +838,10 @@ Participant Survey 完整流程；Quiz active-question API；Ideas/Survey 投影
 - 目的：避免主持人投影切換後還要手動切頁，流程更符合「先投影、立刻審核」的實際操作習慣。
 - 影響範圍：共用的 `HostRoomHeaderActions`／`ScreenControlPanel`，因此五個 Host 頁面都一致生效。
 - Deploy（push 後自動觸發）：host deployment `6a310da53850703aa49b5d12`、screen deployment `6a310da23850703aa49b5d10`（皆 RUNNING）。
+
+### 2026-06-16 — 淺色主題全面對比補強 + 結束測試回待機修復（ec82f31）
+
+- 修復「結束測試仍停留 TEST」：`showStandby` 改為 mutation 成功回呼後才更新按鈕狀態，並加入錯誤處理提示，避免 UI 狀態與投影狀態不同步。
+- 針對淺色主題全面補強可讀性：除既有 `text-slate-*` / `text-white` 外，新增淺色主題專用覆寫，調整深色卡片背景（`bg-slate-900/800`）、邊框（`border-slate-*`）、狀態色文字（`text-emerald-*`）與 Recharts 軸/標籤文字色，避免淡字與低對比。
+- 目標對齊：淺色投影視覺回到接近「專業淺色」的可讀風格；深色維持「專業深色」對比。
+- Deploy（push 後自動觸發）：host deployment `6a310e4df8d987ed9d736ade`、screen deployment `6a310e4af8d987ed9d736ad8`（皆 RUNNING）。
