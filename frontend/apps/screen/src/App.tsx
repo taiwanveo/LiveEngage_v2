@@ -6,7 +6,8 @@ import { useQuery } from "@tanstack/react-query";
 import { isThemeId, sanitizeScreenColor } from "@liveengage/ui";
 import { getScreenToken, parseHashQuery, parseScreenTokenPayload } from "./lib/screenAuth";
 import { resolveSessionByCode } from "./lib/screenApi";
-import { useScreenDisplay, useScreenFullscreen } from "./hooks/useScreenDisplay";
+import { ScreenFullscreenPrompt } from "./ScreenFullscreenPrompt";
+import { useScreenDisplay } from "./hooks/useScreenDisplay";
 import { ScreenRouter } from "./views/ScreenRouter";
 
 export interface ScreenContext {
@@ -67,8 +68,6 @@ export function App(): React.JSX.Element {
     if (fg) document.documentElement.style.setProperty("--le-screen-fg", fg);
   }, [params]);
 
-  useScreenFullscreen();
-
   const { state, connected, isLoading } = useScreenDisplay(roomId);
 
   if (!token) {
@@ -121,12 +120,15 @@ export function App(): React.JSX.Element {
   const resolvedSessionId = sessionId ?? state?.session_id ?? "";
 
   return (
-    <ScreenRouter
-      roomId={roomId}
-      sessionId={resolvedSessionId}
-      state={state}
-      connected={connected}
-      isLoading={isLoading}
-    />
+    <>
+      <ScreenFullscreenPrompt />
+      <ScreenRouter
+        roomId={roomId}
+        sessionId={resolvedSessionId}
+        state={state}
+        connected={connected}
+        isLoading={isLoading}
+      />
+    </>
   );
 }

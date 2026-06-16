@@ -2,12 +2,14 @@
 
 import * as React from "react";
 import { useState } from "react";
+import { formatUserFacingError } from "@liveengage/realtime";
 import {
   JoinShareCard,
   Modal,
   PresentIcon,
   ShareIcon,
   joinUrl,
+  useSystemNotice,
 } from "@liveengage/ui";
 import type { useScreenControl } from "../lib/useScreenControl";
 
@@ -23,11 +25,36 @@ export function ScreenControlPanel({
   screen,
 }: Props): React.JSX.Element {
   const [shareOpen, setShareOpen] = useState(false);
+  const { showError, showInfo, showSuccess, systemNoticeModal } = useSystemNotice();
   const href = screen.buildScreenHref();
 
   const copyScreen = async (): Promise<void> => {
     if (!href) return;
     await navigator.clipboard.writeText(href);
+    showSuccess("已複製投影連結");
+  };
+
+  const handleTest = (): void => {
+    screen.showTest(sessionTitle, {
+      onSuccess: () => {
+        showSuccess("投影已切換至測試畫面（大寫 TEST）");
+      },
+      onError: (err) => {
+        showError(formatUserFacingError(err, "無法切換測試畫面"));
+      },
+    });
+  };
+
+  const handleFullscreen = (): void => {
+    const result = screen.requestFullscreen();
+    if (result === "no-window") {
+      showInfo(
+        "請先按「Screen」開啟投影視窗，再在投影視窗內點「進入全螢幕」或按 F 鍵。",
+        "尚未開啟投影"
+      );
+      return;
+    }
+    showInfo("請在投影視窗點「進入全螢幕」，或按 F 鍵。", "已通知投影視窗");
   };
 
   return (
@@ -36,7 +63,12 @@ export function ScreenControlPanel({
         {href ? (
           <button
             type="button"
-            onClick={() => screen.openScreen()}
+            onClick={() => {
+              const win = screen.openScreen();
+              if (!win) {
+                showInfo("若投影未開啟，請允許瀏覽器彈出視窗。", "開啟投影");
+              }
+            }}
             className="le-btn-primary le-btn-present-compact"
           >
             <PresentIcon size={14} />
@@ -50,8 +82,8 @@ export function ScreenControlPanel({
         )}
         <button
           type="button"
-          disabled={!href}
-          onClick={() => void copyScreen()}
+          disabled={!href || screen.updating}
+          onClick={() => void copyScreen().catch(() => showError("複製失敗"))}
           className="le-btn-secondary le-btn-present-compact disabled:opacity-50"
           title="複製投影網址"
         >
@@ -59,17 +91,18 @@ export function ScreenControlPanel({
         </button>
         <button
           type="button"
-          onClick={() => screen.showTest(sessionTitle)}
-          className="le-btn-secondary le-btn-present-compact"
-          title="顯示測試畫面"
+          disabled={screen.updating}
+          onClick={handleTest}
+          className="le-btn-secondary le-btn-present-compact disabled:opacity-50"
+          title="投影顯示 TEST 測試畫面，確認通道正常"
         >
           測試
         </button>
         <button
           type="button"
-          onClick={() => screen.requestFullscreen()}
+          onClick={handleFullscreen}
           className="le-btn-secondary le-btn-present-compact"
-          title="同機 Screen 視窗全螢幕（跨裝置請按 F）"
+          title="通知投影視窗顯示全螢幕提示（須在投影視窗內點擊確認）"
         >
           全螢幕
         </button>
@@ -115,6 +148,7 @@ export function ScreenControlPanel({
           ) : null}
         </Modal>
       ) : null}
+      {systemNoticeModal}
     </>
   );
 }

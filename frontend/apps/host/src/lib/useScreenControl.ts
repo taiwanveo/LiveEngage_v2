@@ -48,6 +48,7 @@ function interactionToScreenView(
 export function useScreenControl(roomId: string) {
   const qc = useQueryClient();
   const screenWindowRef = useRef<Window | null>(null);
+  const manualOverrideUntilRef = useRef(0);
   const [followEnabled, setFollowEnabled] = useScreenFollowEnabled();
 
   const tokenQuery = useQuery({
@@ -70,15 +71,45 @@ export function useScreenControl(roomId: string) {
     return screenUrlByRoom(roomId, token);
   }, [roomId, tokenQuery.data?.token]);
 
-  const openScreen = useCallback(() => {
+  const openScreen = useCallback((): Window | null => {
     const href = buildScreenHref();
-    if (!href) return;
-    const win = window.open(href, "liveengage-screen", "noopener,noreferrer");
+    if (!href) return null;
+    // 勿加 noopener：需保留視窗參考，才能 postMessage 遙控（全螢幕提示等）
+    const win = window.open(href, "liveengage-screen");
     if (win) screenWindowRef.current = win;
+    return win;
   }, [buildScreenHref]);
 
-  const requestFullscreen = useCallback(() => {
-    screenWindowRef.current?.postMessage({ type: "screen:fullscreen" }, "*");
+  const resolveScreenWindow = useCallback((): Window | null => {
+    const cached = screenWindowRef.current;
+    if (cached && !cached.closed) return cached;
+    try {
+      const named = window.open("", "liveengage-screen");
+      if (named && !named.closed) {
+        screenWindowRef.current = named;
+        return named;
+      }
+    } catch {
+      /* 跨網域時可能無法存取已開視窗 */
+    }
+    return null;
+  }, []);
+
+  /** 通知 Screen 顯示「點擊進入全螢幕」提示（跨網域無法由 Host 直接 requestFullscreen）。 */
+  const requestFullscreen = useCallback((): "sent" | "no-window" => {
+    const win = resolveScreenWindow();
+    if (!win) return "no-window";
+    win.postMessage({ type: "screen:fullscreen" }, "*");
+    return "sent";
+  }, [resolveScreenWindow]);
+
+  const isManualOverrideActive = useCallback(
+    () => Date.now() < manualOverrideUntilRef.current,
+    []
+  );
+
+  const armManualOverride = useCallback((ms = 8000) => {
+    manualOverrideUntilRef.current = Date.now() + ms;
   }, []);
 
   const { mutate: mutateScreenState, isPending: screenUpdatePending } =
@@ -118,13 +149,25 @@ export function useScreenControl(roomId: string) {
   );
 
   const showTest = useCallback(
-    (sessionTitle?: string | null) => {
-      mutateScreenState({
-        view: "test",
-        ...(sessionTitle != null ? { session_title: sessionTitle } : {}),
-      });
+    (
+      sessionTitle?: string | null,
+      handlers?: { onSuccess?: () => void; onError?: (err: unknown) => void }
+    ) => {
+      armManualOverride(8000);
+      mutateScreenState(
+        {
+          view: "test",
+          interaction_id: null,
+          sub_view: null,
+          ...(sessionTitle != null ? { session_title: sessionTitle } : {}),
+        },
+        {
+          ...(handlers?.onSuccess ? { onSuccess: handlers.onSuccess } : {}),
+          ...(handlers?.onError ? { onError: handlers.onError } : {}),
+        }
+      );
     },
-    [mutateScreenState]
+    [armManualOverride, mutateScreenState]
   );
 
   const showOverview = useCallback(
@@ -162,6 +205,7 @@ export function useScreenControl(roomId: string) {
     pushScreen,
     followEnabled,
     setFollowEnabled,
+    isManualOverrideActive,
     tokenLoading: tokenQuery.isLoading,
     updating: screenUpdatePending,
   };
@@ -178,6 +222,7 @@ export function useScreenWorkbenchSync(
 
   useEffect(() => {
     if (!screen.followEnabled) return;
+    if (screen.isManualOverrideActive()) return;
     if (!selectedItem) return;
     if (!isPollType(selectedItem.type) && !isSprint9Type(selectedItem.type)) return;
 
@@ -188,5 +233,5 @@ export function useScreenWorkbenchSync(
     }, 120);
 
     return () => window.clearTimeout(timer);
-  }, [selectedItem?.id, selectedItem?.type, sessionTitle, screen.followEnabled]);
+  }, [selectedItem?.id, selectedItem?.type, sessionTitle, screen.followEnabled, screen.isManualOverrideActive]);
 }
