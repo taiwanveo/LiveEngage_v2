@@ -805,3 +805,12 @@ Participant Survey 完整流程；Quiz active-question API；Ideas/Survey 投影
 - 修正切換主題下拉可能打開空白頁問題：`resolveScreenWindow` 不再呼叫 `window.open("", "liveengage-screen")`，僅使用已開啟且已記錄的投影視窗 reference。
 - 因此 Host 端變更主題色時，若 Screen 視窗已開啟，仍會透過 `postMessage(screen:theme)` 即時同步；若未開啟則不會再誤開 about:blank。
 - Redeploy：host deployment `6a30fcfd3850703aa49b51c4`（觸發時間 2026-06-16 15:33 UTC+8）。
+
+### 2026-06-16 — 投影控制列重排 + 主題切換實際生效（9a0986f）
+
+- 依主持流程重排投影操作順序：`Screen` → `投影主題` → `Q&A 投影` → `跟隨工作台` → `複製投影網址` → `測試投影`，並以淺灰框群組投影相關控制，與 `分享` 保留間距。
+- 移除 `全螢幕` 按鈕（避免再次誤開空白頁）；改採投影視窗直接按 `F` 進入全螢幕。
+- `測試` 改為語意更清楚的 toggle：`測試投影` / `結束測試`；結束時切回待機畫面。
+- `複製` 文案改為 `複製投影網址`。
+- 修正主題切換「看起來沒生效」：`applyScreenThemePrefs` 會依五種主題套用預設 `--le-screen-bg/fg`，即使未選自訂色也會改變投影底色與文字色；`theme=light` 等 URL 參數現在可直接生效（例如 [le-screen 範例連結](https://le-screen.zeabur.app/#/?room=019ecb92-f676-77d9-abb3-f41d92c0591a&token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0eXAiOiJzY3JlZW4iLCJyb29tX2lkIjoiMDE5ZWNiOTItZjY3Ni03N2Q5LWFiYjMtZjQxZDkyYzA1OTFhIiwic2Vzc2lvbl9pZCI6IjAxOWVjYjkyLWY1MTAtNzQxNS05NzhhLWE1NmRmY2U5YWY1ZiIsInRva2VuX2Vwb2NoIjowLCJpYXQiOjE3ODE1OTU4NzQsImV4cCI6MTc4MjIwMDY3NH0.Q44FfWNk4l2MnQfCWTNRLkwAYrKkQl9YcogGgH2mbgc&theme=light)）。
+- Redeploy：host deployment `6a3103c53850703aa49b5623`、screen deployment `6a3103c23850703aa49b5621`（觸發時間 2026-06-16 16:05 UTC+8）。
