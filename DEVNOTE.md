@@ -7,9 +7,9 @@
 ## SNAPSHOT（2026-06-16 — Screen 獨立投影 App）
 
 - **Repo**：https://github.com/ColdRighter/LiveEngage.git（master）
-- **最新 commit**：（push 後填入）
+- **最新 commit**：`123cf8a` — Screen 獨立投影 App 與 Host 遙控
 - **api 健康**：https://le-api.zeabur.app/health → 200
-- **Zeabur**：push 後新增 **screen** 服務；api／host 隨 master 自動 redeploy
+- **Zeabur**：`123cf8a` push 後 **screen** 服務已建立並 **RUNNING**；api 重建中；host 已觸發含 `VITE_SCREEN_BASE` 的 redeploy
 
 ### 本輪重點（重大變動）
 
@@ -27,10 +27,18 @@
 
 | 服務 | URL | 變更 |
 |------|-----|------|
-| **screen**（新） | https://le-screen.zeabur.app | `frontend/Dockerfile.screen` |
-| **api** | https://le-api.zeabur.app | Screen REST + WS |
-| **host** | https://le-host.zeabur.app | `VITE_SCREEN_BASE`、Screen 控制 UI |
+| **screen**（新） | https://le-screen.zeabur.app | 服務 ID `6a30b4bf…`、deployment RUNNING（2026-06-16） |
+| **api** | https://le-api.zeabur.app | Screen REST + WS — push 後 BUILDING |
+| **host** | https://le-host.zeabur.app | 手動 redeploy 含 `VITE_JOIN_BASE` + `VITE_SCREEN_BASE` |
 | join／admin／worker | （同前） | 本輪無變更 |
+
+### 開始使用（含 Screen）
+
+| 角色 | 入口 | 典型流程 |
+|------|------|----------|
+| **Host** | https://le-host.zeabur.app | 控場 → 頂欄 **Screen** → 跟隨工作台 |
+| **Screen** | https://le-screen.zeabur.app | 外接螢幕／OBS（URL 含 token） |
+| **Join** | https://le-join.zeabur.app | 參與者掃碼加入 |
 
 ### Screen 使用流程
 
@@ -51,6 +59,7 @@
 | `isPollType` import 錯誤 | 從 `workbenchTypes` 匯入但未 re-export | 改從 `pollTypes` 匯入 |
 | Overview 複製到 screen | `OverviewDashboard` 依賴 host 路徑 | 複製到 `apps/screen/src/components` 並改 import；內嵌 `pollTypeLabel` |
 | Zeabur 新前端服務 | `dockerfile.path` 有時失敗（Join 建服務時） | 與 join 相同：用 **`deploy-from-specification` + `dockerfile.content`** 內嵌 Dockerfile |
+| Host Zeabur spec 過期 | Git push 觸發 redeploy 但 spec 內 Dockerfile 可能缺 `VITE_*` | push 後對 **host** 再跑一次 `deploy-from-specification`，內嵌完整 `Dockerfile.host` |
 | 外接螢幕無法程式指定 | 瀏覽器安全限制 | 僅能第一次手動拖曳；文件與 UI 需說明按 F |
 
 ### 驗收清單（上線後手測）
@@ -93,8 +102,9 @@
 | 角色 | 入口 | 典型流程 |
 |------|------|----------|
 | **Admin** | https://le-admin.zeabur.app | 建立組織／Room → 邀請 Host |
-| **Host** | https://le-host.zeabur.app | 登入 → 進 Room → 控場 → 分享 **le-join** 加入連結 |
-| **Join** | https://le-join.zeabur.app | 輸入 Room 代碼加入 → 即時作答 |
+| **Host** | https://le-host.zeabur.app | 登入 → 控場 → 頂欄 **Screen** 開投影 → 分享 **le-join** |
+| **Join** | https://le-join.zeabur.app | 輸入代碼加入 → 即時作答 |
+| **Screen** | https://le-screen.zeabur.app | Host 開啟的投影連結（含 token） |
 | **API** | https://le-api.zeabur.app | REST + WebSocket |
 
 舊 QR（`le-participant`）仍可用，會自動導向 join。
