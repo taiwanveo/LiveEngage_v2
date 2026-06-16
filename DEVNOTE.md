@@ -4,6 +4,46 @@
 
 ---
 
+## SNAPSHOT（2026-06-16 — 登入錯誤提示與 Screen 啟動修復）
+
+- **Repo**：https://github.com/ColdRighter/LiveEngage.git（master）
+- **最新 commit**：`e4f05aa` — 登入表單內嵌錯誤提示；Screen 從 JWT 解析 `room_id`；Host 改產生 `room=` 投影連結
+- **api 健康**：https://le-api.zeabur.app/health → 200
+- **Zeabur**：`e4f05aa` push 後 **screen**、**host**、**admin** 皆手動 `deploy-from-specification` → **RUNNING**
+
+### 本輪重點
+
+| 區塊 | 內容 |
+|------|------|
+| **登入 UX** | Host／Admin 登入改表單內嵌紅色提示（`LoginErrorBanner`）；客戶端驗證空欄位／Email 格式／密碼長度；`formatLoginError` 對 401／429 給明確中文 |
+| **Screen bug** | `event=` 模式誤依賴 `by-code` 的 `default_room_id`，但公開 API 不含此欄 → 顯示「請提供 event= 或 room=」 |
+| **Screen 修復** | `parseScreenTokenPayload` 從 JWT 讀 `room_id`／`session_id`；舊 `event=…&token=…` 連結可正常啟動 |
+| **Host** | `useScreenControl` 一律 `screenUrlByRoom(roomId, token)`，不再產生 `event=` URL |
+
+### 部署（本輪）
+
+| 服務 | URL | 狀態 |
+|------|-----|------|
+| **screen** | https://le-screen.zeabur.app | RUNNING（deployment `6a30bdf8…`） |
+| **host** | https://le-host.zeabur.app | RUNNING（deployment `6a30bdf8…`） |
+| **admin** | https://le-admin.zeabur.app | RUNNING（deployment `6a30bdf9…`） |
+| api／join／worker | （同前） | 本輪無變更 |
+
+### 踩雷與教訓（本輪）
+
+| 問題 | 原因 | 解法 |
+|------|------|------|
+| Screen 開啟後卡在「解析活動代碼…」再報缺參數 | `SessionPublicResponse`（by-code）**不含** `default_room_id`；Screen 卻讀 `codeQuery.data.default_room_id` | 從 **screen JWT** 取 `room_id`；Host 改發 `room=` URL |
+| 登入錯誤看不到 | 僅 Modal `showError`，易被忽略或誤關 | 改表單內嵌 `LoginErrorBanner` + 客戶端驗證 |
+
+### 驗收（上線後手測）
+
+- [ ] Host 頂欄 **Screen** → 投影 standby（URL 含 `room=` + `token=`）
+- [ ] 故意輸錯 Host 帳密 → 表單內顯示「帳號或密碼錯誤」
+- [ ] Admin 登入空欄位 → 「請輸入 Email」／「請輸入密碼」
+
+---
+
 ## SNAPSHOT（2026-06-16 — Screen 獨立投影 App）
 
 - **Repo**：https://github.com/ColdRighter/LiveEngage.git（master）
