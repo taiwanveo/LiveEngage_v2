@@ -44,3 +44,5 @@ export {
   SCREEN_VIEW_CHANGED,
 } from "./types";
 export type { WsEvent, WsMode } from "./types";
+export { applyPollResponseSubmitted } from "./pollResultsCache";
+export type { PollResultsQueryClient } from "./pollResultsCache";

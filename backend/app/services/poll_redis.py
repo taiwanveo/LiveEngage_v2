@@ -191,7 +191,7 @@ async def _do_broadcast_result(
             room_id,
             events.POLL_RESPONSE_SUBMITTED,
             payload,
-            target_modes=events.MODE_PRESENT_HOST,
+            target_modes=events.MODE_POLL_LIVE_AGG,
         )
     except Exception:
         logger.exception("結果廣播失敗 interaction=%s", interaction_id)

@@ -15,11 +15,15 @@ export type {
 } from "./types";
 export {
   canAnswer,
+  isLiveAggregatedPollType,
   isRatingValueInRange,
   modeLabel,
   ratingInputMode,
   readBool,
   readNumber,
+  shouldPresentPollResults,
+  shouldShowHostWorkbenchPollResults,
+  shouldShowParticipantResults,
   statusLabel,
 } from "./utils";
 export type { RatingInputMode } from "./utils";

@@ -50,15 +50,40 @@ export function canAnswer(
 
 /** 參與者作答模式：進行中且尚未提交時，不應以結果圖表取代作答 UI。 */
 export function shouldShowParticipantResults(
-  poll: Pick<PollDetail, "status" | "result_visible" | "my_submitted">,
+  poll: Pick<PollDetail, "type" | "status" | "result_visible" | "my_submitted">,
   hasResultsData: boolean,
   opts?: { hostWorkbenchPreview?: boolean }
 ): boolean {
+  if (opts?.hostWorkbenchPreview) {
+    if (isLiveAggregatedPollType(poll.type) && poll.status !== "idle") return true;
+    return poll.result_visible;
+  }
   if (!poll.result_visible) return false;
-  if (opts?.hostWorkbenchPreview) return true;
   if (!hasResultsData) return false;
   if (poll.status === "active" && !poll.my_submitted) return false;
   return true;
+}
+
+/** 文字雲等即時聚合題型：進行中即顯示結果（無需揭曉）。 */
+export function isLiveAggregatedPollType(type: string): boolean {
+  return type === "word_cloud";
+}
+
+/** 投影／Host 預覽是否帶入 poll-results（含未揭曉的文字雲即時詞彙）。 */
+export function shouldPresentPollResults(
+  poll: Pick<PollDetail, "type" | "status" | "result_visible">,
+  opts?: { subView?: string | null }
+): boolean {
+  if (opts?.subView === "results" || poll.result_visible) return true;
+  return isLiveAggregatedPollType(poll.type) && poll.status !== "idle";
+}
+
+/** Host 右欄參與者預覽：文字雲進行中亦顯示即時詞彙。 */
+export function shouldShowHostWorkbenchPollResults(
+  poll: Pick<PollDetail, "type" | "status" | "result_visible">
+): boolean {
+  if (poll.result_visible) return true;
+  return isLiveAggregatedPollType(poll.type) && poll.status !== "idle";
 }
 
 /** 是否顯示選項正解標記（預覽／編輯模式除外，須已揭曉結果）。 */

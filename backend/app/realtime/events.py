@@ -54,6 +54,8 @@ MODE_HOST = {"host"}
 MODE_PRESENT_HOST = {"present", "host"}
 MODE_SCREEN = {"screen"}
 MODE_SCREEN_HOST = {"screen", "host"}
+# Poll 即時聚合（文字雲等）廣播至投影、控場與 Screen
+MODE_POLL_LIVE_AGG = MODE_PRESENT_HOST | MODE_SCREEN
 MODE_ALL = {"participant", "present", "host", "screen"}
 
 # Screen 投影遙控

@@ -1,7 +1,7 @@
 /** Poll 參與者預覽（工作台右欄）。 */
 
 import * as React from "react";
-import { PollRenderer, type PollDetail, type PollResults } from "@liveengage/renderers";
+import { PollRenderer, shouldShowHostWorkbenchPollResults, type PollDetail, type PollResults } from "@liveengage/renderers";
 import { ParticipantPreviewFrame } from "@liveengage/ui";
 
 interface Props {
@@ -24,7 +24,7 @@ export function WorkbenchPollPreview({ poll, results }: Props): React.JSX.Elemen
       <PollRenderer
         mode="answer"
         poll={poll}
-        results={poll.result_visible ? results : null}
+        results={shouldShowHostWorkbenchPollResults(poll) ? results : null}
         hostWorkbenchPreview
       />
     </ParticipantPreviewFrame>

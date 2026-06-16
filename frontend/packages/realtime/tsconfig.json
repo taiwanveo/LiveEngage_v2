@@ -16,7 +16,12 @@
     "isolatedModules": true,
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
-    "noEmit": true
+    "noEmit": true,
+    "baseUrl": ".",
+    "paths": {
+      "@liveengage/renderers": ["../renderers/src/index.ts"],
+      "@liveengage/renderers/*": ["../renderers/src/*"]
+    }
   },
   "include": ["src"]
 }

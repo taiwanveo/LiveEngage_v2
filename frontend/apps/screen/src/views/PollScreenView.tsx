@@ -3,8 +3,14 @@
 import * as React from "react";
 import { useCallback } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { POLL_EVENT_TYPES, useRoomWebSocket, type WsEvent } from "@liveengage/realtime";
-import { PollRenderer } from "@liveengage/renderers";
+import {
+  POLL_EVENT_TYPES,
+  POLL_RESPONSE_SUBMITTED,
+  applyPollResponseSubmitted,
+  useRoomWebSocket,
+  type WsEvent,
+} from "@liveengage/realtime";
+import { PollRenderer, shouldPresentPollResults } from "@liveengage/renderers";
 import { getScreenToken } from "../lib/screenAuth";
 import { getPoll, getPollResults, POLL_RESULTS_BACKUP_REFETCH_MS } from "../lib/pollApi";
 import type { ScreenSubView } from "../lib/screenApi";
@@ -35,8 +41,16 @@ export function PollScreenView({ roomId, pollId, subView }: Props): React.JSX.El
   const handleWs = useCallback(
     (event: WsEvent) => {
       if (!POLL_EVENT_TYPES.has(event.type)) return;
+      if (event.type === POLL_RESPONSE_SUBMITTED) {
+        const eventPollId = String(event.payload.poll_id ?? "");
+        if (eventPollId === pollId) {
+          applyPollResponseSubmitted(qc, pollId, event.payload);
+        }
+      }
       void qc.invalidateQueries({ queryKey: ["poll", pollId] });
-      void qc.invalidateQueries({ queryKey: ["poll-results", pollId] });
+      if (event.type !== POLL_RESPONSE_SUBMITTED) {
+        void qc.invalidateQueries({ queryKey: ["poll-results", pollId] });
+      }
     },
     [qc, pollId]
   );
@@ -49,7 +63,9 @@ export function PollScreenView({ roomId, pollId, subView }: Props): React.JSX.El
   });
 
   const poll = pollQuery.data;
-  const showResults = subView === "results" || Boolean(poll?.result_visible);
+  const showResults = poll
+    ? shouldPresentPollResults(poll, { subView })
+    : false;
 
   return (
     <div className="relative flex min-h-dvh flex-col bg-slate-950">
