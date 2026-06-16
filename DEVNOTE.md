@@ -814,3 +814,13 @@ Participant Survey 完整流程；Quiz active-question API；Ideas/Survey 投影
 - `複製` 文案改為 `複製投影網址`。
 - 修正主題切換「看起來沒生效」：`applyScreenThemePrefs` 會依五種主題套用預設 `--le-screen-bg/fg`，即使未選自訂色也會改變投影底色與文字色；`theme=light` 等 URL 參數現在可直接生效（例如 [le-screen 範例連結](https://le-screen.zeabur.app/#/?room=019ecb92-f676-77d9-abb3-f41d92c0591a&token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0eXAiOiJzY3JlZW4iLCJyb29tX2lkIjoiMDE5ZWNiOTItZjY3Ni03N2Q5LWFiYjMtZjQxZDkyYzA1OTFhIiwic2Vzc2lvbl9pZCI6IjAxOWVjYjkyLWY1MTAtNzQxNS05NzhhLWE1NmRmY2U5YWY1ZiIsInRva2VuX2Vwb2NoIjowLCJpYXQiOjE3ODE1OTU4NzQsImV4cCI6MTc4MjIwMDY3NH0.Q44FfWNk4l2MnQfCWTNRLkwAYrKkQl9YcogGgH2mbgc&theme=light)）。
 - Redeploy：host deployment `6a3103c53850703aa49b5623`、screen deployment `6a3103c23850703aa49b5621`（觸發時間 2026-06-16 16:05 UTC+8）。
+
+### 2026-06-16 — 投影按鈕簡化為深/淺雙主題（41811c7）
+
+- 依主持操作複雜度調整：移除「投影主題下拉」與多主題選擇，改成兩顆明確按鈕：
+  - `投影（深色主題）`（套用 `dark`）
+  - `投影（淺色主題）`（套用 `light`）
+- 深/淺按鈕左右並排，淺色按鈕使用與深色按鈕反差風格（白底深色字），其後依序保留：`Q&A 投影`、`跟隨工作台`、`複製投影網址`、`測試投影`。
+- 五個 Host 頁面（工作台、即時總覽、Q&A 審核、Poll 管理、Quiz 管理）統一共用同一組 `HostRoomHeaderActions`，切頁時操作位置與順序一致。
+- 新增 `openScreenWithTheme(theme)` 與 `screenTheme.setTheme(theme)`；按深/淺按鈕時會同步更新投影 URL 與目前偏好，避免殘留自訂色影響。
+- Deploy（push 後自動觸發）：host deployment `6a3104583850703aa49b5694`、screen deployment `6a3104553850703aa49b568f`（皆 RUNNING）。
