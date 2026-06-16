@@ -4,6 +4,29 @@
 
 ---
 
+## SNAPSHOT（2026-06-16 — Live Poll 淺色投影卡片樣式修正）
+
+- **最新 commit**：`41d5fa6` — Screen/Host 即時總覽 Live Poll 卡片與淺色主題一致
+- **Zeabur**：**api**、**admin**、**host**、**screen** redeploy 完成（push 後 webhook 自動觸發）
+
+| 區塊 | 變更 |
+|------|------|
+| Screen 即時總覽 | `LivePollCard` 移除 `present` 模式強制深色 `!bg-slate-900/80 !border-slate-700`，改與其他區塊共用 `le-card le-analytics-accent-blue`，淺色投影不再出現深色卡片 |
+| Host 即時總覽 | 同步修正 `OverviewDashboard` 內 `LivePollCard`，與 Screen 投影樣式一致 |
+
+**根因**：Tailwind `!important` 深色 class 蓋過 `index.css` 淺色主題覆寫。
+
+### 部署
+
+| 服務 | deployment | 狀態 |
+|------|------------|------|
+| api | `6a31720ddc8a677a9ed621c6` | RUNNING |
+| admin | `6a317207dc8a677a9ed621c0` | RUNNING |
+| host | `6a317213dc8a677a9ed621d0` | RUNNING |
+| screen | `6a317210dc8a677a9ed621cb` | RUNNING |
+
+---
+
 ## SNAPSHOT（2026-06-16 — 稽核關鍵字搜尋與投影控制 toggle）
 
 - **最新 commit**：`3754735` — Admin 稽核執行者關鍵字搜尋 + Host/Screen 投影切換強化
