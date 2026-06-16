@@ -299,20 +299,18 @@ export function WorkbenchInteractionSidebar(props: Props): React.JSX.Element {
                   </button>
                   {reorderable ? (
                     <span className="flex shrink-0 items-center gap-0.5 self-center pr-1">
-                      {index > 0 ? (
-                        <ReorderMoveButton
-                          direction="up"
-                          label={`將「${item.title ?? "未命名"}」上移`}
-                          onClick={() => moveByArrow(index, "up")}
-                        />
-                      ) : null}
-                      {index < props.items.length - 1 ? (
-                        <ReorderMoveButton
-                          direction="down"
-                          label={`將「${item.title ?? "未命名"}」下移`}
-                          onClick={() => moveByArrow(index, "down")}
-                        />
-                      ) : null}
+                      <ReorderMoveButton
+                        direction="up"
+                        label={`將「${item.title ?? "未命名"}」上移`}
+                        disabled={index === 0}
+                        onClick={() => moveByArrow(index, "up")}
+                      />
+                      <ReorderMoveButton
+                        direction="down"
+                        label={`將「${item.title ?? "未命名"}」下移`}
+                        disabled={index === props.items.length - 1}
+                        onClick={() => moveByArrow(index, "down")}
+                      />
                     </span>
                   ) : null}
                 </div>

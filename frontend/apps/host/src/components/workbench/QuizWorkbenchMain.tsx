@@ -20,6 +20,7 @@ import {
   quizAction,
   type QuizQuestion,
 } from "../../lib/sprint9Api";
+import { useScreenControl } from "../../lib/useScreenControl";
 import {
   interactionTypeLabel,
   quizQuestionStateLabel,
@@ -46,6 +47,7 @@ const QUIZ_ACTION_SUCCESS: Record<
 
 export function QuizWorkbenchMain({ roomId, item }: Props): React.JSX.Element {
   const qc = useQueryClient();
+  const screen = useScreenControl(roomId);
   const [quizTitle, setQuizTitle] = useState("");
   const [pendingAction, setPendingAction] = useState<{
     questionId: string;
@@ -260,6 +262,30 @@ export function QuizWorkbenchMain({ roomId, item }: Props): React.JSX.Element {
             );
           })}
         </ul>
+      </section>
+
+      <section className="le-card p-4">
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+          <h3 className="text-sm font-semibold text-foreground">投影控制</h3>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <button
+            type="button"
+            disabled={screen.updating}
+            onClick={() => screen.pushScreen({ view: "quiz", interaction_id: item.id, sub_view: "question" })}
+            className="le-btn-secondary le-btn-sm"
+          >
+            投影題目
+          </button>
+          <button
+            type="button"
+            disabled={screen.updating}
+            onClick={() => screen.pushScreen({ view: "quiz", interaction_id: item.id, sub_view: "leaderboard" })}
+            className="le-btn-secondary le-btn-sm"
+          >
+            投影排行榜
+          </button>
+        </div>
       </section>
 
       <section className="le-card p-4">

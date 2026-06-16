@@ -84,6 +84,7 @@ export function QuizQuestionEditPage({
     onSuccess: () => {
       showSuccess("已儲存");
       void qc.invalidateQueries({ queryKey: ["quiz-questions", quizId] });
+      window.location.hash = backHref;
     },
     onError: (err: unknown) => {
       showError(formatUserFacingError(err, "儲存失敗"));

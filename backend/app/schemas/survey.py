@@ -21,6 +21,9 @@ class SurveyQuestionCreateRequest(BaseModel):
     required: bool = True
     page_no: int = Field(default=0, ge=0)
     options: list[PollOptionInput] = Field(default_factory=list)
+    # 評分題用
+    rating_min: int = Field(default=1, ge=0, le=99)
+    rating_max: int = Field(default=5, ge=1, le=100)
 
 
 class SurveyQuestionPublic(BaseModel):
@@ -45,6 +48,7 @@ class SurveyQuestionParticipantPublic(BaseModel):
     page_no: int
     order_no: int
     options: list[PollOptionPublic] = Field(default_factory=list)
+    settings: dict = Field(default_factory=dict)
 
 
 class SurveySubmitRequest(BaseModel):

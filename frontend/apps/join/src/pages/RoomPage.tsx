@@ -459,6 +459,11 @@ export function RoomPage(): React.JSX.Element {
             ) : null}
             <h2 className="font-display text-lg font-semibold text-foreground">{quizQuestion.title}</h2>
             <ul className="mt-4 space-y-2">
+              {quizSubmitOk ? (
+                <p className="rounded-lg bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-700">
+                  ✓ 您已作答完成，感謝參與！
+                </p>
+              ) : null}
               {quizQuestion.options.map((opt) => {
                 const revealed =
                   quizQuestion.state === "revealed" && quizQuestion.result_visible;
@@ -467,7 +472,7 @@ export function RoomPage(): React.JSX.Element {
                 <li key={opt.id}>
                   <button
                     type="button"
-                    disabled={quizSubmitting || revealed}
+                    disabled={quizSubmitting || revealed || quizSubmitOk}
                     onClick={() => {
                       setQuizSubmitting(true);
                       setSubmitError(null);

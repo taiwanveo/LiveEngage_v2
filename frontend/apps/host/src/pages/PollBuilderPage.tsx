@@ -22,6 +22,7 @@ interface Props {
 }
 
 const OPTION_TYPES = new Set(["multiple_choice", "ranking"]);
+const CORRECT_ANSWER_TYPES = new Set(["multiple_choice"]);
 const OPTIONS_AUTOSAVE_MS = 700;
 
 function optionsPayload(options: PollOptionInput[]): PollOptionInput[] {
@@ -69,8 +70,13 @@ export function PollBuilderPage({
   const [options, setOptions] = useState<PollOptionInput[]>([]);
   const [minValue, setMinValue] = useState(1);
   const [maxValue, setMaxValue] = useState(5);
+  const [minRaw, setMinRaw] = useState("1");
+  const [maxRaw, setMaxRaw] = useState("5");
+  const [maxSubmissions, setMaxSubmissions] = useState(3);
+  const [maxSubmissionsRaw, setMaxSubmissionsRaw] = useState("3");
   const optionsHydratingRef = useRef(true);
   const lastAutosavedOptionsRef = useRef("");
+  const initializedPollIdRef = useRef<string | null>(null);
 
   useEffect(() => {
     if (error) showError(`載入失敗：${formatUserFacingError(error)}`);
@@ -78,9 +84,14 @@ export function PollBuilderPage({
 
   useEffect(() => {
     if (!poll) return;
+    // 只在第一次載入（pollId 切換）時初始化標題/說明，避免 autosave 引起的 refetch 覆蓋使用者輸入
+    const isFirstLoad = initializedPollIdRef.current !== poll.id;
+    if (isFirstLoad) {
+      initializedPollIdRef.current = poll.id;
+      setTitle(poll.title ?? "");
+      setDescription(poll.description ?? "");
+    }
     optionsHydratingRef.current = true;
-    setTitle(poll.title ?? "");
-    setDescription(poll.description ?? "");
     const loaded = poll.options.map((o) => ({
       text: o.text,
       is_correct: o.is_correct ?? false,
@@ -89,8 +100,17 @@ export function PollBuilderPage({
     setOptions(loaded);
     lastAutosavedOptionsRef.current = JSON.stringify(optionsPayload(loaded));
     if (poll.type === "rating") {
-      setMinValue(readNumber(poll.settings_public, "min_value", 1));
-      setMaxValue(readNumber(poll.settings_public, "max_value", 5));
+      const loadedMin = readNumber(poll.settings_public, "min_value", 1);
+      const loadedMax = readNumber(poll.settings_public, "max_value", 5);
+      setMinValue(loadedMin);
+      setMaxValue(loadedMax);
+      setMinRaw(String(loadedMin));
+      setMaxRaw(String(loadedMax));
+    }
+    if (poll.type === "word_cloud") {
+      const loaded = readNumber(poll.settings_public, "max_submissions", 3);
+      setMaxSubmissions(loaded);
+      setMaxSubmissionsRaw(String(loaded));
     }
     const t = window.setTimeout(() => {
       optionsHydratingRef.current = false;
@@ -112,11 +132,18 @@ export function PollBuilderPage({
           max_value: maxValue,
         };
       }
+      if (poll?.type === "word_cloud") {
+        payload.settings = {
+          ...poll.settings_public,
+          max_submissions: maxSubmissions,
+        };
+      }
       await updateInteraction(pollId, payload);
     },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["poll", pollId] });
       showSuccess("題目資訊已儲存");
+      window.location.hash = `#/rooms/${roomId}/workbench/${pollId}`;
     },
     onError: (err: unknown) => {
       showError(formatUserFacingError(err, "儲存失敗"));
@@ -134,7 +161,9 @@ export function PollBuilderPage({
   );
 
   const showOptions = Boolean(poll && OPTION_TYPES.has(poll.type));
+  const showCorrectAnswer = Boolean(poll && CORRECT_ANSWER_TYPES.has(poll.type));
   const showRatingScale = poll?.type === "rating";
+  const showWordCloudSettings = poll?.type === "word_cloud";
 
   useEffect(() => {
     if (!showOptions || optionsHydratingRef.current) return;
@@ -264,8 +293,9 @@ export function PollBuilderPage({
                       min={0}
                       max={99}
                       step={1}
-                      value={minValue}
+                      value={minRaw}
                       onChange={(e) => {
+                        setMinRaw(e.target.value);
                         const n = Number.parseInt(e.target.value, 10);
                         if (!Number.isNaN(n)) setMinValue(n);
                       }}
@@ -279,8 +309,9 @@ export function PollBuilderPage({
                       min={1}
                       max={100}
                       step={1}
-                      value={maxValue}
+                      value={maxRaw}
                       onChange={(e) => {
+                        setMaxRaw(e.target.value);
                         const n = Number.parseInt(e.target.value, 10);
                         if (!Number.isNaN(n)) setMaxValue(n);
                       }}
@@ -288,6 +319,29 @@ export function PollBuilderPage({
                     />
                   </label>
                 </div>
+              </div>
+            ) : null}
+
+            {showWordCloudSettings ? (
+              <div className="space-y-3 border-t border-border pt-4">
+                <h3 className="text-sm font-semibold text-foreground">文字雲設定</h3>
+                <label className="block text-sm">
+                  <span className="font-medium text-foreground">每人最多可提交幾組詞彙</span>
+                  <input
+                    type="number"
+                    min={1}
+                    max={10}
+                    step={1}
+                    value={maxSubmissionsRaw}
+                    onChange={(e) => {
+                      setMaxSubmissionsRaw(e.target.value);
+                      const n = Number.parseInt(e.target.value, 10);
+                      if (!Number.isNaN(n) && n >= 1 && n <= 10) setMaxSubmissions(n);
+                    }}
+                    className="le-input mt-1 w-full max-w-[8rem]"
+                  />
+                  <span className="mt-1 block text-xs text-muted">最少 1，最多 10</span>
+                </label>
               </div>
             ) : null}
 
@@ -324,23 +378,25 @@ export function PollBuilderPage({
                       }
                       className="le-input flex-1 !min-h-[38px] text-sm"
                     />
-                    <label className="flex shrink-0 items-center gap-1 text-xs text-muted">
-                      <input
-                        type="checkbox"
-                        checked={Boolean(opt.is_correct)}
-                        onChange={(e) =>
-                          setOptions((prev) => {
-                            const next = [...prev];
-                            next[idx] = {
-                              ...next[idx]!,
-                              is_correct: e.target.checked,
-                            };
-                            return next;
-                          })
-                        }
-                      />
-                      正解
-                    </label>
+                    {showCorrectAnswer ? (
+                      <label className="flex shrink-0 items-center gap-1 text-xs text-muted">
+                        <input
+                          type="checkbox"
+                          checked={Boolean(opt.is_correct)}
+                          onChange={(e) =>
+                            setOptions((prev) => {
+                              const next = [...prev];
+                              next[idx] = {
+                                ...next[idx]!,
+                                is_correct: e.target.checked,
+                              };
+                              return next;
+                            })
+                          }
+                        />
+                        正解
+                      </label>
+                    ) : null}
                     <button
                       type="button"
                       onClick={() =>

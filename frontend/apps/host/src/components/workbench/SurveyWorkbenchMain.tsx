@@ -102,6 +102,10 @@ export function SurveyWorkbenchMain({ roomId, item }: Props): React.JSX.Element 
   const [questionTitle, setQuestionTitle] = useState(defaultTitleForType("rating"));
   const [required, setRequired] = useState(true);
   const [mcOptions, setMcOptions] = useState(["選項 A", "選項 B"]);
+  const [ratingMin, setRatingMin] = useState(1);
+  const [ratingMax, setRatingMax] = useState(5);
+  const [ratingMinRaw, setRatingMinRaw] = useState("1");
+  const [ratingMaxRaw, setRatingMaxRaw] = useState("5");
 
   const questionsQuery = useQuery({
     queryKey: ["survey-questions", interactionId],
@@ -145,6 +149,7 @@ export function SurveyWorkbenchMain({ roomId, item }: Props): React.JSX.Element 
         title,
         question_type: questionType,
         required,
+        ...(questionType === "rating" ? { rating_min: ratingMin, rating_max: ratingMax } : {}),
       };
       if (questionType === "multiple_choice") {
         payload.options = mcOptions
@@ -269,7 +274,46 @@ export function SurveyWorkbenchMain({ roomId, item }: Props): React.JSX.Element 
           ) : null}
 
           {questionType === "rating" ? (
-            <p className="text-xs text-muted">參與者以 1–5 分評分作答。</p>
+            <div className="space-y-2">
+              <p className="text-xs font-medium text-foreground">評分尺度</p>
+              <div className="grid grid-cols-2 gap-3">
+                <label className="block text-xs">
+                  <span className="text-muted">最低分</span>
+                  <input
+                    type="number"
+                    min={0}
+                    max={99}
+                    step={1}
+                    value={ratingMinRaw}
+                    onChange={(e) => {
+                      setRatingMinRaw(e.target.value);
+                      const n = Number.parseInt(e.target.value, 10);
+                      if (!Number.isNaN(n)) setRatingMin(n);
+                    }}
+                    className="le-input mt-1 w-full"
+                  />
+                </label>
+                <label className="block text-xs">
+                  <span className="text-muted">最高分</span>
+                  <input
+                    type="number"
+                    min={1}
+                    max={100}
+                    step={1}
+                    value={ratingMaxRaw}
+                    onChange={(e) => {
+                      setRatingMaxRaw(e.target.value);
+                      const n = Number.parseInt(e.target.value, 10);
+                      if (!Number.isNaN(n)) setRatingMax(n);
+                    }}
+                    className="le-input mt-1 w-full"
+                  />
+                </label>
+              </div>
+              <p className="text-xs text-muted">
+                ≤5 分顯示按鈕；6–10 分顯示下拉選單；11 分以上改為數字輸入。
+              </p>
+            </div>
           ) : null}
 
           {questionType === "open_text" ? (

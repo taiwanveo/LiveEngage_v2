@@ -84,6 +84,15 @@ html[data-theme="light"][data-screen-theme-bg] .text-emerald-500 {
   color: #065f46 !important;
 }
 
+/* 待機畫面淺色主題 */
+html[data-theme="light"][data-screen-theme-bg] .border-emerald-500\/30 {
+  border-color: #6ee7b7 !important;
+}
+
+html[data-theme="light"][data-screen-theme-bg] .text-slate-500 {
+  color: #475569 !important;
+}
+
 html[data-theme="light"][data-screen-theme-bg] .text-amber-300,
 html[data-theme="light"][data-screen-theme-bg] .text-amber-400 {
   color: #92400e !important;

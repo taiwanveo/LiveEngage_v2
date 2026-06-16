@@ -78,8 +78,8 @@ export function RankingPoll({
       }
     >
       {interactive && !answerable && !showResults ? (
-        <p className="text-sm text-slate-500">
-          {poll.status !== "active" ? "目前無法作答" : "您已提交過排序"}
+        <p className="rounded-lg bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-700">
+          {poll.status !== "active" ? "✓ 此題目目前不開放作答" : "✓ 您已作答完成，感謝參與！"}
         </p>
       ) : null}
 

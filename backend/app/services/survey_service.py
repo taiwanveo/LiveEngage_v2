@@ -109,6 +109,11 @@ async def add_question(
     next_order = int(max_order.scalar_one()) + 1
     now = dt.datetime.now(dt.UTC)
 
+    child_settings: dict = {"required": payload.required}
+    if payload.question_type == InteractionType.RATING:
+        child_settings["min_value"] = payload.rating_min
+        child_settings["max_value"] = payload.rating_max
+
     child = Interaction(
         id=uuid7(),
         room_id=survey.room_id,
@@ -117,7 +122,7 @@ async def add_question(
         description=payload.description,
         status=InteractionStatus.IDLE,
         order_no=next_order,
-        settings_jsonb={"required": payload.required},
+        settings_jsonb=child_settings,
         created_by=host.id,
     )
     db.add(child)
@@ -236,6 +241,9 @@ async def list_questions_for_participant(
             InteractionType.RANKING,
         ):
             options = await _question_options_public(db, child.id)
+        settings: dict = {}
+        if isinstance(child.settings_jsonb, dict):
+            settings = {k: v for k, v in child.settings_jsonb.items() if k != "required"}
         items.append(
             SurveyQuestionParticipantPublic(
                 child_interaction_id=child.id,
@@ -245,6 +253,7 @@ async def list_questions_for_participant(
                 page_no=sq.page_no,
                 order_no=sq.order_no,
                 options=options,
+                settings=settings,
             )
         )
     return items

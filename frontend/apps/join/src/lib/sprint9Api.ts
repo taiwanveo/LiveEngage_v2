@@ -31,7 +31,7 @@ export function mapActiveQuizQuestion(raw: {
     options: raw.options.map((o) => ({
       id: o.id,
       text: o.text,
-      is_correct: o.is_correct,
+      is_correct: o.is_correct ?? null,
     })),
   };
 }
@@ -105,6 +105,7 @@ export interface SurveyParticipantQuestion {
   page_no: number;
   order_no: number;
   options: { id: string; text: string; order_no: number }[];
+  settings: Record<string, unknown>;
 }
 
 export async function listSurveyQuestions(

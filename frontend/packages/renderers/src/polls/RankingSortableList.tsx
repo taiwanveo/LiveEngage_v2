@@ -229,20 +229,18 @@ export function RankingSortableList({
                 </span>
                 {!disabled ? (
                   <span className="flex shrink-0 items-center gap-0.5">
-                    {index > 0 ? (
-                      <RankMoveButton
-                        direction="up"
-                        label={`將「${opt?.text ?? "選項"}」上移`}
-                        onClick={() => moveByArrow(index, "up")}
-                      />
-                    ) : null}
-                    {index < orderedIds.length - 1 ? (
-                      <RankMoveButton
-                        direction="down"
-                        label={`將「${opt?.text ?? "選項"}」下移`}
-                        onClick={() => moveByArrow(index, "down")}
-                      />
-                    ) : null}
+                    <RankMoveButton
+                      direction="up"
+                      label={`將「${opt?.text ?? "選項"}」上移`}
+                      disabled={index === 0}
+                      onClick={() => moveByArrow(index, "up")}
+                    />
+                    <RankMoveButton
+                      direction="down"
+                      label={`將「${opt?.text ?? "選項"}」下移`}
+                      disabled={index === orderedIds.length - 1}
+                      onClick={() => moveByArrow(index, "down")}
+                    />
                   </span>
                 ) : null}
               </div>

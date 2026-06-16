@@ -70,6 +70,11 @@ export function ScreenControlPanel({
     showSuccess("投影已切換至 Q&A 問題列表（熱門已核准問題）");
   };
 
+  const handleOverviewProjection = (): void => {
+    screen.showOverview(sessionTitle);
+    showSuccess("投影已切換至即時總覽");
+  };
+
   const openThemedProjection = (theme: "dark" | "light"): void => {
     screen.screenTheme.setTheme(theme);
     const win = screen.openScreenWithTheme(theme);
@@ -87,7 +92,7 @@ export function ScreenControlPanel({
             type="button"
             disabled={!href}
             onClick={() => openThemedProjection("dark")}
-            className="le-btn-primary le-btn-present-compact disabled:opacity-50"
+            className="le-btn-present-compact inline-flex items-center gap-1 rounded-full bg-primary-600 px-3 py-1 text-[11px] font-semibold text-white transition hover:bg-primary-700 disabled:opacity-50"
             title="以專業深色主題開啟投影"
           >
             <PresentIcon size={14} />
@@ -97,10 +102,20 @@ export function ScreenControlPanel({
             type="button"
             disabled={!href}
             onClick={() => openThemedProjection("light")}
-            className="le-btn-present-compact !min-h-[34px] rounded-full border border-primary-600 bg-white px-3 py-1 text-xs font-medium text-primary-700 transition hover:bg-primary-50 disabled:opacity-50"
+            className="le-btn-present-compact inline-flex items-center gap-1 rounded-full border border-primary-600 bg-white px-3 py-1 text-[11px] font-semibold text-primary-700 transition hover:bg-primary-50 disabled:opacity-50"
             title="以專業淺色主題開啟投影"
           >
+            <PresentIcon size={14} className="text-primary-700" />
             <span>投影（淺色主題）</span>
+          </button>
+          <button
+            type="button"
+            disabled={screen.updating}
+            onClick={handleOverviewProjection}
+            className="le-btn-secondary le-btn-present-compact disabled:opacity-50"
+            title="投影顯示即時總覽（參與者數、Q&A 數、Poll 數等）"
+          >
+            即時總覽投影
           </button>
           <button
             type="button"

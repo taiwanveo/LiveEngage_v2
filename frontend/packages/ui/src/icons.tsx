@@ -21,7 +21,7 @@ export function ShareIcon({ size = 14 }: { size?: number }): React.JSX.Element {
   );
 }
 
-export function PresentIcon({ size = 14 }: { size?: number }): React.JSX.Element {
+export function PresentIcon({ size = 14, className }: { size?: number; className?: string }): React.JSX.Element {
   return (
     <svg
       width={size}
@@ -31,6 +31,7 @@ export function PresentIcon({ size = 14 }: { size?: number }): React.JSX.Element
       stroke="currentColor"
       strokeWidth="2"
       aria-hidden
+      className={className}
     >
       <rect x="2" y="3" width="20" height="14" rx="2" />
       <path d="M8 21h8M12 17v4" />

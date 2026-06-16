@@ -132,6 +132,8 @@ export async function addSurveyQuestion(
     question_type: SurveyQuestionType;
     required?: boolean;
     options?: { text: string; order_no: number; is_correct?: boolean }[];
+    rating_min?: number;
+    rating_max?: number;
   }
 ): Promise<SurveyQuestion> {
   return api<SurveyQuestion>(`/api/v1/surveys/${surveyId}/questions`, {

@@ -154,6 +154,11 @@ export function RatingPoll({
         ) : undefined
       }
     >
+      {interactive && !answerable && !showResults ? (
+        <p className="rounded-lg bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-700">
+          ✓ 您已完成評分，感謝參與！
+        </p>
+      ) : null}
       {showResults ? (
         mode === "present" ? (
           <RatingBarChart
