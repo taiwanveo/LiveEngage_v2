@@ -4,6 +4,27 @@
 
 ---
 
+## SNAPSHOT（2026-06-16 — Screen 預設／組織 favicon）
+
+- **最新 commit**：`9592b3f` — Screen 與全端 favicon 修復
+- **Zeabur**：**api**、**host**、**screen** redeploy
+
+| 問題 | 根因 | 修復 |
+|------|------|------|
+| le-screen 無 favicon | Screen 未載入 `OrgBrandingProvider`；`index.html` 無預設 icon | `ScreenBrandingRoot` + `/favicon.png` |
+| 後台已設組織 favicon 仍不顯示 | Screen 無 branding API 呼叫 | 新增 `GET /branding/by-session/{id}` |
+| 未設定組織 favicon 時空白 | `applyOrgBranding` 僅在有 URL 時才寫入 | 改為 fallback `DEFAULT_LIVEENGAGE_FAVICON` |
+
+### 部署
+
+| 服務 | deployment |
+|------|------------|
+| api | `6a30edf4…` |
+| screen | `6a30ee04…` |
+| host | `6a30ee05…` |
+
+---
+
 ## SNAPSHOT（2026-06-16 — 即時聚合雙 Toggle）
 
 - **最新 commit**：`68bfe88` — 投影／Join 即時聚合雙開關（`live_aggregate_screen` / `live_aggregate_join`）
