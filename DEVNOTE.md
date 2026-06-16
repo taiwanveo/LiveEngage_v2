@@ -824,3 +824,10 @@ Participant Survey 完整流程；Quiz active-question API；Ideas/Survey 投影
 - 五個 Host 頁面（工作台、即時總覽、Q&A 審核、Poll 管理、Quiz 管理）統一共用同一組 `HostRoomHeaderActions`，切頁時操作位置與順序一致。
 - 新增 `openScreenWithTheme(theme)` 與 `screenTheme.setTheme(theme)`；按深/淺按鈕時會同步更新投影 URL 與目前偏好，避免殘留自訂色影響。
 - Deploy（push 後自動觸發）：host deployment `6a3104583850703aa49b5694`、screen deployment `6a3104553850703aa49b568f`（皆 RUNNING）。
+
+### 2026-06-16 — 深/淺投影按鈕去除成功彈窗 + 淺色可讀性修正（fcb2fb7）
+
+- 依主持操作回饋，`投影（深色主題）` / `投影（淺色主題）` 不再顯示成功 modal，避免操作時被多餘提示打斷。
+- 保留必要失敗提示：若瀏覽器阻擋彈窗，仍顯示「請允許瀏覽器彈出視窗」。
+- 修正淺色主題白底白字：`screen/index.css` 追加 `text-white`、`text-slate-50` 到主題前景覆寫，確保淺色投影文字對比可讀。
+- Deploy（push 後自動觸發）：host deployment `6a310a353850703aa49b5aa8`、screen deployment `6a310a323850703aa49b5aa2`（皆 RUNNING）。
