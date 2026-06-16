@@ -4,6 +4,31 @@
 
 ---
 
+## SNAPSHOT（2026-06-16 — 17 項 UI/UX 修正）
+
+- **最新 commit**：`4f51e69` — 17 項 UI/UX 問題批次修正
+- **Zeabur**：**host**、**screen**、**join**、**api** 需 redeploy（含後端 survey schema 變更）
+
+| # | 項目 | 說明 |
+|---|------|------|
+| 1 | ScreenControlPanel | 五顆按鈕統一高度（`le-btn-present-compact` 統一）；淺色按鈕加 `PresentIcon`；加「即時總覽投影」按鈕（Q&A 左側） |
+| 2 | StandbyView 淺色 | `index.css` 補 `.border-emerald-500/30` 與 `.text-slate-500` 淺色覆寫 |
+| 3 | PollBuilderPage | 評分尺度鍵盤輸入修正（raw string state）；排序題標題/說明不再因 autosave refetch 重置（`initializedPollIdRef`）；排序題移除「正解」核取方塊；文字雲新增「每人最多幾組詞」設定；儲存後導回工作台 |
+| 4 | QuizQuestionEditPage | 儲存子題後導回 Quiz 工作台 |
+| 5 | Survey 評分彈性 | 主持人可設 1–100 分；前端依 max 自動切換按鈕/下拉/數字輸入；後端 `SurveyQuestionCreateRequest` 加 `rating_min/rating_max`；`SurveyQuestionParticipantPublic` 回傳 `settings` |
+| 6 | 已作答統一文案 | 所有 Poll renderer（MultipleChoice/Ranking/OpenText/WordCloud）已作答時顯示「✓ 您已作答完成」 |
+| 7 | RatingPoll | 已評分後顯示「✓ 您已完成評分，感謝參與！」 |
+| 8 | Quiz 參與者 | 提交後直接 disabled 選項，並顯示已完成提示 |
+| 9 | 問卷防重複提交 | 提交後以「問卷已提交」卡片取代表單，防止重複提交 |
+| 10 | 排序按鈕對齊 | `RankingSortableList`、`WorkbenchInteractionSidebar` 最後一項也渲染兩顆箭頭（disabled），保持水平對齊 |
+| 11 | Quiz Screen 控制 | `QuizWorkbenchMain` 新增「投影題目」與「投影排行榜」按鈕（呼叫 `pushScreen`） |
+
+### 後端異動
+- `backend/app/schemas/survey.py`：`SurveyQuestionCreateRequest` 加 `rating_min/rating_max`；`SurveyQuestionParticipantPublic` 加 `settings` 欄位
+- `backend/app/services/survey_service.py`：新增 rating 子題寫入 `min_value/max_value` 到 `settings_jsonb`；`list_questions_for_participant` 回傳 settings
+
+---
+
 ## SNAPSHOT（2026-06-16 — 長條圖票數放大與彈跳動畫）
 
 - **最新 commit**：`755d27e` — 中央票數 +25px、CSS keyframes 彈跳／閃光
