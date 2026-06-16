@@ -4,6 +4,31 @@
 
 ---
 
+## SNAPSHOT（2026-06-16 — 工作台切題 Screen 閃爍修復）
+
+- **Repo**：https://github.com/ColdRighter/LiveEngage.git（master）
+- **最新 commit**：`06e4fac` — 修復工作台結束／切題時 Screen 閃爍與 Poll 控場競態
+- **api 健康**：https://le-api.zeabur.app/health → 200
+- **Zeabur**：**host** redeploy → RUNNING
+
+### 本輪重點
+
+| 區塊 | 內容 |
+|------|------|
+| **症狀** | 結束 Poll 後切下一題：Host 彈「無法連上伺服器」；Screen 在兩題間來回切換 |
+| **根因 1** | `useScreenWorkbenchSync` 依賴 `syncWorkbenchItem`，而該 callback 隨每次 Screen PUT 完成而變參考 → **每次 PUT 成功又觸發一次同步**，與切題 PUT 競態 |
+| **根因 2** | `actionMutation` 用當前 `selectedId` 處理 onSuccess；**結束 A 後快速選 B** 時，stop 回應被誤套到 B |
+| **修復** | `mutateScreenState` 穩定引用 + 120ms debounce；Poll action 變數綁定 `pollId`；`applyHostPollActionSuccess` 優先 `data.poll_id` |
+
+### 踩雷與教訓（本輪）
+
+| 問題 | 解法 |
+|------|------|
+| React Query `useMutation` 整包物件不可放 `useCallback` deps | 解構 `mutate`（穩定引用） |
+| 跟隨類 effect 勿依賴會隨 mutation 變化的 callback | 用 `useRef` 保存最新函式，deps 只放 selection id |
+
+---
+
 ## SNAPSHOT（2026-06-16 — 登入錯誤提示與 Screen 啟動修復）
 
 - **Repo**：https://github.com/ColdRighter/LiveEngage.git（master）
