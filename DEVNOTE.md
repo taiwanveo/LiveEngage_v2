@@ -798,3 +798,10 @@ Participant Survey 完整流程；Quiz active-question API；Ideas/Survey 投影
 - 工作台新增「Q&A 投影」按鈕，點擊直接呼叫 `screen.showQa(sessionTitle)`；Q&A 審核頁「開啟 Q&A」也會自動切 Screen 至 Q&A，「關閉 Q&A」回待機。
 - Screen 新增 `ScreenThemeListener`，並在載入參數時統一走 `applyScreenThemePrefs`；`index.css` 補上自訂前景／背景覆寫規則。
 - Redeploy：host deployment `6a30f9db3850703aa49b4fd4`、screen deployment `6a30f9db3850703aa49b4fd3`（觸發時間 2026-06-16 15:23 UTC+8）。
+
+### 2026-06-16 — 投影主題按鈕位置調整 + 空白頁 bug 修復（89d4002）
+
+- 將「切換投影畫面主題色彩」按鈕移到藍色 `Screen` 按鈕正下方，並加上 hover 提示文字：`切換投影畫面主題色彩`。
+- 修正切換主題下拉可能打開空白頁問題：`resolveScreenWindow` 不再呼叫 `window.open("", "liveengage-screen")`，僅使用已開啟且已記錄的投影視窗 reference。
+- 因此 Host 端變更主題色時，若 Screen 視窗已開啟，仍會透過 `postMessage(screen:theme)` 即時同步；若未開啟則不會再誤開 about:blank。
+- Redeploy：host deployment `6a30fcfd3850703aa49b51c4`（觸發時間 2026-06-16 15:33 UTC+8）。
