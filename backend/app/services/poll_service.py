@@ -71,6 +71,11 @@ from app.services.poll_redis import (
     set_poll_agg_ttl,
     throttled_broadcast_result,
 )
+from app.services.live_aggregate_settings import (
+    can_view_poll_aggregate,
+    live_aggregate_ws_modes,
+    read_live_aggregate_for_type,
+)
 
 # ── 狀態機（BE-005-FR2；SDS §5.4）──────────────────────────────────
 # action → (允許的來源 status 集合, 目標 status | None 表示不改 status)
@@ -1043,7 +1048,16 @@ async def get_poll_results(
     if interaction.type not in POLL_TYPES:
         raise AppError(ErrorCode.VALIDATION_ERROR, "此互動項目不是 Poll 題型")
 
-    if not is_host and not interaction.result_visible:
+    is_screen = screen_room_id is not None
+    is_participant = not is_host
+    is_host_workbench = is_host and not is_screen
+
+    if not can_view_poll_aggregate(
+        interaction,
+        is_host_workbench=is_host_workbench,
+        is_screen=is_screen,
+        is_participant=is_participant,
+    ):
         raise AppError(ErrorCode.FORBIDDEN, "結果尚未揭示")
 
     response_count = await _count_responses(db, interaction_id)
@@ -1080,9 +1094,23 @@ async def get_poll_results(
             OpenTextSettings,
             parse_settings(InteractionType.OPEN_TEXT, interaction.settings_jsonb),
         )
-        entries = await _get_open_text_entries(
-            db, interaction_id, settings=settings, is_host=is_host
-        )
+        show_entries = is_host_workbench or (
+            is_screen
+            and can_view_poll_aggregate(
+                interaction,
+                is_host_workbench=False,
+                is_screen=True,
+                is_participant=False,
+            )
+        ) or (is_participant and interaction.result_visible)
+        entries: list[TextEntry] = []
+        if show_entries:
+            entries = await _get_open_text_entries(
+                db,
+                interaction_id,
+                settings=settings,
+                is_host=is_host_workbench,
+            )
         return PollResults(
             interaction_id=interaction_id,
             type=itype,
@@ -1173,8 +1201,14 @@ async def _finish_submit_broadcast(
         submission_no = 0
     response_count = await _count_responses(db, interaction.id)
     payload = await _build_broadcast_payload(db, interaction, response_count)
+    screen_on, join_on = read_live_aggregate_for_type(
+        interaction.settings_jsonb, interaction.type
+    )
     await throttled_broadcast_result(
-        interaction.room_id, interaction.id, payload
+        interaction.room_id,
+        interaction.id,
+        payload,
+        target_modes=live_aggregate_ws_modes(screen_on, join_on),
     )
     return PollSubmitResult(
         interaction_id=interaction.id,

@@ -30,6 +30,7 @@ from app.schemas.interaction import (
 )
 from app.schemas.poll import POLL_TYPES
 from app.services.poll_redis import acquire_room_lock, release_room_lock, set_poll_agg_ttl
+from app.services.live_aggregate_settings import merge_live_aggregate_defaults
 
 
 async def ensure_room_access(
@@ -187,7 +188,7 @@ async def create_interaction(
         description=payload.description,
         status=InteractionStatus.IDLE,
         order_no=next_order,
-        settings_jsonb=payload.settings,
+        settings_jsonb=merge_live_aggregate_defaults(payload.type, payload.settings),
         created_by=host.id,
     )
     db.add(interaction)

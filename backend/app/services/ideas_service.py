@@ -26,6 +26,10 @@ from app.schemas.ideas import (
     IdeaSubmitRequest,
 )
 from app.services import audit_service, interaction_service
+from app.services.live_aggregate_settings import (
+    can_view_ideas_board_aggregate,
+    ideas_ws_modes,
+)
 
 
 async def _load_board_interaction(
@@ -141,6 +145,7 @@ async def submit_idea(
         board.room_id,
         events.IDEA_SUBMITTED,
         {"idea": public.model_dump(mode="json")},
+        target_modes=ideas_ws_modes(board),
     )
     return public
 
@@ -152,16 +157,33 @@ async def list_ideas(
     sort: IdeaSort = IdeaSort.NEWEST,
     participant_id: uuid.UUID | None = None,
     is_host: bool = False,
+    screen_room_id: uuid.UUID | None = None,
 ) -> IdeaListResponse:
-    """列出點子；參與者看不到 hidden。"""
+    """列出點子；參與者看不到 hidden；即時聚合關閉時僅能看自己的點子。"""
     board = await _load_board_interaction(db, board_interaction_id)
+    is_screen = screen_room_id is not None
+    is_host_workbench = is_host and not is_screen
+    is_participant = not is_host
+
+    can_view_others = can_view_ideas_board_aggregate(
+        board,
+        is_host_workbench=is_host_workbench,
+        is_screen=is_screen,
+        is_participant=is_participant,
+    )
+
+    if is_screen and not can_view_others:
+        return IdeaListResponse(items=[])
+
     stmt = (
         select(Idea, Participant.display_name)
         .outerjoin(Participant, Idea.participant_id == Participant.id)
         .where(Idea.board_interaction_id == board_interaction_id)
     )
-    if not is_host:
+    if not is_host_workbench:
         stmt = stmt.where(Idea.is_hidden.is_(False))
+    if is_participant and not can_view_others and participant_id is not None:
+        stmt = stmt.where(Idea.participant_id == participant_id)
 
     if sort == IdeaSort.NEWEST:
         stmt = stmt.order_by(Idea.created_at.desc())
@@ -256,6 +278,7 @@ async def react(
             "reactions": [r.model_dump(mode="json") for r in public.reactions],
             "reaction_total": public.reaction_total,
         },
+        target_modes=ideas_ws_modes(board),
     )
     return public
 
@@ -301,6 +324,7 @@ async def hide_idea(
         board.room_id,
         events.IDEA_VISIBILITY_CHANGED,
         {"idea_id": str(idea_id), "is_hidden": True},
+        target_modes=ideas_ws_modes(board),
     )
     return public
 
@@ -346,5 +370,6 @@ async def show_idea(
         board.room_id,
         events.IDEA_VISIBILITY_CHANGED,
         {"idea_id": str(idea_id), "is_hidden": False},
+        target_modes=ideas_ws_modes(board),
     )
     return public

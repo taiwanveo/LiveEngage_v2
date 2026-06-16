@@ -41,6 +41,8 @@ import {
   isSprint9Type,
   type WorkbenchCreateType,
 } from "../lib/workbenchTypes";
+import { supportsLiveAggregateControls } from "@liveengage/renderers";
+import { LiveAggregateToggles } from "../components/LiveAggregateToggles";
 import { HOST_DASHBOARD_HASH, hostRoomNavItems } from "../components/HostShell";
 import { useHostRoomNavLiveState } from "../lib/useHostRoomNavLiveState";
 import { HostRoomHubBreadcrumb } from "../components/HostBreadcrumb";
@@ -349,6 +351,10 @@ export function SessionWorkbenchPage({
           ? `${selectedIndex + 1}/${workbenchItems.length}`
           : "—"}
       </span>
+
+      {selectedItem && supportsLiveAggregateControls(selectedItem.type) ? (
+        <LiveAggregateToggles roomId={roomId} item={selectedItem} />
+      ) : null}
 
       {selectedItem && isPollType(selectedItem.type) ? (
         <>

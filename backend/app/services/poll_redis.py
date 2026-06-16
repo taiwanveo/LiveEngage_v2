@@ -180,6 +180,8 @@ async def _do_broadcast_result(
     room_id: uuid.UUID,
     interaction_id: uuid.UUID,
     payload: dict[str, Any],
+    *,
+    target_modes: set[str],
 ) -> None:
     from app.realtime import events
 
@@ -191,7 +193,7 @@ async def _do_broadcast_result(
             room_id,
             events.POLL_RESPONSE_SUBMITTED,
             payload,
-            target_modes=events.MODE_POLL_LIVE_AGG,
+            target_modes=target_modes,
         )
     except Exception:
         logger.exception("結果廣播失敗 interaction=%s", interaction_id)
@@ -201,8 +203,13 @@ async def throttled_broadcast_result(
     room_id: uuid.UUID,
     interaction_id: uuid.UUID,
     payload: dict[str, Any],
+    *,
+    target_modes: set[str] | None = None,
 ) -> None:
     """節流廣播 poll_response_submitted；相同 interaction 250ms 內只送一次。"""
+    from app.realtime import events
+
+    modes = target_modes if target_modes is not None else events.MODE_POLL_LIVE_AGG
     key = str(interaction_id)
     existing = _pending_result_tasks.get(key)
     if existing and not existing.done():
@@ -211,6 +218,8 @@ async def throttled_broadcast_result(
             await existing
 
     task = asyncio.create_task(
-        _do_broadcast_result(room_id, interaction_id, payload)
+        _do_broadcast_result(
+            room_id, interaction_id, payload, target_modes=modes
+        )
     )
     _pending_result_tasks[key] = task

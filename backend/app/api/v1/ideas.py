@@ -33,6 +33,7 @@ router = APIRouter(tags=["ideas"])
 class IdeasViewer:
     participant_id: uuid.UUID | None
     is_host: bool
+    screen_room_id: uuid.UUID | None = None
 
 
 async def get_ideas_viewer(
@@ -53,7 +54,11 @@ async def get_ideas_viewer(
         await screen_service.validate_screen_token_epoch(
             screen.room_id, screen.token_epoch
         )
-        return IdeasViewer(participant_id=None, is_host=True)
+        return IdeasViewer(
+            participant_id=None,
+            is_host=True,
+            screen_room_id=screen.room_id,
+        )
     except AppError as exc:
         if exc.code != ErrorCode.UNAUTHENTICATED:
             raise
@@ -98,6 +103,7 @@ async def list_ideas(
         sort=sort,
         participant_id=viewer.participant_id,
         is_host=viewer.is_host,
+        screen_room_id=viewer.screen_room_id,
     )
 
 

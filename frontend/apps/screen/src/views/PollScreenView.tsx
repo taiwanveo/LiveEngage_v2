@@ -1,7 +1,7 @@
 /** Poll 投影視圖。 */
 
 import * as React from "react";
-import { useCallback } from "react";
+import { useCallback, useMemo } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   POLL_EVENT_TYPES,
@@ -31,10 +31,16 @@ export function PollScreenView({ roomId, pollId, subView }: Props): React.JSX.El
     refetchInterval: POLL_RESULTS_BACKUP_REFETCH_MS,
   });
 
+  const poll = pollQuery.data;
+  const showResults = useMemo(
+    () => (poll ? shouldPresentPollResults(poll, { subView }) : false),
+    [poll, subView]
+  );
+
   const resultsQuery = useQuery({
     queryKey: ["poll-results", pollId],
     queryFn: () => getPollResults(pollId),
-    enabled: Boolean(pollQuery.data),
+    enabled: Boolean(poll && showResults),
     refetchInterval: POLL_RESULTS_BACKUP_REFETCH_MS,
   });
 
@@ -61,11 +67,6 @@ export function PollScreenView({ roomId, pollId, subView }: Props): React.JSX.El
     mode: "screen",
     onEvent: handleWs,
   });
-
-  const poll = pollQuery.data;
-  const showResults = poll
-    ? shouldPresentPollResults(poll, { subView })
-    : false;
 
   return (
     <div className="relative flex min-h-dvh flex-col bg-slate-950">
