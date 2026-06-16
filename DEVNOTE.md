@@ -4,10 +4,50 @@
 
 ---
 
-## SNAPSHOT（2026-06-15）
+## SNAPSHOT（2026-06-16）
 
 - **Repo**：https://github.com/ColdRighter/LiveEngage.git（master）
-- **最新 commit**：`a7638b9` — Poll 揭曉限制、投影刻度與正解標記
+- **最新 commit**：`f29e616` — Participant App 更名為 Join App
+- **api 健康**：https://le-api.zeabur.app/health → 200
+- **Zeabur 部署**：push `f29e616` 後；**join**、**host**、**participant（轉址）** 皆 `RUNNING`（2026-06-16 01:01 UTC）
+
+### 本輪重點
+
+| 區塊 | 內容 |
+|------|------|
+| **Join App 更名** | `frontend/apps/participant` → `join`；`Dockerfile.join`；網域 `le-join.zeabur.app` |
+| **舊網域轉址** | `le-participant.zeabur.app` 改部署 HTML+JS 導向頁（保留 `#/join/…` hash） |
+| **分享連結** | `joinUrl()` + `VITE_JOIN_BASE`；Host 建置預設 `https://le-join.zeabur.app` |
+| **API SSO** | `LE_SSO_JOIN_FRONTEND_URL=https://le-join.zeabur.app` |
+| **工作台手機排序** | 左欄互動項目 Pointer 觸控拖曳 + ↑↓ 按鈕 |
+
+### 部署（本輪）
+
+| 服務 | URL | 變更 |
+|------|-----|------|
+| **join**（新） | https://le-join.zeabur.app | Join App 主站 — RUNNING |
+| participant（轉址） | https://le-participant.zeabur.app | 導向 join — RUNNING |
+| host | https://le-host.zeabur.app | `VITE_JOIN_BASE` 分享連結 — RUNNING |
+| api | https://le-api.zeabur.app | `LE_SSO_JOIN_FRONTEND_URL` — RUNNING |
+| admin | https://le-admin.zeabur.app | 本輪無變更 — RUNNING |
+| worker | （內部） | 本輪無變更 — RUNNING |
+
+### 開始使用（LiveEngage 上線試用）
+
+| 角色 | 入口 | 典型流程 |
+|------|------|----------|
+| **Admin** | https://le-admin.zeabur.app | 建立組織／Room → 邀請 Host |
+| **Host** | https://le-host.zeabur.app | 登入 → 進 Room → 控場 → 分享 **le-join** 加入連結 |
+| **Join** | https://le-join.zeabur.app | 輸入 Room 代碼加入 → 即時作答 |
+| **API** | https://le-api.zeabur.app | REST + WebSocket |
+
+舊 QR（`le-participant`）仍可用，會自動導向 join。
+
+---
+
+## SNAPSHOT（2026-06-15，歷史）
+
+- **最新 commit（舊）**：`a7638b9` — Poll 揭曉限制、投影刻度與正解標記
 - **api 健康**：https://le-api.zeabur.app/health → 200
 - **Zeabur 部署**：push `a7638b9` 後自動建置；**host**、**participant** 皆 `RUNNING`（2026-06-15 16:40 UTC）
 - **狀態**：核心流程可上線試用（見下方「開始使用」）
