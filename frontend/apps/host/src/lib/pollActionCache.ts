@@ -66,7 +66,8 @@ export function applyHostPollActionSuccess(
     data: PollActionResponse;
   }
 ): void {
-  const { roomId, pollId, action, data } = opts;
+  const { roomId, pollId: requestedPollId, action, data } = opts;
+  const pollId = data.poll_id ?? requestedPollId;
 
   patchPollDetail(qc, pollId, {
     status: data.status,

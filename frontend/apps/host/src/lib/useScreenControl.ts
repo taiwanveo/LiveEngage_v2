@@ -81,12 +81,15 @@ export function useScreenControl(roomId: string) {
     screenWindowRef.current?.postMessage({ type: "screen:fullscreen" }, "*");
   }, []);
 
+  const { mutate: mutateScreenState, isPending: screenUpdatePending } =
+    updateMutation;
+
   const pushScreen = useCallback(
     (payload: ScreenStateUpdate) => {
       if (!followEnabled) return;
-      updateMutation.mutate(payload);
+      mutateScreenState(payload);
     },
-    [followEnabled, updateMutation]
+    [followEnabled, mutateScreenState]
   );
 
   const syncWorkbenchItem = useCallback(
@@ -116,12 +119,12 @@ export function useScreenControl(roomId: string) {
 
   const showTest = useCallback(
     (sessionTitle?: string | null) => {
-      updateMutation.mutate({
+      mutateScreenState({
         view: "test",
         ...(sessionTitle != null ? { session_title: sessionTitle } : {}),
       });
     },
-    [updateMutation]
+    [mutateScreenState]
   );
 
   const showOverview = useCallback(
@@ -160,7 +163,7 @@ export function useScreenControl(roomId: string) {
     followEnabled,
     setFollowEnabled,
     tokenLoading: tokenQuery.isLoading,
-    updating: updateMutation.isPending,
+    updating: screenUpdatePending,
   };
 }
 
@@ -170,15 +173,20 @@ export function useScreenWorkbenchSync(
   sessionTitle: string | null | undefined,
   screen: ReturnType<typeof useScreenControl>
 ): void {
+  const syncRef = useRef(screen.syncWorkbenchItem);
+  syncRef.current = screen.syncWorkbenchItem;
+
   useEffect(() => {
-    if (!selectedItem || !screen.followEnabled) return;
+    if (!screen.followEnabled) return;
+    if (!selectedItem) return;
     if (!isPollType(selectedItem.type) && !isSprint9Type(selectedItem.type)) return;
-    screen.syncWorkbenchItem(selectedItem, sessionTitle);
-  }, [
-    selectedItem?.id,
-    selectedItem?.type,
-    sessionTitle,
-    screen.followEnabled,
-    screen.syncWorkbenchItem,
-  ]);
+
+    const item = selectedItem;
+    const title = sessionTitle ?? null;
+    const timer = window.setTimeout(() => {
+      syncRef.current(item, title);
+    }, 120);
+
+    return () => window.clearTimeout(timer);
+  }, [selectedItem?.id, selectedItem?.type, sessionTitle, screen.followEnabled]);
 }

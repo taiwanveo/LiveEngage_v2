@@ -162,21 +162,28 @@ export function SessionWorkbenchPage({
   });
 
   const actionMutation = useMutation({
-    mutationFn: ({ action, confirm }: { action: PollAction; confirm?: boolean }) =>
-      pollAction(selectedId!, action, confirm ?? false),
+    mutationFn: ({
+      pollId,
+      action,
+      confirm,
+    }: {
+      pollId: string;
+      action: PollAction;
+      confirm?: boolean;
+    }) => pollAction(pollId, action, confirm ?? false),
     onSuccess: (data, variables) => {
-      if (!selectedId) return;
-      selfActionGuard.current.mark(selectedId);
+      const pollId = data.poll_id ?? variables.pollId;
+      selfActionGuard.current.mark(pollId);
       applyHostPollActionSuccess(qc, {
         roomId,
-        pollId: selectedId,
+        pollId,
         action: variables.action,
         data,
       });
       if (variables.action === "reveal") {
-        screen.syncPollSubView(selectedId, "results", session?.title ?? null);
+        screen.syncPollSubView(pollId, "results", session?.title ?? null);
       } else if (variables.action === "hide") {
-        screen.syncPollSubView(selectedId, "question", session?.title ?? null);
+        screen.syncPollSubView(pollId, "question", session?.title ?? null);
       }
     },
     onError: (err: unknown) => {
@@ -297,7 +304,11 @@ export function SessionWorkbenchPage({
   const runPollAction = (action: PollAction, needsConfirm?: boolean): void => {
     if (!selectedId || !selectedItem || !isPollType(selectedItem.type)) return;
     if (needsConfirm && !window.confirm("確定要重置並清除所有作答？")) return;
-    actionMutation.mutate({ action, confirm: needsConfirm ?? false });
+    actionMutation.mutate({
+      pollId: selectedId,
+      action,
+      confirm: needsConfirm ?? false,
+    });
   };
 
   const dateLabel = session
