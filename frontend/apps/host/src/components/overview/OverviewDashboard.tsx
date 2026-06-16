@@ -124,7 +124,7 @@ function LivePollCard({
   };
 
   return (
-    <div className={`le-card flex h-full flex-col border p-5 le-analytics-accent-blue ${present ? "!bg-slate-900/80 !border-slate-700" : ""}`}>
+    <div className="le-card flex h-full flex-col border p-5 le-analytics-accent-blue">
       <div className="mb-3 flex items-start justify-between gap-2">
         <div>
           <h3 className={`font-display font-semibold text-foreground ${present ? "text-lg" : "text-sm"}`}>
