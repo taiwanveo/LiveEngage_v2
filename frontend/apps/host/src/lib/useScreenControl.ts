@@ -258,19 +258,28 @@ export function useScreenControl(roomId: string) {
   );
 
   const showStandby = useCallback(
-    (sessionTitle?: string | null) => {
+    (
+      sessionTitle?: string | null,
+      handlers?: { onSuccess?: () => void; onError?: (err: unknown) => void }
+    ) => {
+      armManualOverride(8000);
       lastSyncedKeyRef.current = null;
-      sendScreenState(
-        {
-          view: "standby",
-          interaction_id: null,
-          sub_view: null,
-          ...(sessionTitle != null ? { session_title: sessionTitle } : {}),
+      const payload: ScreenStateUpdate = {
+        view: "standby",
+        interaction_id: null,
+        sub_view: null,
+        ...(sessionTitle != null ? { session_title: sessionTitle } : {}),
+      };
+      mutateScreenState(payload, {
+        onSuccess: (data) => {
+          lastSyncedKeyRef.current = screenPayloadKey(payload);
+          qc.setQueryData(["screen-state", roomId], data);
+          handlers?.onSuccess?.();
         },
-        { force: true }
-      );
+        ...(handlers?.onError ? { onError: handlers.onError } : {}),
+      });
     },
-    [sendScreenState]
+    [armManualOverride, mutateScreenState, qc, roomId]
   );
 
   return {

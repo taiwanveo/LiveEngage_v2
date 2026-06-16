@@ -19,6 +19,39 @@ html[data-screen-theme-fg] .text-white {
   color: var(--le-screen-fg) !important;
 }
 
+/* 淺色主題：將 Screen 既有深色卡片/邊框調整為淺色可讀版本 */
+html[data-theme="light"][data-screen-theme-bg] .bg-slate-900,
+html[data-theme="light"][data-screen-theme-bg] .bg-slate-900\/80,
+html[data-theme="light"][data-screen-theme-bg] .bg-slate-900\/70,
+html[data-theme="light"][data-screen-theme-bg] .bg-slate-900\/60,
+html[data-theme="light"][data-screen-theme-bg] .bg-slate-800 {
+  background-color: #ffffff !important;
+}
+
+html[data-theme="light"][data-screen-theme-bg] .bg-emerald-950\/40 {
+  background-color: #ecfdf5 !important;
+}
+
+html[data-theme="light"] .border-slate-800,
+html[data-theme="light"] .border-slate-700,
+html[data-theme="light"] .border-slate-600 {
+  border-color: #cbd5e1 !important;
+}
+
+html[data-theme="light"] .text-emerald-100,
+html[data-theme="light"] .text-emerald-200,
+html[data-theme="light"] .text-emerald-300,
+html[data-theme="light"] .text-emerald-400,
+html[data-theme="light"] .text-emerald-500 {
+  color: #065f46 !important;
+}
+
+html[data-theme="light"] .recharts-cartesian-axis-tick-value,
+html[data-theme="light"] .recharts-text,
+html[data-theme="light"] .recharts-label {
+  fill: #334155 !important;
+}
+
 @layer components {
   .qa-flip-list > li {
     position: relative;

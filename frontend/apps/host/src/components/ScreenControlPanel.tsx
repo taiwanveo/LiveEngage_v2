@@ -42,9 +42,15 @@ export function ScreenControlPanel({
 
   const handleTestToggle = (): void => {
     if (testingProjection) {
-      screen.showStandby(sessionTitle);
-      setTestingProjection(false);
-      showSuccess("已結束測試投影，切回待機畫面");
+      screen.showStandby(sessionTitle, {
+        onSuccess: () => {
+          setTestingProjection(false);
+          showSuccess("已結束測試投影，切回待機畫面");
+        },
+        onError: (err) => {
+          showError(formatUserFacingError(err, "無法結束測試投影"));
+        },
+      });
       return;
     }
     screen.showTest(sessionTitle, {
