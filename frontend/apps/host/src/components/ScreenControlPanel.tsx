@@ -68,7 +68,6 @@ export function ScreenControlPanel({
       showInfo("若投影未開啟，請允許瀏覽器彈出視窗。", "開啟投影");
       return;
     }
-    showSuccess(theme === "dark" ? "已切到投影（深色主題）" : "已切到投影（淺色主題）");
   };
 
   return (
