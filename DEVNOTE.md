@@ -4,6 +4,19 @@
 
 ---
 
+## SNAPSHOT（2026-06-16 — 長條圖票數放大與彈跳動畫）
+
+- **最新 commit**：`755d27e` — 中央票數 +25px、CSS keyframes 彈跳／閃光
+- **Zeabur**：**host**、**screen** redeploy
+
+| 變更 | 說明 |
+|------|------|
+| `BarCountLabel` | 投影字級約 39–49px（原 14–24 +25） |
+| `barCountLabel.css` | `le-bar-count-pop` scale 彈跳 + 光暈 + 黃色閃光 |
+| `ResultBarChart` | 投影圖表高度 280→320px |
+
+---
+
 ## SNAPSHOT（2026-06-16 — Screen 預設／組織 favicon）
 
 - **最新 commit**：`9592b3f` — Screen 與全端 favicon 修復
