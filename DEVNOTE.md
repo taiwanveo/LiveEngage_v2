@@ -4,6 +4,31 @@
 
 ---
 
+## SNAPSHOT（2026-06-16 — 稽核關鍵字搜尋與投影控制 toggle）
+
+- **最新 commit**：`3754735` — Admin 稽核執行者關鍵字搜尋 + Host/Screen 投影切換強化
+- **Zeabur**：**api**、**admin**、**host**、**screen** redeploy 完成
+
+| 區塊 | 變更 |
+|------|------|
+| Admin 稽核記錄 | 新增「關鍵字」欄位（`actor_keyword`），可用執行者 Email 部分字串查詢（如 `host`）並搭配「更新成員角色」等動作篩選 |
+| BE-010 API/Service | `/api/v1/admin/audit-logs` 新增 `actor_keyword` 查詢參數；`admin_service.list_audit_logs` 以 `actor_email` 不分大小寫模糊比對 |
+| BE 測試 | `test_s7_admin.py` 新增 `test_audit_log_filter_by_actor_keyword` |
+| Host 控場列 | 「待機畫面」改為 toggle：`待機畫面 / 取消待機`（取消待機切回即時總覽） |
+| Quiz 工作台投影控制 | 兩顆按鈕改為獨立 toggle：`投影題目/隱藏題目`、`投影排行榜/隱藏排行榜`，可自由組合顯示 |
+| Screen Quiz 視圖 | 修正顯示規則：`question` 不再強制帶排行榜；新增 `results` 以同時顯示題目+排行榜 |
+
+### 部署
+
+| 服務 | deployment | 狀態 |
+|------|------------|------|
+| api | `6a316747dc8a677a9ed61b53` | RUNNING |
+| admin | `6a316741dc8a677a9ed61b4b` | RUNNING |
+| host | `6a31674edc8a677a9ed61b5b` | RUNNING |
+| screen | `6a31674bdc8a677a9ed61b58` | RUNNING |
+
+---
+
 ## SNAPSHOT（2026-06-16 — 待機投影按鈕與跟隨工作台對比）
 
 - **最新 commit**：`4033056` — 待機畫面投影按鈕、跟隨工作台標籤深色主題可讀性
