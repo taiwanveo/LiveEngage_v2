@@ -72,33 +72,37 @@ export function ScreenControlPanel({
   return (
     <>
       <div className="flex flex-wrap items-center justify-end gap-1.5">
-        {showScreenTheme ? (
-          <ScreenThemeSwitcher
-            compact
-            prefs={screen.screenTheme.prefs}
-            onChange={screen.screenTheme.setPrefs}
-          />
-        ) : null}
-        {href ? (
-          <button
-            type="button"
-            onClick={() => {
-              const win = screen.openScreen();
-              if (!win) {
-                showInfo("若投影未開啟，請允許瀏覽器彈出視窗。", "開啟投影");
-              }
-            }}
-            className="le-btn-primary le-btn-present-compact"
-          >
-            <PresentIcon size={14} />
-            <span>Screen</span>
-          </button>
-        ) : (
-          <span className="le-btn-primary le-btn-present-compact pointer-events-none opacity-50">
-            <PresentIcon size={14} />
-            <span>Screen</span>
-          </span>
-        )}
+        <div className="flex flex-col items-stretch gap-1.5">
+          {href ? (
+            <button
+              type="button"
+              onClick={() => {
+                const win = screen.openScreen();
+                if (!win) {
+                  showInfo("若投影未開啟，請允許瀏覽器彈出視窗。", "開啟投影");
+                }
+              }}
+              className="le-btn-primary le-btn-present-compact"
+            >
+              <PresentIcon size={14} />
+              <span>Screen</span>
+            </button>
+          ) : (
+            <span className="le-btn-primary le-btn-present-compact pointer-events-none opacity-50">
+              <PresentIcon size={14} />
+              <span>Screen</span>
+            </span>
+          )}
+          {showScreenTheme ? (
+            <div title="切換投影畫面主題色彩">
+              <ScreenThemeSwitcher
+                compact
+                prefs={screen.screenTheme.prefs}
+                onChange={screen.screenTheme.setPrefs}
+              />
+            </div>
+          ) : null}
+        </div>
         <button
           type="button"
           disabled={!href || screen.updating}

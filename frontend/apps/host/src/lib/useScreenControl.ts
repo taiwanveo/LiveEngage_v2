@@ -115,15 +115,7 @@ export function useScreenControl(roomId: string) {
   const resolveScreenWindow = useCallback((): Window | null => {
     const cached = screenWindowRef.current;
     if (cached && !cached.closed) return cached;
-    try {
-      const named = window.open("", "liveengage-screen");
-      if (named && !named.closed) {
-        screenWindowRef.current = named;
-        return named;
-      }
-    } catch {
-      /* 跨網域時可能無法存取已開視窗 */
-    }
+    // 僅使用已開啟且已記錄的投影視窗，避免意外開出 about:blank 空白頁。
     return null;
   }, []);
 
