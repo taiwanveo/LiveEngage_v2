@@ -75,6 +75,17 @@ export function ScreenControlPanel({
     showSuccess("投影已切換至即時總覽");
   };
 
+  const handleStandbyProjection = (): void => {
+    screen.showStandby(sessionTitle, {
+      onSuccess: () => {
+        showSuccess("投影已切換至待機畫面");
+      },
+      onError: (err) => {
+        showError(formatUserFacingError(err, "無法切換至待機畫面"));
+      },
+    });
+  };
+
   const openThemedProjection = (theme: "dark" | "light"): void => {
     screen.screenTheme.setTheme(theme);
     const win = screen.openScreenWithTheme(theme);
@@ -87,7 +98,7 @@ export function ScreenControlPanel({
   return (
     <>
       <div className="flex flex-wrap items-center justify-end gap-1.5">
-        <div className="mr-12 flex flex-wrap items-center gap-1.5 rounded-lg border border-slate-300/90 bg-slate-100/50 px-2 py-1">
+        <div className="mr-12 flex flex-wrap items-center gap-1.5 rounded-lg border border-border bg-surface-elevated/80 px-2 py-1">
           <button
             type="button"
             disabled={!href}
@@ -111,6 +122,15 @@ export function ScreenControlPanel({
           <button
             type="button"
             disabled={screen.updating}
+            onClick={handleStandbyProjection}
+            className="le-btn-secondary le-btn-present-compact disabled:opacity-50"
+            title="投影切換至待機畫面，暫不顯示互動項目"
+          >
+            待機畫面
+          </button>
+          <button
+            type="button"
+            disabled={screen.updating}
             onClick={handleOverviewProjection}
             className="le-btn-secondary le-btn-present-compact disabled:opacity-50"
             title="投影顯示即時總覽（參與者數、Q&A 數、Poll 數等）"
@@ -130,7 +150,7 @@ export function ScreenControlPanel({
           >
             Q&A 投影
           </button>
-          <label className="flex cursor-pointer items-center gap-1 text-[10px] text-muted">
+          <label className="flex cursor-pointer items-center gap-1 text-[10px] font-medium text-foreground">
             <input
               type="checkbox"
               checked={screen.followEnabled}
