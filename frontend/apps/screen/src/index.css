@@ -19,37 +19,102 @@ html[data-screen-theme-fg] .text-white {
   color: var(--le-screen-fg) !important;
 }
 
-/* 淺色主題：將 Screen 既有深色卡片/邊框調整為淺色可讀版本 */
+/* 淺色主題（全域重構）：統一 Screen 文字、背景、邊框、狀態色與圖表可讀性 */
+html[data-theme="light"][data-screen-theme-bg] {
+  --le-screen-light-bg: #f8fafc;
+  --le-screen-light-surface: #ffffff;
+  --le-screen-light-surface-soft: #f1f5f9;
+  --le-screen-light-border: #cbd5e1;
+  --le-screen-light-text-strong: #0f172a;
+  --le-screen-light-text: #334155;
+  --le-screen-light-text-muted: #64748b;
+  --le-screen-light-text-soft: #94a3b8;
+}
+
+html[data-theme="light"][data-screen-theme-bg] .bg-slate-950,
 html[data-theme="light"][data-screen-theme-bg] .bg-slate-900,
 html[data-theme="light"][data-screen-theme-bg] .bg-slate-900\/80,
 html[data-theme="light"][data-screen-theme-bg] .bg-slate-900\/70,
 html[data-theme="light"][data-screen-theme-bg] .bg-slate-900\/60,
 html[data-theme="light"][data-screen-theme-bg] .bg-slate-800 {
-  background-color: #ffffff !important;
+  background-color: var(--le-screen-light-surface) !important;
 }
 
 html[data-theme="light"][data-screen-theme-bg] .bg-emerald-950\/40 {
   background-color: #ecfdf5 !important;
 }
 
-html[data-theme="light"] .border-slate-800,
-html[data-theme="light"] .border-slate-700,
-html[data-theme="light"] .border-slate-600 {
-  border-color: #cbd5e1 !important;
+html[data-theme="light"][data-screen-theme-bg] .bg-slate-800\/80,
+html[data-theme="light"][data-screen-theme-bg] .bg-slate-800\/60,
+html[data-theme="light"][data-screen-theme-bg] .bg-slate-800\/40 {
+  background-color: var(--le-screen-light-surface-soft) !important;
 }
 
-html[data-theme="light"] .text-emerald-100,
-html[data-theme="light"] .text-emerald-200,
-html[data-theme="light"] .text-emerald-300,
-html[data-theme="light"] .text-emerald-400,
-html[data-theme="light"] .text-emerald-500 {
+html[data-theme="light"][data-screen-theme-bg] .border-slate-800,
+html[data-theme="light"][data-screen-theme-bg] .border-slate-700,
+html[data-theme="light"][data-screen-theme-bg] .border-slate-600,
+html[data-theme="light"][data-screen-theme-bg] .border-slate-500 {
+  border-color: var(--le-screen-light-border) !important;
+}
+
+html[data-theme="light"][data-screen-theme-bg] .text-white,
+html[data-theme="light"][data-screen-theme-bg] .text-slate-50,
+html[data-theme="light"][data-screen-theme-bg] .text-slate-100 {
+  color: var(--le-screen-light-text-strong) !important;
+}
+
+html[data-theme="light"][data-screen-theme-bg] .text-slate-200,
+html[data-theme="light"][data-screen-theme-bg] .text-slate-300 {
+  color: var(--le-screen-light-text) !important;
+}
+
+html[data-theme="light"][data-screen-theme-bg] .text-slate-400 {
+  color: var(--le-screen-light-text-muted) !important;
+}
+
+html[data-theme="light"][data-screen-theme-bg] .text-slate-500 {
+  color: var(--le-screen-light-text-soft) !important;
+}
+
+html[data-theme="light"][data-screen-theme-bg] .text-emerald-100,
+html[data-theme="light"][data-screen-theme-bg] .text-emerald-200,
+html[data-theme="light"][data-screen-theme-bg] .text-emerald-300,
+html[data-theme="light"][data-screen-theme-bg] .text-emerald-400,
+html[data-theme="light"][data-screen-theme-bg] .text-emerald-500 {
   color: #065f46 !important;
 }
 
-html[data-theme="light"] .recharts-cartesian-axis-tick-value,
-html[data-theme="light"] .recharts-text,
-html[data-theme="light"] .recharts-label {
-  fill: #334155 !important;
+html[data-theme="light"][data-screen-theme-bg] .text-amber-300,
+html[data-theme="light"][data-screen-theme-bg] .text-amber-400 {
+  color: #92400e !important;
+}
+
+html[data-theme="light"][data-screen-theme-bg] .text-sky-300,
+html[data-theme="light"][data-screen-theme-bg] .text-sky-400 {
+  color: #1d4ed8 !important;
+}
+
+html[data-theme="light"][data-screen-theme-bg] .bg-sky-500\/20 {
+  background-color: #dbeafe !important;
+}
+
+html[data-theme="light"][data-screen-theme-bg] .border-sky-500\/40,
+html[data-theme="light"][data-screen-theme-bg] .border-emerald-400\/60 {
+  border-color: #93c5fd !important;
+}
+
+html[data-theme="light"][data-screen-theme-bg] .bg-emerald-500\/15 {
+  background-color: #d1fae5 !important;
+}
+
+html[data-theme="light"][data-screen-theme-bg] .bg-white\/10 {
+  background-color: #e2e8f0 !important;
+}
+
+html[data-theme="light"][data-screen-theme-bg] .recharts-cartesian-axis-tick-value,
+html[data-theme="light"][data-screen-theme-bg] .recharts-text,
+html[data-theme="light"][data-screen-theme-bg] .recharts-label {
+  fill: var(--le-screen-light-text) !important;
 }
 
 @layer components {
