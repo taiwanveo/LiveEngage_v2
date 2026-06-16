@@ -12,16 +12,19 @@ import {
   updateInteractionStatus,
 } from "../lib/interactionApi";
 import { interactionStatusLabel } from "../lib/pollTypes";
+import type { useScreenControl } from "../lib/useScreenControl";
 
 interface Props {
   roomId: string;
+  sessionTitle?: string | null;
+  screen?: ReturnType<typeof useScreenControl>;
 }
 
 function isModerationEnabled(settings: Record<string, unknown> | undefined): boolean {
   return settings?.moderation_enabled === true;
 }
 
-export function QaControlBar({ roomId }: Props): React.JSX.Element {
+export function QaControlBar({ roomId, sessionTitle, screen }: Props): React.JSX.Element {
   const qc = useQueryClient();
   const { showError, systemNoticeModal } = useSystemNotice();
 
@@ -47,7 +50,10 @@ export function QaControlBar({ roomId }: Props): React.JSX.Element {
       }
       return updateInteractionStatus(qaId, "active");
     },
-    onSuccess: () => void qc.invalidateQueries({ queryKey: ["interactions", roomId] }),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ["interactions", roomId] });
+      screen?.showQa(sessionTitle ?? null);
+    },
     onError: (err: unknown) => {
       showError(formatUserFacingError(err, "開啟 Q&A 失敗，請稍後再試"));
     },
@@ -55,7 +61,10 @@ export function QaControlBar({ roomId }: Props): React.JSX.Element {
 
   const closeMutation = useMutation({
     mutationFn: () => updateInteractionStatus(qa!.id, "stopped"),
-    onSuccess: () => void qc.invalidateQueries({ queryKey: ["interactions", roomId] }),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ["interactions", roomId] });
+      screen?.showStandby(sessionTitle ?? null);
+    },
     onError: (err: unknown) => {
       showError(formatUserFacingError(err, "關閉 Q&A 失敗，請稍後再試"));
     },

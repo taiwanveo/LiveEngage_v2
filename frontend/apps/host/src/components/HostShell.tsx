@@ -9,6 +9,7 @@ import {
   useHostRoomNavLiveState,
   type HostRoomNavLiveState,
 } from "../lib/useHostRoomNavLiveState";
+import type { useScreenControl } from "../lib/useScreenControl";
 
 export type HostNavId = "workbench" | "overview" | "moderation" | "polls" | "sprint9";
 
@@ -58,6 +59,8 @@ interface HostShellProps {
   breadcrumb?: React.ReactNode;
   /** 日期／代碼／活動名／狀態列（未傳入時依 roomId 自動解析） */
   sessionMeta?: HostRoomSessionMeta;
+  /** 與頁面共用 Screen 控制實例（Q&A 開啟時同步投影等） */
+  screen?: ReturnType<typeof useScreenControl>;
 }
 
 export function HostShell({
@@ -72,6 +75,7 @@ export function HostShell({
   presentHref,
   breadcrumb,
   sessionMeta,
+  screen,
 }: HostShellProps): React.JSX.Element {
   const defaultSessionMeta = useHostRoomSessionMeta(roomId);
   const navLive = useHostRoomNavLiveState(roomId);
@@ -91,6 +95,7 @@ export function HostShell({
           <HostRoomHeaderActions
             roomId={roomId}
             {...(presentHref ? { presentHref } : {})}
+            {...(screen ? { screen } : {})}
           />
         }
         {...(breadcrumb ? { subRow: breadcrumb } : {})}

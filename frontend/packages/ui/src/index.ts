@@ -13,6 +13,15 @@ export {
   sanitizeScreenColor,
 } from "./screenUrl";
 export type { ScreenUrlParams } from "./screenUrl";
+export {
+  SCREEN_THEME_STORAGE_KEY,
+  SCREEN_THEME_MESSAGE,
+  readScreenThemePrefs,
+  writeScreenThemePrefs,
+  applyScreenThemePrefs,
+} from "./screenTheme";
+export type { ScreenThemePrefs } from "./screenTheme";
+export { ScreenThemeSwitcher } from "./ScreenThemeSwitcher";
 export { AuthCard } from "./AuthCard";
 export { BrandedAuthShell } from "./BrandedAuthShell";
 export {

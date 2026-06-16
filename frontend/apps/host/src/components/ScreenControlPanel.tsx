@@ -7,6 +7,7 @@ import {
   JoinShareCard,
   Modal,
   PresentIcon,
+  ScreenThemeSwitcher,
   ShareIcon,
   joinUrl,
   useSystemNotice,
@@ -17,12 +18,18 @@ interface Props {
   sessionCode: string | null;
   sessionTitle: string | null;
   screen: ReturnType<typeof useScreenControl>;
+  /** Q&A 是否已開啟（僅用於提示，不阻擋投影） */
+  qaOpen?: boolean;
+  /** 顯示投影主題下拉（工作台） */
+  showScreenTheme?: boolean;
 }
 
 export function ScreenControlPanel({
   sessionCode,
   sessionTitle,
   screen,
+  qaOpen = false,
+  showScreenTheme = false,
 }: Props): React.JSX.Element {
   const [shareOpen, setShareOpen] = useState(false);
   const { showError, showInfo, showSuccess, systemNoticeModal } = useSystemNotice();
@@ -45,6 +52,11 @@ export function ScreenControlPanel({
     });
   };
 
+  const handleQaProjection = (): void => {
+    screen.showQa(sessionTitle);
+    showSuccess("投影已切換至 Q&A 問題列表（熱門已核准問題）");
+  };
+
   const handleFullscreen = (): void => {
     const result = screen.requestFullscreen();
     if (result === "no-window") {
@@ -60,6 +72,13 @@ export function ScreenControlPanel({
   return (
     <>
       <div className="flex flex-wrap items-center justify-end gap-1.5">
+        {showScreenTheme ? (
+          <ScreenThemeSwitcher
+            compact
+            prefs={screen.screenTheme.prefs}
+            onChange={screen.screenTheme.setPrefs}
+          />
+        ) : null}
         {href ? (
           <button
             type="button"
@@ -88,6 +107,19 @@ export function ScreenControlPanel({
           title="複製投影網址"
         >
           複製
+        </button>
+        <button
+          type="button"
+          disabled={screen.updating}
+          onClick={handleQaProjection}
+          className="le-btn-secondary le-btn-present-compact disabled:opacity-50"
+          title={
+            qaOpen
+              ? "投影顯示熱門已核准問題"
+              : "切換至 Q&A 問題列表（請至 Q&A 審核開啟提問後才有內容）"
+          }
+        >
+          Q&A 投影
         </button>
         <button
           type="button"

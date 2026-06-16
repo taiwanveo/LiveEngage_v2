@@ -4,6 +4,7 @@ import * as React from "react";
 import { useQuery } from "@tanstack/react-query";
 import { listSessions } from "../lib/sessionApi";
 import { useScreenControl } from "../lib/useScreenControl";
+import { useHostRoomNavLiveState } from "../lib/useHostRoomNavLiveState";
 import { ScreenControlPanel } from "./ScreenControlPanel";
 
 interface Props {
@@ -12,19 +13,24 @@ interface Props {
   presentHref?: string | undefined;
   /** 工作台傳入共用實例，避免重複 hook／重複 Screen PUT */
   screen?: ReturnType<typeof useScreenControl> | undefined;
+  /** 顯示投影主題下拉 */
+  showScreenTheme?: boolean;
 }
 
 function ScreenControlPanelWithSession({
   roomId,
   screen,
+  showScreenTheme = false,
 }: {
   roomId: string;
   screen: ReturnType<typeof useScreenControl>;
+  showScreenTheme?: boolean;
 }): React.JSX.Element {
   const sessionsQuery = useQuery({
     queryKey: ["host-sessions"],
     queryFn: listSessions,
   });
+  const navLive = useHostRoomNavLiveState(roomId);
 
   const session = sessionsQuery.data?.find((s) => s.default_room_id === roomId) ?? null;
 
@@ -33,6 +39,8 @@ function ScreenControlPanelWithSession({
       sessionCode={session?.code ?? null}
       sessionTitle={session?.title ?? null}
       screen={screen}
+      qaOpen={navLive.qaOpen}
+      showScreenTheme={showScreenTheme}
     />
   );
 }
@@ -45,9 +53,16 @@ function HostRoomHeaderActionsInner({ roomId }: { roomId: string }): React.JSX.E
 export function HostRoomHeaderActions({
   roomId,
   screen: screenProp,
+  showScreenTheme = false,
 }: Props): React.JSX.Element {
   if (screenProp) {
-    return <ScreenControlPanelWithSession roomId={roomId} screen={screenProp} />;
+    return (
+      <ScreenControlPanelWithSession
+        roomId={roomId}
+        screen={screenProp}
+        showScreenTheme={showScreenTheme}
+      />
+    );
   }
   return <HostRoomHeaderActionsInner roomId={roomId} />;
 }

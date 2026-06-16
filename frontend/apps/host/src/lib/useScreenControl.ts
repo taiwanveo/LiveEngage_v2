@@ -11,6 +11,7 @@ import {
 import type { InteractionSummary } from "./pollTypes";
 import { isPollType } from "./pollTypes";
 import { isSprint9Type } from "./workbenchTypes";
+import { useScreenTheme } from "./useScreenTheme";
 
 const FOLLOW_KEY = "liveengage-screen-follow";
 
@@ -111,20 +112,6 @@ export function useScreenControl(roomId: string) {
     [flushScreenQueue, mutateScreenState]
   );
 
-  const buildScreenHref = useCallback((): string | undefined => {
-    const token = tokenQuery.data?.token;
-    if (!token) return undefined;
-    return screenUrlByRoom(roomId, token);
-  }, [roomId, tokenQuery.data?.token]);
-
-  const openScreen = useCallback((): Window | null => {
-    const href = buildScreenHref();
-    if (!href) return null;
-    const win = window.open(href, "liveengage-screen");
-    if (win) screenWindowRef.current = win;
-    return win;
-  }, [buildScreenHref]);
-
   const resolveScreenWindow = useCallback((): Window | null => {
     const cached = screenWindowRef.current;
     if (cached && !cached.closed) return cached;
@@ -139,6 +126,27 @@ export function useScreenControl(roomId: string) {
     }
     return null;
   }, []);
+
+  const screenTheme = useScreenTheme(resolveScreenWindow);
+
+  const buildScreenHref = useCallback((): string | undefined => {
+    const token = tokenQuery.data?.token;
+    if (!token) return undefined;
+    const { theme, bg, fg } = screenTheme.prefs;
+    return screenUrlByRoom(roomId, token, {
+      theme,
+      ...(bg ? { bg } : {}),
+      ...(fg ? { fg } : {}),
+    });
+  }, [roomId, screenTheme.prefs, tokenQuery.data?.token]);
+
+  const openScreen = useCallback((): Window | null => {
+    const href = buildScreenHref();
+    if (!href) return null;
+    const win = window.open(href, "liveengage-screen");
+    if (win) screenWindowRef.current = win;
+    return win;
+  }, [buildScreenHref]);
 
   const requestFullscreen = useCallback((): "sent" | "no-window" => {
     const win = resolveScreenWindow();
@@ -228,13 +236,35 @@ export function useScreenControl(roomId: string) {
 
   const showQa = useCallback(
     (sessionTitle?: string | null) => {
-      pushScreen({
-        view: "qa",
-        interaction_id: null,
-        ...(sessionTitle != null ? { session_title: sessionTitle } : {}),
-      });
+      armManualOverride(8000);
+      lastSyncedKeyRef.current = null;
+      sendScreenState(
+        {
+          view: "qa",
+          interaction_id: null,
+          sub_view: null,
+          ...(sessionTitle != null ? { session_title: sessionTitle } : {}),
+        },
+        { force: true }
+      );
     },
-    [pushScreen]
+    [armManualOverride, sendScreenState]
+  );
+
+  const showStandby = useCallback(
+    (sessionTitle?: string | null) => {
+      lastSyncedKeyRef.current = null;
+      sendScreenState(
+        {
+          view: "standby",
+          interaction_id: null,
+          sub_view: null,
+          ...(sessionTitle != null ? { session_title: sessionTitle } : {}),
+        },
+        { force: true }
+      );
+    },
+    [sendScreenState]
   );
 
   return {
@@ -244,6 +274,7 @@ export function useScreenControl(roomId: string) {
     showTest,
     showOverview,
     showQa,
+    showStandby,
     syncWorkbenchItem,
     syncPollSubView,
     pushScreen,
@@ -252,6 +283,7 @@ export function useScreenControl(roomId: string) {
     isManualOverrideActive,
     tokenLoading: tokenQuery.isLoading,
     updating: screenUpdatePending,
+    screenTheme,
   };
 }
 

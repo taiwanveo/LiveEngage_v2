@@ -3,8 +3,9 @@
 import * as React from "react";
 import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { isThemeId, sanitizeScreenColor } from "@liveengage/ui";
+import { DEFAULT_THEME, applyScreenThemePrefs, isThemeId, sanitizeScreenColor } from "@liveengage/ui";
 import { ScreenBrandingRoot } from "./components/ScreenBrandingRoot";
+import { ScreenThemeListener } from "./components/ScreenThemeListener";
 import { getScreenToken, parseHashQuery, parseScreenTokenPayload } from "./lib/screenAuth";
 import { resolveSessionByCode } from "./lib/screenApi";
 import { ScreenFullscreenPrompt } from "./ScreenFullscreenPrompt";
@@ -65,14 +66,13 @@ export function App(): React.JSX.Element {
   }, [codeQuery.data?.id]);
 
   useEffect(() => {
-    const theme = params.get("theme");
-    if (theme && isThemeId(theme)) {
-      document.documentElement.setAttribute("data-theme", theme);
-    }
-    const bg = sanitizeScreenColor(params.get("bg"));
-    const fg = sanitizeScreenColor(params.get("fg"));
-    if (bg) document.documentElement.style.setProperty("--le-screen-bg", bg);
-    if (fg) document.documentElement.style.setProperty("--le-screen-fg", fg);
+    const themeParam = params.get("theme");
+    const theme = themeParam && isThemeId(themeParam) ? themeParam : DEFAULT_THEME;
+    applyScreenThemePrefs({
+      theme,
+      bg: sanitizeScreenColor(params.get("bg")),
+      fg: sanitizeScreenColor(params.get("fg")),
+    });
   }, [params]);
 
   const { state, connected, isLoading } = useScreenDisplay(roomId);
@@ -136,6 +136,7 @@ export function App(): React.JSX.Element {
 
   return (
     <ScreenBrandingRoot sessionId={resolvedSessionId}>
+      <ScreenThemeListener />
       {content}
     </ScreenBrandingRoot>
   );

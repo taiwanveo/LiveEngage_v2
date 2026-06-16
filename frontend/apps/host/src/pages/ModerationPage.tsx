@@ -1,11 +1,14 @@
 /** PM-002 審核 UI：pending / approved / answered 三欄。 */
 
 import * as React from "react";
+import { useQuery } from "@tanstack/react-query";
 import { HostRoomHubBreadcrumb } from "../components/HostBreadcrumb";
 import { HostShell } from "../components/HostShell";
 import { QaControlBar } from "../components/QaControlBar";
 import { QaModerationPanel } from "../components/qa/QaModerationPanel";
 import { qaPresentUrl } from "../lib/presentUrl";
+import { listSessions } from "../lib/sessionApi";
+import { useScreenControl } from "../lib/useScreenControl";
 
 interface Props {
   roomId: string;
@@ -14,6 +17,15 @@ interface Props {
 
 export function ModerationPage({ roomId, onLogout }: Props): React.JSX.Element {
   const validRoom = roomId !== "_" && roomId.length > 0;
+  const screen = useScreenControl(roomId);
+
+  const sessionsQuery = useQuery({
+    queryKey: ["host-sessions"],
+    queryFn: listSessions,
+    enabled: validRoom,
+  });
+  const session =
+    sessionsQuery.data?.find((s) => s.default_room_id === roomId) ?? null;
 
   if (!validRoom) {
     return <RoomPicker onLogout={onLogout} />;
@@ -26,9 +38,10 @@ export function ModerationPage({ roomId, onLogout }: Props): React.JSX.Element {
       onLogout={onLogout}
       activeNav="moderation"
       presentHref={qaPresentUrl(roomId)}
+      screen={screen}
       breadcrumb={<HostRoomHubBreadcrumb roomId={roomId} currentLabel="Q&A 審核" />}
     >
-      <QaControlBar roomId={roomId} />
+      <QaControlBar roomId={roomId} sessionTitle={session?.title ?? null} screen={screen} />
       <QaModerationPanel roomId={roomId} />
     </HostShell>
   );
