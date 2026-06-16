@@ -789,3 +789,12 @@ Participant Survey 完整流程；Quiz active-question API；Ideas/Survey 投影
 ### 2026-06-14 — 工作台控場與手機預覽（86813b5）
 
 頂欄控場列；`hostWorkbenchPreview`；選項自動儲存。
+
+### 2026-06-16 — 工作台投影主題下拉 + Q&A 投影快捷（62a9bda）
+
+- Host 工作台右上角新增「投影主題」下拉，沿用 Host 主題選單樣式，提供五種預設主題（Slido／專業淺色／專業深色／Cursor／Claude）。
+- 下拉加入兩個調色盤按鈕：`背景色`、`前景色`，支援清除回預設；偏好以 `liveengage-screen-theme-prefs` 儲存在 localStorage。
+- Screen URL 會帶入 `theme`／`bg`／`fg`；若投影視窗已開啟，Host 會以 `postMessage(screen:theme)` 即時套用，不必重開視窗。
+- 工作台新增「Q&A 投影」按鈕，點擊直接呼叫 `screen.showQa(sessionTitle)`；Q&A 審核頁「開啟 Q&A」也會自動切 Screen 至 Q&A，「關閉 Q&A」回待機。
+- Screen 新增 `ScreenThemeListener`，並在載入參數時統一走 `applyScreenThemePrefs`；`index.css` 補上自訂前景／背景覆寫規則。
+- Redeploy：host deployment `6a30f9db3850703aa49b4fd4`、screen deployment `6a30f9db3850703aa49b4fd3`（觸發時間 2026-06-16 15:23 UTC+8）。
