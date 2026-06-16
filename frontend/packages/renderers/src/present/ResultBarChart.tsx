@@ -1,14 +1,18 @@
 import * as React from "react";
+import { useCallback, useMemo } from "react";
 import {
   Bar,
   BarChart,
+  LabelList,
   ResponsiveContainer,
   Tooltip,
   XAxis,
   YAxis,
 } from "recharts";
 import type { OptionCount, PollOption } from "../types";
+import { BarCountLabel } from "./BarCountLabel";
 import { buildCountAxisTicks, countAxisMax } from "./chartUtils";
+import { useCountBumps } from "./useCountBumps";
 
 interface ResultBarChartProps {
   options: PollOption[];
@@ -55,10 +59,16 @@ export function ResultBarChart({
   showCorrectAnswer = false,
 }: ResultBarChartProps): React.JSX.Element {
   const countMap = new Map(counts.map((c) => [c.option_id, c.count]));
-  const data = options.map((opt) => ({
-    name: opt.text,
-    count: countMap.get(opt.id) ?? 0,
-  }));
+  const data = useMemo(
+    () =>
+      options.map((opt) => ({
+        name: opt.text,
+        count: countMap.get(opt.id) ?? 0,
+      })),
+    [options, counts]
+  );
+  const countValues = useMemo(() => data.map((row) => row.count), [data]);
+  const countBumps = useCountBumps(countValues);
   const axisMax = countAxisMax(data.map((row) => row.count));
   const axisTicks = buildCountAxisTicks(axisMax);
 
@@ -72,6 +82,17 @@ export function ResultBarChart({
     : showCorrectAnswer
       ? 120
       : 100;
+
+  const renderBarLabel = useCallback(
+    (labelProps: React.ComponentProps<typeof BarCountLabel>) => (
+      <BarCountLabel
+        {...labelProps}
+        large={large}
+        bump={countBumps[labelProps.index ?? 0] ?? false}
+      />
+    ),
+    [large, countBumps]
+  );
 
   return (
     <div style={{ width: "100%", height }} aria-label="結果長條圖">
@@ -105,7 +126,16 @@ export function ResultBarChart({
                 : undefined
             }
           />
-          <Bar dataKey="count" fill={barFill} radius={[0, 4, 4, 0]} />
+          <Bar
+            dataKey="count"
+            fill={barFill}
+            radius={[0, 4, 4, 0]}
+            isAnimationActive
+            animationDuration={480}
+            animationEasing="ease-out"
+          >
+            <LabelList content={renderBarLabel} />
+          </Bar>
         </BarChart>
       </ResponsiveContainer>
     </div>
