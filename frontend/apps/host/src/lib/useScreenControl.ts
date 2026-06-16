@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { screenUrlByRoom } from "@liveengage/ui";
+import type { ThemeId } from "@liveengage/ui";
 import {
   mintScreenToken,
   updateScreenState,
@@ -121,14 +122,16 @@ export function useScreenControl(roomId: string) {
 
   const screenTheme = useScreenTheme(resolveScreenWindow);
 
-  const buildScreenHref = useCallback((): string | undefined => {
+  const buildScreenHref = useCallback((themeOverride?: ThemeId): string | undefined => {
     const token = tokenQuery.data?.token;
     if (!token) return undefined;
     const { theme, bg, fg } = screenTheme.prefs;
+    const effectiveTheme = themeOverride ?? theme;
+    const customColorsEnabled = themeOverride == null;
     return screenUrlByRoom(roomId, token, {
-      theme,
-      ...(bg ? { bg } : {}),
-      ...(fg ? { fg } : {}),
+      theme: effectiveTheme,
+      ...(customColorsEnabled && bg ? { bg } : {}),
+      ...(customColorsEnabled && fg ? { fg } : {}),
     });
   }, [roomId, screenTheme.prefs, tokenQuery.data?.token]);
 
@@ -139,6 +142,17 @@ export function useScreenControl(roomId: string) {
     if (win) screenWindowRef.current = win;
     return win;
   }, [buildScreenHref]);
+
+  const openScreenWithTheme = useCallback(
+    (theme: ThemeId): Window | null => {
+      const href = buildScreenHref(theme);
+      if (!href) return null;
+      const win = window.open(href, "liveengage-screen");
+      if (win) screenWindowRef.current = win;
+      return win;
+    },
+    [buildScreenHref]
+  );
 
   const requestFullscreen = useCallback((): "sent" | "no-window" => {
     const win = resolveScreenWindow();
@@ -262,6 +276,7 @@ export function useScreenControl(roomId: string) {
   return {
     buildScreenHref,
     openScreen,
+    openScreenWithTheme,
     requestFullscreen,
     showTest,
     showOverview,

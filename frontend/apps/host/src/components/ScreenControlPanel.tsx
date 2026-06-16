@@ -7,7 +7,6 @@ import {
   JoinShareCard,
   Modal,
   PresentIcon,
-  ScreenThemeSwitcher,
   ShareIcon,
   joinUrl,
   useSystemNotice,
@@ -20,8 +19,6 @@ interface Props {
   screen: ReturnType<typeof useScreenControl>;
   /** Q&A 是否已開啟（僅用於提示，不阻擋投影） */
   qaOpen?: boolean;
-  /** 顯示投影主題下拉（工作台） */
-  showScreenTheme?: boolean;
 }
 
 export function ScreenControlPanel({
@@ -29,7 +26,6 @@ export function ScreenControlPanel({
   sessionTitle,
   screen,
   qaOpen = false,
-  showScreenTheme = false,
 }: Props): React.JSX.Element {
   const [shareOpen, setShareOpen] = useState(false);
   const [testingProjection, setTestingProjection] = useState(false);
@@ -65,39 +61,39 @@ export function ScreenControlPanel({
     showSuccess("投影已切換至 Q&A 問題列表（熱門已核准問題）");
   };
 
+  const openThemedProjection = (theme: "dark" | "light"): void => {
+    screen.screenTheme.setTheme(theme);
+    const win = screen.openScreenWithTheme(theme);
+    if (!win) {
+      showInfo("若投影未開啟，請允許瀏覽器彈出視窗。", "開啟投影");
+      return;
+    }
+    showSuccess(theme === "dark" ? "已切到投影（深色主題）" : "已切到投影（淺色主題）");
+  };
+
   return (
     <>
       <div className="flex flex-wrap items-center justify-end gap-1.5">
         <div className="mr-12 flex flex-wrap items-center gap-1.5 rounded-lg border border-slate-300/90 bg-slate-100/50 px-2 py-1">
-          {href ? (
-            <button
-              type="button"
-              onClick={() => {
-                const win = screen.openScreen();
-                if (!win) {
-                  showInfo("若投影未開啟，請允許瀏覽器彈出視窗。", "開啟投影");
-                }
-              }}
-              className="le-btn-primary le-btn-present-compact"
-            >
-              <PresentIcon size={14} />
-              <span>Screen</span>
-            </button>
-          ) : (
-            <span className="le-btn-primary le-btn-present-compact pointer-events-none opacity-50">
-              <PresentIcon size={14} />
-              <span>Screen</span>
-            </span>
-          )}
-          {showScreenTheme ? (
-            <div title="切換投影畫面主題色彩">
-              <ScreenThemeSwitcher
-                compact
-                prefs={screen.screenTheme.prefs}
-                onChange={screen.screenTheme.setPrefs}
-              />
-            </div>
-          ) : null}
+          <button
+            type="button"
+            disabled={!href}
+            onClick={() => openThemedProjection("dark")}
+            className="le-btn-primary le-btn-present-compact disabled:opacity-50"
+            title="以專業深色主題開啟投影"
+          >
+            <PresentIcon size={14} />
+            <span>投影（深色主題）</span>
+          </button>
+          <button
+            type="button"
+            disabled={!href}
+            onClick={() => openThemedProjection("light")}
+            className="le-btn-present-compact !min-h-[34px] rounded-full border border-primary-600 bg-white px-3 py-1 text-xs font-medium text-primary-700 transition hover:bg-primary-50 disabled:opacity-50"
+            title="以專業淺色主題開啟投影"
+          >
+            <span>投影（淺色主題）</span>
+          </button>
           <button
             type="button"
             disabled={screen.updating}

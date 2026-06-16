@@ -7,12 +7,14 @@ import {
   writeScreenThemePrefs,
   type ScreenThemePrefs,
 } from "@liveengage/ui";
+import type { ThemeId } from "@liveengage/ui";
 
 export function useScreenTheme(
   resolveScreenWindow?: () => Window | null
 ): {
   prefs: ScreenThemePrefs;
   setPrefs: (prefs: ScreenThemePrefs) => void;
+  setTheme: (theme: ThemeId) => void;
 } {
   const [prefs, setPrefsState] = useState<ScreenThemePrefs>(() => readScreenThemePrefs());
 
@@ -35,5 +37,13 @@ export function useScreenTheme(
     [notifyOpenScreen]
   );
 
-  return { prefs, setPrefs };
+  const setTheme = useCallback(
+    (theme: ThemeId) => {
+      const next: ScreenThemePrefs = { theme, bg: null, fg: null };
+      setPrefs(next);
+    },
+    [setPrefs]
+  );
+
+  return { prefs, setPrefs, setTheme };
 }

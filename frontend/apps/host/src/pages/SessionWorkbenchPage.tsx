@@ -481,9 +481,7 @@ export function SessionWorkbenchPage({
                 : {}),
             }}
             navItems={hostRoomNavItems(roomId, "workbench", navLive)}
-            chromeFooterActions={
-              <HostRoomHeaderActions roomId={roomId} screen={screen} showScreenTheme />
-            }
+            chromeFooterActions={<HostRoomHeaderActions roomId={roomId} screen={screen} />}
             onLogout={onLogout}
             subRow={<HostRoomHubBreadcrumb roomId={roomId} currentLabel="工作台" />}
             titleExtra={
