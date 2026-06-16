@@ -71,7 +71,7 @@ export function PollScreenView({ roomId, pollId, subView }: Props): React.JSX.El
   return (
     <div className="relative flex min-h-dvh flex-col bg-slate-950">
       <div
-        className="absolute right-4 top-4 z-10 opacity-40"
+        className="absolute right-4 top-4 z-10 opacity-90"
         title={connected ? "WS 已連線" : "WS 未連線"}
       >
         <span className={`inline-block h-2 w-2 rounded-full ${connected ? "bg-emerald-400" : "bg-red-400"}`} />

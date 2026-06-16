@@ -73,7 +73,10 @@ export function ResultBarChart({
   const axisTicks = buildCountAxisTicks(axisMax);
 
   const height = large ? 320 : 200;
-  const tickFill = large ? "#cbd5e1" : "#64748b";
+  const isLightTheme =
+    typeof document !== "undefined" &&
+    document.documentElement.getAttribute("data-theme") === "light";
+  const tickFill = large ? (isLightTheme ? "#334155" : "#cbd5e1") : "#64748b";
   const barFill = large ? "#3b82f6" : "#2563eb";
   const yAxisWidth = large
     ? showCorrectAnswer
