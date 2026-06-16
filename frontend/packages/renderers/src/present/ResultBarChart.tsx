@@ -72,7 +72,7 @@ export function ResultBarChart({
   const axisMax = countAxisMax(data.map((row) => row.count));
   const axisTicks = buildCountAxisTicks(axisMax);
 
-  const height = large ? 280 : 200;
+  const height = large ? 320 : 200;
   const tickFill = large ? "#cbd5e1" : "#64748b";
   const barFill = large ? "#3b82f6" : "#2563eb";
   const yAxisWidth = large

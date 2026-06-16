@@ -18,7 +18,7 @@ export function useCountBumps(counts: number[]): boolean[] {
     setBumps(increased);
     const timer = window.setTimeout(() => {
       setBumps(counts.map(() => false));
-    }, 650);
+    }, 750);
     return () => window.clearTimeout(timer);
   }, [counts.join("|")]);
 
