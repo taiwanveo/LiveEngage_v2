@@ -4,6 +4,18 @@
 
 ---
 
+## SNAPSHOT（2026-06-16 — 測試／全螢幕按鈕修復）
+
+- **最新 commit**：`7d385fc` — 測試畫面與全螢幕遙控可感知
+- **host + screen** redeploy
+
+| 按鈕 | 設計用途 | 先前無反應原因 | 修復後 |
+|------|----------|----------------|--------|
+| **測試** | 投影切換大寫 **TEST** 畫面，確認通道 | Host 無提示；跟隨工作台 120ms 內覆蓋回 Poll | Host 成功提示；暫停跟隨 8s |
+| **全螢幕** | 通知投影視窗進入全螢幕 | `noopener` 導致無視窗參考；跨網域無法代按 requestFullscreen | 投影視窗彈出「進入全螢幕」確認層；F 鍵仍可用 |
+
+---
+
 ## SNAPSHOT（2026-06-16 — 工作台切題 Screen 閃爍修復）
 
 - **Repo**：https://github.com/ColdRighter/LiveEngage.git（master）
