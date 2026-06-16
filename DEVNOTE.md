@@ -845,3 +845,11 @@ Participant Survey 完整流程；Quiz active-question API；Ideas/Survey 投影
 - 針對淺色主題全面補強可讀性：除既有 `text-slate-*` / `text-white` 外，新增淺色主題專用覆寫，調整深色卡片背景（`bg-slate-900/800`）、邊框（`border-slate-*`）、狀態色文字（`text-emerald-*`）與 Recharts 軸/標籤文字色，避免淡字與低對比。
 - 目標對齊：淺色投影視覺回到接近「專業淺色」的可讀風格；深色維持「專業深色」對比。
 - Deploy（push 後自動觸發）：host deployment `6a310e4df8d987ed9d736ade`、screen deployment `6a310e4af8d987ed9d736ad8`（皆 RUNNING）。
+
+### 2026-06-16 — 淺色主題進一步校正：狀態膠囊/選項標籤/連線點（e2eab0a）
+
+- 修正 `已結束` 狀態膠囊在淺色主題下過淡：`presentStatusBadgeClass` 依 `data-theme` 動態輸出高對比顏色（active/locked/stopped/idle）。
+- 修正 Poll 投影的「選項1~4」與數值軸文字過淺：`ResultBarChart` 在 `light` 主題改用深色 tick（`#334155`），避免淺底淡字。
+- 右上角 WS 連線指示點提高可見度：Screen 五個主要視圖（Poll/Overview/Ideas/Quiz/Q&A）從 `opacity-40` 提升到 `opacity-90`。
+- 目標：讓你截圖中標示的「已結束、選項標籤、綠色圓點」在淺色投影都清楚可辨識。
+- Deploy（push 後自動觸發）：host deployment `6a3110bff8d987ed9d736d0b`、screen deployment `6a3113ddf8d987ed9d736f42`（皆 RUNNING）。
