@@ -17,6 +17,14 @@ const DEFAULT_PREFS: ScreenThemePrefs = {
   fg: null,
 };
 
+const THEME_SCREEN_COLORS: Record<ThemeId, { bg: string; fg: string }> = {
+  slido: { bg: "#f5f5f5", fg: "#0b6623" },
+  light: { bg: "#f8fafc", fg: "#0f172a" },
+  dark: { bg: "#020617", fg: "#e2e8f0" },
+  cursor: { bg: "#14120b", fg: "#fef3c7" },
+  claude: { bg: "#faf9f5", fg: "#7c2d12" },
+};
+
 export function readScreenThemePrefs(): ScreenThemePrefs {
   try {
     const raw = localStorage.getItem(SCREEN_THEME_STORAGE_KEY);
@@ -48,22 +56,11 @@ export function writeScreenThemePrefs(prefs: ScreenThemePrefs): void {
 export function applyScreenThemePrefs(prefs: ScreenThemePrefs): void {
   const root = document.documentElement;
   root.setAttribute("data-theme", prefs.theme);
-
-  if (prefs.bg) {
-    root.style.setProperty("--le-screen-bg", prefs.bg);
-    root.setAttribute("data-screen-custom-bg", "");
-  } else {
-    root.style.removeProperty("--le-screen-bg");
-    root.removeAttribute("data-screen-custom-bg");
-  }
-
-  if (prefs.fg) {
-    root.style.setProperty("--le-screen-fg", prefs.fg);
-    root.setAttribute("data-screen-custom-fg", "");
-  } else {
-    root.style.removeProperty("--le-screen-fg");
-    root.removeAttribute("data-screen-custom-fg");
-  }
+  const defaults = THEME_SCREEN_COLORS[prefs.theme] ?? THEME_SCREEN_COLORS[DEFAULT_THEME];
+  root.style.setProperty("--le-screen-bg", prefs.bg ?? defaults.bg);
+  root.style.setProperty("--le-screen-fg", prefs.fg ?? defaults.fg);
+  root.setAttribute("data-screen-theme-bg", "");
+  root.setAttribute("data-screen-theme-fg", "");
 }
 
 export const SCREEN_THEME_MESSAGE = "screen:theme";
