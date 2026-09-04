@@ -15,6 +15,8 @@ import {
   QUESTION_DOWNVOTED,
   QA_EVENT_TYPES,
   QUIZ_QUESTION_STARTED,
+  QUIZ_QUESTION_UPDATED,
+  QUIZ_QUESTION_CLOSED,
   SESSION_ENDED,
   SESSION_STARTED,
   INTERACTION_STARTED,
@@ -65,7 +67,6 @@ export function RoomPage(): React.JSX.Element {
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [pollSubmitOk, setPollSubmitOk] = useState(false);
   const [quizSubmitOk, setQuizSubmitOk] = useState(false);
-  const [quizQuestion, setQuizQuestion] = useState<ActiveQuizQuestion | null>(null);
   const [quizSubmitting, setQuizSubmitting] = useState(false);
   const [sessionEnded, setSessionEnded] = useState(false);
   const [endedTitle, setEndedTitle] = useState("活動");
@@ -164,25 +165,24 @@ export function RoomPage(): React.JSX.Element {
     }
   }, [activePollId, queryClient]);
 
+  const quizQuery = useQuery({
+    queryKey: ["active-quiz-question", activeQuizId],
+    queryFn: () => getActiveQuizQuestion(activeQuizId!),
+    enabled: Boolean(activeQuizId),
+    refetchInterval: 2_000,
+  });
+
+  const quizQuestion = quizQuery.data ?? null;
+
   useEffect(() => {
-    if (!activeQuizId) {
-      setQuizQuestion(null);
-      return;
+    setQuizSubmitOk(false);
+  }, [quizQuestion?.id]);
+
+  useEffect(() => {
+    if (quizQuery.error) {
+      showError(formatUserFacingError(quizQuery.error, "載入 Quiz 失敗"));
     }
-    let cancelled = false;
-    void getActiveQuizQuestion(activeQuizId)
-      .then((q) => {
-        if (!cancelled) setQuizQuestion(q);
-      })
-      .catch((err: unknown) => {
-        if (!cancelled) {
-          showError(formatUserFacingError(err, "載入 Quiz 失敗"));
-        }
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [activeQuizId, showError]);
+  }, [quizQuery.error, showError]);
 
   useEffect(() => {
     if (stateQuery.data?.status === "ended") {
@@ -280,8 +280,38 @@ export function RoomPage(): React.JSX.Element {
             activeQuizId &&
             quizQuestion?.child_interaction_id === pollId
           ) {
-            void getActiveQuizQuestion(activeQuizId).then((q) => {
-              if (q) setQuizQuestion(q);
+            if (event.type === POLL_RESULT_REVEALED) {
+              const correctOptionIds =
+                (event.payload.correct_option_ids as string[] | undefined) ?? [];
+              queryClient.setQueryData<ActiveQuizQuestion | null>(
+                ["active-quiz-question", activeQuizId],
+                (old) => {
+                  if (!old) return old;
+                  return {
+                    ...old,
+                    state: "revealed",
+                    result_visible: true,
+                    options: old.options.map((opt) => ({
+                      ...opt,
+                      is_correct: correctOptionIds.includes(opt.id),
+                    })),
+                  };
+                }
+              );
+            } else if (event.type === POLL_RESULT_HIDDEN) {
+              queryClient.setQueryData<ActiveQuizQuestion | null>(
+                ["active-quiz-question", activeQuizId],
+                (old) => {
+                  if (!old) return old;
+                  return {
+                    ...old,
+                    result_visible: false,
+                  };
+                }
+              );
+            }
+            void queryClient.invalidateQueries({
+              queryKey: ["active-quiz-question", activeQuizId],
             });
           }
           break;
@@ -319,9 +349,46 @@ export function RoomPage(): React.JSX.Element {
             | Parameters<typeof mapActiveQuizQuestion>[0]
             | undefined;
           if (q) {
-            setQuizQuestion(mapActiveQuizQuestion(q));
+            if (activeQuizId) {
+              queryClient.setQueryData(
+                ["active-quiz-question", activeQuizId],
+                mapActiveQuizQuestion(q)
+              );
+            }
             setTab("quiz");
             showInfo(`快問快答題目「${q.title ?? "新題目"}」已開始！`, "Quiz 已開始");
+          } else if (activeQuizId) {
+            void queryClient.invalidateQueries({
+              queryKey: ["active-quiz-question", activeQuizId],
+            });
+          }
+          break;
+        }
+        case QUIZ_QUESTION_UPDATED: {
+          const q = event.payload.question as
+            | Parameters<typeof mapActiveQuizQuestion>[0]
+            | undefined;
+          if (q && activeQuizId) {
+            queryClient.setQueryData(
+              ["active-quiz-question", activeQuizId],
+              mapActiveQuizQuestion(q)
+            );
+          } else if (activeQuizId) {
+            void queryClient.invalidateQueries({
+              queryKey: ["active-quiz-question", activeQuizId],
+            });
+          }
+          break;
+        }
+        case QUIZ_QUESTION_CLOSED: {
+          if (activeQuizId) {
+            queryClient.setQueryData<ActiveQuizQuestion | null>(
+              ["active-quiz-question", activeQuizId],
+              (old) => (old ? { ...old, state: "closed" } : old)
+            );
+            void queryClient.invalidateQueries({
+              queryKey: ["active-quiz-question", activeQuizId],
+            });
           }
           break;
         }

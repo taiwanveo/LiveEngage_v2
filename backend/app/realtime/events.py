@@ -35,6 +35,7 @@ POLL_RESPONSE_SUBMITTED = "poll_response_submitted"
 # Quiz 事件型別（Sprint 9；BE-007 / FE-011）
 QUIZ_QUESTION_STARTED = "quiz_question_started"
 QUIZ_QUESTION_CLOSED = "quiz_question_closed"
+QUIZ_QUESTION_UPDATED = "quiz_question_updated"
 QUIZ_LEADERBOARD_UPDATED = "quiz_leaderboard_updated"
 
 # Ideas 事件型別（Sprint 9；FE-013）

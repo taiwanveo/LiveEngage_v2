@@ -21,19 +21,26 @@ interface Props {
   onLogout: () => void;
 }
 
+interface OptionRow {
+  key: string;
+  text: string;
+  is_correct?: boolean;
+  order_no?: number;
+}
+
 const OPTION_TYPES = new Set(["multiple_choice", "ranking"]);
 const CORRECT_ANSWER_TYPES = new Set(["multiple_choice"]);
-const OPTIONS_AUTOSAVE_MS = 700;
+const OPTIONS_AUTOSAVE_MS = 800;
 
-function optionsPayload(options: PollOptionInput[]): PollOptionInput[] {
-  return options.map((o, i) => ({ ...o, order_no: i }));
+function optionsPayload(options: OptionRow[]): PollOptionInput[] {
+  return options.map((o, i) => ({
+    text: o.text,
+    is_correct: o.is_correct ?? false,
+    order_no: i,
+  }));
 }
 
-function hasFilledOption(options: PollOptionInput[]): boolean {
-  return options.some((o) => o.text.trim().length > 0);
-}
-
-function canAutosaveOptions(options: PollOptionInput[]): boolean {
+function canAutosaveOptions(options: OptionRow[]): boolean {
   return options.length > 0 && options.every((o) => o.text.trim().length > 0);
 }
 
@@ -46,9 +53,9 @@ function SaveTitleButton(props: {
       type="button"
       disabled={props.pending}
       onClick={props.onClick}
-      className="le-btn-primary !min-h-[40px] w-full sm:w-auto"
+      className="le-btn-primary !min-h-[40px] w-full sm:w-auto font-semibold"
     >
-      {props.pending ? "儲存中…" : "儲存題目"}
+      {props.pending ? "儲存中…" : "儲存題目與選項"}
     </button>
   );
 }
@@ -63,11 +70,12 @@ export function PollBuilderPage({
   const { data: poll, isLoading, error } = useQuery({
     queryKey: ["poll", pollId],
     queryFn: () => getPoll(pollId),
+    refetchOnWindowFocus: false,
   });
 
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
-  const [options, setOptions] = useState<PollOptionInput[]>([]);
+  const [options, setOptions] = useState<OptionRow[]>([]);
   const [minValue, setMinValue] = useState(1);
   const [maxValue, setMaxValue] = useState(5);
   const [minRaw, setMinRaw] = useState("1");
@@ -84,15 +92,16 @@ export function PollBuilderPage({
 
   useEffect(() => {
     if (!poll) return;
-    // 只在第一次載入（pollId 切換）時初始化標題/說明，避免 autosave 引起的 refetch 覆蓋使用者輸入
+    // 只在初次載入或切換 pollId 時初始化表單狀態，防止後續 query refetch 或 autosave 覆蓋使用者輸入
     const isFirstLoad = initializedPollIdRef.current !== poll.id;
-    if (isFirstLoad) {
-      initializedPollIdRef.current = poll.id;
-      setTitle(poll.title ?? "");
-      setDescription(poll.description ?? "");
-    }
+    if (!isFirstLoad) return;
+
+    initializedPollIdRef.current = poll.id;
+    setTitle(poll.title ?? "");
+    setDescription(poll.description ?? "");
     optionsHydratingRef.current = true;
-    const loaded = poll.options.map((o) => ({
+    const loaded: OptionRow[] = poll.options.map((o, i) => ({
+      key: o.id || `opt-init-${i}-${Date.now()}`,
       text: o.text,
       is_correct: o.is_correct ?? false,
       order_no: o.order_no,
@@ -114,9 +123,35 @@ export function PollBuilderPage({
     }
     const t = window.setTimeout(() => {
       optionsHydratingRef.current = false;
-    }, 0);
+    }, 100);
     return () => window.clearTimeout(t);
   }, [poll]);
+
+  const showOptions = Boolean(poll && OPTION_TYPES.has(poll.type));
+  const showCorrectAnswer = Boolean(poll && CORRECT_ANSWER_TYPES.has(poll.type));
+  const showRatingScale = poll?.type === "rating";
+  const showWordCloudSettings = poll?.type === "word_cloud";
+
+  const persistOptions = useCallback(
+    async (payload: PollOptionInput[], silent: boolean) => {
+      await updatePollOptions(pollId, payload);
+      lastAutosavedOptionsRef.current = JSON.stringify(payload);
+      queryClient.setQueryData<PollDetail>(["poll", pollId], (old) => {
+        if (!old) return old;
+        return {
+          ...old,
+          options: payload.map((o, i) => ({
+            id: old.options[i]?.id ?? `opt-${i}`,
+            text: o.text,
+            is_correct: o.is_correct ?? false,
+            order_no: o.order_no,
+          })),
+        };
+      });
+      if (!silent) showSuccess("選項已儲存");
+    },
+    [pollId, queryClient, showSuccess]
+  );
 
   const saveMeta = useMutation({
     mutationFn: async () => {
@@ -139,31 +174,22 @@ export function PollBuilderPage({
         };
       }
       await updateInteraction(pollId, payload);
+      if (showOptions) {
+        const optPayload = optionsPayload(options);
+        await updatePollOptions(pollId, optPayload);
+        lastAutosavedOptionsRef.current = JSON.stringify(optPayload);
+      }
     },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["poll", pollId] });
-      showSuccess("題目資訊已儲存");
+      void queryClient.invalidateQueries({ queryKey: ["interactions", roomId] });
+      showSuccess("題目與選項已儲存");
       window.location.hash = `#/rooms/${roomId}/workbench/${pollId}`;
     },
     onError: (err: unknown) => {
       showError(formatUserFacingError(err, "儲存失敗"));
     },
   });
-
-  const persistOptions = useCallback(
-    async (payload: PollOptionInput[], silent: boolean) => {
-      await updatePollOptions(pollId, payload);
-      lastAutosavedOptionsRef.current = JSON.stringify(payload);
-      await queryClient.invalidateQueries({ queryKey: ["poll", pollId] });
-      if (!silent) showSuccess("選項已儲存");
-    },
-    [pollId, queryClient, showSuccess]
-  );
-
-  const showOptions = Boolean(poll && OPTION_TYPES.has(poll.type));
-  const showCorrectAnswer = Boolean(poll && CORRECT_ANSWER_TYPES.has(poll.type));
-  const showRatingScale = poll?.type === "rating";
-  const showWordCloudSettings = poll?.type === "word_cloud";
 
   useEffect(() => {
     if (!showOptions || optionsHydratingRef.current) return;
@@ -183,9 +209,15 @@ export function PollBuilderPage({
   }, [options, showOptions, persistOptions, showError]);
 
   const handleSaveTitle = (): void => {
-    if (showOptions && !hasFilledOption(options)) {
-      showError("請至少提供一個選項");
-      return;
+    if (showOptions) {
+      if (options.length === 0) {
+        showError("請至少提供一個選項");
+        return;
+      }
+      if (options.some((o) => !o.text.trim())) {
+        showError("請填寫所有選項內容，不可為空白");
+        return;
+      }
     }
     if (showRatingScale) {
       if (minValue >= maxValue) {
@@ -214,7 +246,7 @@ export function PollBuilderPage({
               }
             : poll.settings_public,
         options: options.map((o, i) => ({
-          id: `preview-${i}`,
+          id: o.key,
           text: o.text,
           order_no: i,
           is_correct: o.is_correct ?? null,
@@ -354,7 +386,11 @@ export function PollBuilderPage({
                     onClick={() =>
                       setOptions((prev) => [
                         ...prev,
-                        { text: `選項 ${prev.length + 1}`, is_correct: false },
+                        {
+                          key: `opt-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+                          text: `選項 ${prev.length + 1}`,
+                          is_correct: false,
+                        },
                       ])
                     }
                     className="text-xs text-accent hover:underline"
@@ -366,7 +402,7 @@ export function PollBuilderPage({
                   <p className="text-xs text-muted">尚無選項，請新增至少一項。</p>
                 ) : null}
                 {options.map((opt, idx) => (
-                  <div key={idx} className="flex gap-2">
+                  <div key={opt.key} className="flex gap-2">
                     <input
                       value={opt.text}
                       onChange={(e) =>

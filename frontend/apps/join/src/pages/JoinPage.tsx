@@ -34,6 +34,10 @@ export function JoinPage({ code }: Props): React.JSX.Element {
   const sessionQuery = useQuery({
     queryKey: ["session-by-code", code],
     queryFn: () => resolveSessionByCode(code),
+    refetchInterval: (query) => {
+      const s = query.state.data;
+      return !s || s.status !== "live" ? 2000 : false;
+    },
   });
 
   const brandingQuery = useQuery({

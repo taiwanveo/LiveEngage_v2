@@ -6,8 +6,9 @@ function hostHashUrl(hashPath: string): string {
     const path = window.location.pathname.replace(/\/$/, "");
     return `${window.location.origin}${path}#${normalized}`;
   }
-  const meta = import.meta as ImportMeta & { env?: { VITE_HOST_BASE?: string } };
-  const base = (meta.env?.VITE_HOST_BASE ?? "https://le-host.zeabur.app").replace(/\/$/, "");
+  const base = (
+    (import.meta.env?.VITE_HOST_BASE as string | undefined) ?? "http://localhost:5173"
+  ).replace(/\/$/, "");
   return `${base}#${normalized}`;
 }
 

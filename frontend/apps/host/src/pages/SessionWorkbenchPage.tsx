@@ -29,6 +29,7 @@ import {
 } from "../lib/pollTypes";
 import {
   listSessions,
+  updateSession,
 } from "../lib/sessionApi";
 import {
   SESSION_VISIBILITY_LABEL,
@@ -183,6 +184,12 @@ export function SessionWorkbenchPage({
       } else if (variables.action === "hide") {
         screen.syncPollSubView(pollId, "question", session?.title ?? null);
       }
+      if (variables.action === "start" && session && session.status === "draft") {
+        void updateSession(session.id, { status: "live" }).then(() => {
+          void qc.invalidateQueries({ queryKey: ["host-sessions"] });
+          showSuccess("已啟動投票，活動已自動設為進行中（Live）");
+        });
+      }
     },
     onError: (err: unknown) => {
       showError(formatUserFacingError(err, "操作失敗"));
@@ -197,12 +204,38 @@ export function SessionWorkbenchPage({
       interactionId: string;
       status: "active" | "stopped";
     }) => updateInteractionStatus(interactionId, status),
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
       showSuccess("狀態已更新");
       void qc.invalidateQueries({ queryKey: ["interactions", roomId] });
+      if (variables.status === "active" && session && session.status === "draft") {
+        void updateSession(session.id, { status: "live" }).then(() => {
+          void qc.invalidateQueries({ queryKey: ["host-sessions"] });
+          showSuccess("已啟動互動，活動已自動設為進行中（Live）");
+        });
+      }
     },
     onError: (err: unknown) => {
       showError(formatUserFacingError(err, "操作失敗"));
+    },
+  });
+
+  const sessionStatusMutation = useMutation({
+    mutationFn: (status: "draft" | "live" | "ended") => {
+      if (!session) throw new Error("無效活動");
+      return updateSession(session.id, { status });
+    },
+    onSuccess: (updated) => {
+      void qc.invalidateQueries({ queryKey: ["host-sessions"] });
+      showSuccess(
+        updated.status === "live"
+          ? "活動已正式開始（Live）！參加者端已可進入作答。"
+          : updated.status === "ended"
+            ? "活動已設為結束"
+            : "狀態已更新"
+      );
+    },
+    onError: (err: unknown) => {
+      showError(formatUserFacingError(err, "活動狀態更新失敗"));
     },
   });
 
@@ -481,6 +514,47 @@ export function SessionWorkbenchPage({
                 : {}),
             }}
             navItems={hostRoomNavItems(roomId, "workbench", navLive)}
+            actions={
+              session ? (
+                <div className="ml-2 flex shrink-0 items-center gap-1.5">
+                  {session.status === "draft" ? (
+                    <button
+                      type="button"
+                      disabled={sessionStatusMutation.isPending}
+                      onClick={() => sessionStatusMutation.mutate("live")}
+                      className="le-btn-primary !min-h-[28px] !px-3 !py-1 !text-xs font-semibold shadow-sm animate-pulse"
+                      title="將活動設為進行中（Live），讓參加者端可進入作答"
+                    >
+                      🚀 開始活動 (Go Live)
+                    </button>
+                  ) : session.status === "live" ? (
+                    <button
+                      type="button"
+                      disabled={sessionStatusMutation.isPending}
+                      onClick={() => {
+                        if (window.confirm("確定要結束活動？結束後參加者將無法繼續互動。")) {
+                          sessionStatusMutation.mutate("ended");
+                        }
+                      }}
+                      className="le-btn-secondary !min-h-[28px] !px-2.5 !py-1 !text-xs !text-danger hover:!bg-danger/10"
+                      title="結束此活動"
+                    >
+                      ⏹ 結束活動
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      disabled={sessionStatusMutation.isPending}
+                      onClick={() => sessionStatusMutation.mutate("live")}
+                      className="le-btn-secondary !min-h-[28px] !px-2.5 !py-1 !text-xs text-accent"
+                      title="重新開放活動"
+                    >
+                      ▶ 重新開放活動
+                    </button>
+                  )}
+                </div>
+              ) : null
+            }
             chromeFooterActions={<HostRoomHeaderActions roomId={roomId} screen={screen} />}
             onLogout={onLogout}
             subRow={<HostRoomHubBreadcrumb roomId={roomId} currentLabel="工作台" />}
@@ -515,11 +589,34 @@ export function SessionWorkbenchPage({
           />
         }
         main={
-          <WorkbenchMainPanel
-            roomId={roomId}
-            item={selectedItem}
-            wsConnected={connected}
-          />
+          <>
+            {session?.status === "draft" ? (
+              <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-700 dark:text-amber-300">
+                <div className="flex items-center gap-2">
+                  <span className="text-base">⚠️</span>
+                  <div>
+                    <span className="font-semibold">活動目前為「草稿」狀態</span>
+                    <span className="ml-1 text-muted">
+                      參加者尚無法進入。點擊右側按鈕即可正式開放，或在下方點擊「開始」投票也會自動開放。
+                    </span>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  disabled={sessionStatusMutation.isPending}
+                  onClick={() => sessionStatusMutation.mutate("live")}
+                  className="le-btn-primary shrink-0 !min-h-[28px] !px-3 !py-1 !text-xs font-semibold shadow-sm"
+                >
+                  🚀 立即開始活動 (Go Live)
+                </button>
+              </div>
+            ) : null}
+            <WorkbenchMainPanel
+              roomId={roomId}
+              item={selectedItem}
+              wsConnected={connected}
+            />
+          </>
         }
         preview={<WorkbenchPreviewPanel item={selectedItem} wsConnected={connected} />}
       />

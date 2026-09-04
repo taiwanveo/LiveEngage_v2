@@ -356,7 +356,7 @@ async def update_question(
     """更新 Quiz 子題（各狀態皆可編輯內容）。"""
     assert_can_edit_content(host)
     qq = await _load_quiz_question(db, question_id)
-    await _load_quiz_for_host(db, qq.quiz_interaction_id, host)
+    quiz, room_id = await _load_quiz_for_host(db, qq.quiz_interaction_id, host)
     child = await _get_child_interaction(db, qq.child_interaction_id)
 
     if payload.title is not None:
@@ -382,6 +382,18 @@ async def update_question(
     await db.refresh(qq)
     await db.refresh(child)
     options = await _question_options(db, child.id, hide_correct=False)
+    hide_correct = not (qq.state == QuizQuestionState.REVEALED and child.result_visible)
+    pub_options = await _question_options(db, child.id, hide_correct=hide_correct)
+    await events.publish(
+        room_id,
+        events.QUIZ_QUESTION_UPDATED,
+        {
+            "quiz_id": str(quiz.id),
+            "question": _to_question_public(qq, child, pub_options).model_dump(
+                mode="json"
+            ),
+        },
+    )
     return _to_question_public(qq, child, options)
 
 

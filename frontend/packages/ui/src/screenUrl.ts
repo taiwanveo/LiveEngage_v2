@@ -12,16 +12,13 @@ export interface ScreenUrlParams {
 }
 
 function resolveScreenBase(): string {
-  const meta = import.meta as ImportMeta & {
-    env?: { VITE_SCREEN_BASE?: string; DEV?: boolean };
-  };
-  const configured = meta.env?.VITE_SCREEN_BASE?.trim();
+  const configured = (import.meta.env?.VITE_SCREEN_BASE as string | undefined)?.trim();
   if (configured) {
     return configured.replace(/\/$/, "");
   }
 
   if (typeof window === "undefined") {
-    return "https://le-screen.zeabur.app";
+    return "http://localhost:5175";
   }
 
   const loc = window.location;
@@ -31,8 +28,18 @@ function resolveScreenBase(): string {
     return `${loc.origin}${path}`;
   }
 
-  if (meta.env?.DEV && loc.port === "5173") {
-    return "http://localhost:5175";
+  const isLocal =
+    Boolean(import.meta.env?.DEV) ||
+    loc.hostname === "localhost" ||
+    loc.hostname === "127.0.0.1" ||
+    loc.hostname === "0.0.0.0" ||
+    loc.hostname.startsWith("192.168.") ||
+    loc.hostname.startsWith("10.") ||
+    loc.hostname.startsWith("172.") ||
+    loc.port === "5173";
+
+  if (isLocal) {
+    return `${loc.protocol}//${loc.hostname}:5175`;
   }
 
   return "https://le-screen.zeabur.app";
