@@ -1,3 +1,4 @@
+import { apiUrl } from "@liveengage/realtime";
 import { api } from "./api";
 import type { LoginResponse } from "../types";
 
@@ -22,7 +23,7 @@ export async function fetchSsoConfig(): Promise<SsoConfig> {
 }
 
 export function ssoAuthorizeUrl(app: "host" | "admin" = "host"): string {
-  return `/api/v1/auth/sso/oidc/authorize?app=${app}`;
+  return apiUrl(`/api/v1/auth/sso/oidc/authorize?app=${app}`);
 }
 
 export async function exchangeSsoTicket(ticket: string): Promise<LoginResponse> {

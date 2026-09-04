@@ -11,6 +11,8 @@ export function messageForHttpStatus(status: number): string {
       return "您沒有權限執行此操作";
     case 404:
       return "找不到要求的資源";
+    case 405:
+      return "伺服器不支援此請求方法（HTTP 405，靜態部署請檢查 API 伺服器設定）";
     case 409:
       return "目前狀態無法執行此操作";
     case 422:

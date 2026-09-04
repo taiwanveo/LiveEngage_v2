@@ -6,6 +6,7 @@ import {
   AUTH_INPUT_CLASS,
   BrandedAuthShell,
   LoginErrorBanner,
+  ServerConfigTrigger,
   onLoginFieldKeyDown,
   validateEmailPasswordLogin,
 } from "@liveengage/ui";
@@ -72,6 +73,11 @@ export function LoginPage({ onLoggedIn }: Props): React.JSX.Element {
       title="活動主持工作台"
       subtitle="建立活動、編輯互動項目、主持活動"
       branding={brandingQuery.data ?? null}
+      footer={
+        <div className="flex justify-center">
+          <ServerConfigTrigger />
+        </div>
+      }
     >
       <form onSubmit={onSubmit} noValidate className="space-y-5">
         <label className="block space-y-1.5">

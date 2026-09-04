@@ -1,5 +1,7 @@
 export { Modal } from "./Modal";
 export type { ModalProps } from "./Modal";
+export { ServerConfigModal, ServerConfigTrigger } from "./ServerConfigModal";
+export type { ServerConfigModalProps } from "./ServerConfigModal";
 export { SystemNoticeModal, useSystemNotice } from "./useSystemNotice";
 export type { NoticeTone, SystemNotice } from "./useSystemNotice";
 export { interactionTypeLabel, INTERACTION_TYPE_LABEL } from "./interactionLabels";

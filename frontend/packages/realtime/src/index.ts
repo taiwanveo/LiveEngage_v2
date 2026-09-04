@@ -1,4 +1,12 @@
-export { apiUrl, getApiBase, wsUrl } from "./apiBase";
+export {
+  apiUrl,
+  getApiBase,
+  wsUrl,
+  getCustomApiBase,
+  setCustomApiBase,
+  DEFAULT_PRODUCTION_API_BASE,
+  STORAGE_KEY_API_BASE,
+} from "./apiBase";
 export { fetchSiteBranding } from "./siteBrandingApi";
 export type { SiteBranding } from "./siteBrandingApi";
 export {

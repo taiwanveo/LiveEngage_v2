@@ -14,6 +14,7 @@ htmlcov/
 .env
 .env.*
 !.env.example
+!.env.production
 
 # 本地資料庫 / 工具
 *.sqlite3
