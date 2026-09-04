@@ -9,9 +9,10 @@ export interface ModalProps {
   onClose: () => void;
   title: string;
   children: React.ReactNode;
+  footer?: React.ReactNode;
   /** 預設 sm */
   size?: "sm" | "md" | "lg" | "xl" | "2xl";
-  /** 底部顯示「關閉」按鈕（預設 true） */
+  /** 底部顯示「關閉」按鈕（預設 true，若提供 footer 則不顯示） */
   showCloseButton?: boolean;
   closeLabel?: string;
 }
@@ -29,6 +30,7 @@ export function Modal({
   onClose,
   title,
   children,
+  footer,
   size = "md",
   showCloseButton = true,
   closeLabel = "關閉",
@@ -86,7 +88,9 @@ export function Modal({
 
           <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4">{children}</div>
 
-          {showCloseButton ? (
+          {footer ? (
+            <div className="shrink-0 border-t border-border px-5 py-3.5 bg-surface">{footer}</div>
+          ) : showCloseButton ? (
             <div className="flex shrink-0 justify-end border-t border-border px-5 py-4">
               <button type="button" onClick={onClose} className="le-btn-secondary !min-h-[36px]">
                 {closeLabel}

@@ -61,7 +61,15 @@ export {
   clearAiConfig,
   getAiHeaders,
   testAiConnection,
+  fetchAiModels,
   DEFAULT_AI_CONFIGS,
   STORAGE_KEY_AI_CONFIG,
 } from "./aiSettings";
-export type { AiConfig, AiProvider, TestAiConnectionResult } from "./aiSettings";
+export type {
+  AiConfig,
+  AiProvider,
+  TestAiConnectionResult,
+  AiModelItem,
+  AiModelsResponse,
+} from "./aiSettings";
+

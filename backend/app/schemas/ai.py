@@ -168,11 +168,33 @@ class AiTestConnectionRequest(BaseModel):
     base_url: str = ""
 
 
+class AiModelItem(BaseModel):
+    id: str
+    name: str
+    description: str | None = None
+    context_length: int | None = None
+    is_free: bool = False
+
+
+class AiModelsRequest(BaseModel):
+    api_key: str = ""
+    provider: str = "auto"
+    base_url: str = ""
+
+
+class AiModelsResponse(BaseModel):
+    status: str  # "ok", "error", "warning"
+    message: str
+    provider: str = ""
+    models: list[AiModelItem] = []
+
+
 class AiTestConnectionResponse(BaseModel):
     status: str  # "ok", "error", "warning"
     message: str
     provider: str = ""
     model: str = ""
     latency_ms: int = 0
+    models: list[AiModelItem] = []
 
 

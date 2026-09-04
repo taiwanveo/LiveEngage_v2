@@ -1,14 +1,16 @@
 import * as React from "react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Modal } from "./Modal";
 import {
   getAiConfig,
   setAiConfig,
   clearAiConfig,
   testAiConnection,
+  fetchAiModels,
   DEFAULT_AI_CONFIGS,
   type AiConfig,
   type AiProvider,
+  type AiModelItem,
 } from "@liveengage/realtime";
 
 export interface AiConfigModalProps {
@@ -29,6 +31,10 @@ export function AiConfigModal({
   const [showKey, setShowKey] = useState(false);
   const [savedSuccess, setSavedSuccess] = useState(false);
 
+  const [availableModels, setAvailableModels] = useState<AiModelItem[]>([]);
+  const [loadingModels, setLoadingModels] = useState(false);
+  const [modelFilter, setModelFilter] = useState("");
+
   const [testStatus, setTestStatus] = useState<
     "idle" | "testing" | "success" | "error" | "warning"
   >("idle");
@@ -45,11 +51,15 @@ export function AiConfigModal({
       setTestMsg("");
       setSavedSuccess(false);
       setShowKey(false);
+      setAvailableModels([]);
+      setModelFilter("");
     }
   }, [open]);
 
   const handleProviderChange = (newProvider: AiProvider) => {
     setProvider(newProvider);
+    setAvailableModels([]);
+    setModelFilter("");
     const defaults = DEFAULT_AI_CONFIGS[newProvider];
     if (defaults) {
       setModel(defaults.defaultModel);
@@ -59,7 +69,7 @@ export function AiConfigModal({
 
   const handleTest = async () => {
     setTestStatus("testing");
-    setTestMsg("正在驗證 LLM 模型連線與 API Key…");
+    setTestMsg("正在驗證 LLM 模型連線並查詢最新模型清單…");
 
     const result = await testAiConnection(
       {
@@ -71,6 +81,10 @@ export function AiConfigModal({
       authToken
     );
 
+    if (result.models && result.models.length > 0) {
+      setAvailableModels(result.models);
+    }
+
     if (result.status === "ok") {
       setTestStatus("success");
       setTestMsg(result.message);
@@ -80,6 +94,31 @@ export function AiConfigModal({
     } else {
       setTestStatus("error");
       setTestMsg(result.message);
+    }
+  };
+
+  const handleFetchModels = async () => {
+    setLoadingModels(true);
+    setTestStatus("testing");
+    setTestMsg("正在取得最新模型清單…");
+
+    const result = await fetchAiModels(
+      {
+        apiKey: apiKey.trim(),
+        provider,
+        baseUrl: baseUrl.trim(),
+      },
+      authToken
+    );
+
+    setLoadingModels(false);
+    if (result.models && result.models.length > 0) {
+      setAvailableModels(result.models);
+      setTestStatus("success");
+      setTestMsg(`成功載入 ${result.models.length} 個可用文字處理模型，請由下方選單挑選！`);
+    } else {
+      setTestStatus("error");
+      setTestMsg(result.message || "未能獲取模型清單");
     }
   };
 
@@ -103,11 +142,23 @@ export function AiConfigModal({
     setApiKey("");
     setModel(defaults.defaultModel);
     setBaseUrl(defaults.defaultBaseUrl);
+    setAvailableModels([]);
+    setModelFilter("");
     setTestStatus("idle");
     setTestMsg("已清除本地金鑰，恢復為伺服端預設或離線雙軌容錯模式");
   };
 
   const popularModels = DEFAULT_AI_CONFIGS[provider]?.popularModels || [];
+
+  const filteredModels = useMemo(() => {
+    if (!modelFilter.trim()) return availableModels;
+    const q = modelFilter.toLowerCase().trim();
+    return availableModels.filter(
+      (m) =>
+        m.id.toLowerCase().includes(q) ||
+        (m.name && m.name.toLowerCase().includes(q))
+    );
+  }, [availableModels, modelFilter]);
 
   return (
     <Modal
@@ -115,6 +166,44 @@ export function AiConfigModal({
       onClose={onClose}
       title="🤖 AI 模型與金鑰設定"
       size="2xl"
+      footer={
+        <div className="flex w-full flex-wrap items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={handleTest}
+              disabled={testStatus === "testing"}
+              className="le-btn-ghost !text-xs !px-3 !py-1.5"
+            >
+              {testStatus === "testing" ? "測試中…" : "🔍 測試連線並取得模型"}
+            </button>
+            <button
+              type="button"
+              onClick={handleClear}
+              className="text-xs text-muted hover:text-danger hover:underline"
+            >
+              重設為預設
+            </button>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={onClose}
+              className="le-btn-ghost !text-xs !px-3 !py-1.5"
+            >
+              取消
+            </button>
+            <button
+              type="button"
+              onClick={handleSave}
+              className="le-btn-primary !text-xs !px-4 !py-1.5"
+            >
+              {savedSuccess ? "✓ 已儲存！" : "儲存設定"}
+            </button>
+          </div>
+        </div>
+      }
     >
       <div className="space-y-4 text-sm">
         <p className="text-xs text-muted leading-relaxed">
@@ -212,17 +301,121 @@ export function AiConfigModal({
         </div>
 
         {/* Model Selection / Input */}
-        <div>
-          <label className="mb-1 block text-xs font-semibold text-foreground">
-            3. 模型名稱 (Model Name)
-          </label>
-          <input
-            type="text"
-            value={model}
-            onChange={(e) => setModel(e.target.value)}
-            placeholder="例如：google/gemini-2.0-flash-001 或 gpt-4o-mini"
-            className="le-input w-full font-mono text-xs"
-          />
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <label className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+              <span>3. 模型名稱 (Model Name)</span>
+              {availableModels.length > 0 && (
+                <span className="rounded bg-accent/15 px-1.5 py-0.5 text-[10px] font-mono text-accent">
+                  共 {availableModels.length} 個模型
+                </span>
+              )}
+            </label>
+            <button
+              type="button"
+              onClick={handleFetchModels}
+              disabled={loadingModels || testStatus === "testing"}
+              className="text-[11px] text-accent hover:underline inline-flex items-center gap-1 disabled:opacity-50"
+            >
+              <span>{loadingModels ? "⏳ 讀取中…" : "🔄 讀取最新可用模型"}</span>
+            </button>
+          </div>
+
+          {availableModels.length > 0 ? (
+            <div className="space-y-2 rounded-lg border border-accent/30 bg-accent/5 p-2.5">
+              <div className="flex items-center gap-2">
+                <div className="relative flex-1">
+                  <input
+                    type="text"
+                    value={modelFilter}
+                    onChange={(e) => setModelFilter(e.target.value)}
+                    placeholder="🔍 快速篩選模型（例如：flash, gpt, free, claude）..."
+                    className="le-input w-full !text-xs !py-1"
+                  />
+                  {modelFilter && (
+                    <button
+                      type="button"
+                      onClick={() => setModelFilter("")}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-muted hover:text-foreground"
+                    >
+                      ✕
+                    </button>
+                  )}
+                </div>
+                {modelFilter && (
+                  <span className="text-[10px] text-muted shrink-0">
+                    符合 {filteredModels.length} / {availableModels.length}
+                  </span>
+                )}
+              </div>
+
+              <div>
+                <select
+                  value={availableModels.some((m) => m.id === model) ? model : ""}
+                  onChange={(e) => {
+                    if (e.target.value) {
+                      setModel(e.target.value);
+                    }
+                  }}
+                  className="le-input w-full font-mono text-xs cursor-pointer bg-surface"
+                >
+                  <option value="">
+                    {availableModels.some((m) => m.id === model)
+                      ? `-- 切換模型 (目前已選: ${model}) --`
+                      : `-- 請從下拉選單選擇模型 (${filteredModels.length} 個符合) --`}
+                  </option>
+
+                  {/* Free models */}
+                  {filteredModels.some((m) => m.is_free) && (
+                    <optgroup label="⭐ 免費/推薦額度模型 (Free)">
+                      {filteredModels
+                        .filter((m) => m.is_free)
+                        .map((m) => (
+                          <option key={m.id} value={m.id}>
+                            {m.name || m.id} (免費)
+                          </option>
+                        ))}
+                    </optgroup>
+                  )}
+
+                  {/* All filtered models */}
+                  <optgroup label={`🌐 所有可用文字處理模型 (${filteredModels.length})`}>
+                    {filteredModels.map((m) => (
+                      <option key={m.id} value={m.id}>
+                        {m.name && m.name !== m.id ? `${m.name} (${m.id})` : m.id}
+                        {m.is_free ? " [免費]" : ""}
+                      </option>
+                    ))}
+                  </optgroup>
+                </select>
+              </div>
+
+              <div className="flex items-center gap-2 pt-1 border-t border-border/50">
+                <span className="text-[11px] text-muted shrink-0">目前選擇 ID：</span>
+                <input
+                  type="text"
+                  value={model}
+                  onChange={(e) => setModel(e.target.value)}
+                  placeholder="模型 ID（可自訂）"
+                  className="le-input flex-1 font-mono text-xs bg-surface"
+                />
+              </div>
+            </div>
+          ) : (
+            <div>
+              <input
+                type="text"
+                value={model}
+                onChange={(e) => setModel(e.target.value)}
+                placeholder="例如：google/gemini-2.5-flash 或 gpt-4o-mini"
+                className="le-input w-full font-mono text-xs"
+              />
+              <p className="mt-1 text-[11px] text-muted">
+                💡 提示：點擊下方「🔍 測試連線」或右上角「🔄 讀取最新可用模型」，系統將即時查詢服務商最新模型清單供您下拉選取。
+              </p>
+            </div>
+          )}
+
           {popularModels.length > 0 && (
             <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
               <span className="text-[10px] text-muted">常用快捷：</span>
@@ -283,43 +476,6 @@ export function AiConfigModal({
           </div>
         )}
 
-        {/* Action Buttons */}
-        <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-border/70">
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={handleTest}
-              disabled={testStatus === "testing"}
-              className="le-btn-ghost !text-xs !px-3 !py-1.5"
-            >
-              {testStatus === "testing" ? "測試中…" : "🔍 測試連線"}
-            </button>
-            <button
-              type="button"
-              onClick={handleClear}
-              className="text-xs text-muted hover:text-danger hover:underline"
-            >
-              重設為預設
-            </button>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={onClose}
-              className="le-btn-ghost !text-xs !px-3 !py-1.5"
-            >
-              取消
-            </button>
-            <button
-              type="button"
-              onClick={handleSave}
-              className="le-btn-primary !text-xs !px-4 !py-1.5"
-            >
-              {savedSuccess ? "✓ 已儲存！" : "儲存設定"}
-            </button>
-          </div>
-        </div>
       </div>
     </Modal>
   );

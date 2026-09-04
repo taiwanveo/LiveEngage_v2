@@ -19,6 +19,8 @@ from app.schemas.ai import (
     AiStubResponse,
     AiTestConnectionRequest,
     AiTestConnectionResponse,
+    AiModelsRequest,
+    AiModelsResponse,
 )
 from app.services import ai_service
 
@@ -62,6 +64,33 @@ async def test_connection(
         provider=res.get("provider", ""),
         model=res.get("model", ""),
         latency_ms=res.get("latency_ms", 0),
+        models=res.get("models", []),
+    )
+
+
+@router.post("/models", response_model=AiModelsResponse)
+async def list_ai_models(
+    request: Request,
+    payload: AiModelsRequest | None = None,
+) -> AiModelsResponse:
+    """獲取指定 Provider 的可用文字處理模型清單（過濾純生圖、音訊等不適用模型）。"""
+    ai_override: AiConfigOverride | None = None
+    if payload and (payload.api_key or payload.base_url or payload.provider != "auto"):
+        ai_override = AiConfigOverride(
+            api_key=payload.api_key.strip(),
+            provider=payload.provider.strip() or "auto",
+            model="",
+            base_url=payload.base_url.strip(),
+        )
+    else:
+        ai_override = get_ai_override(request)
+
+    res = await ai_service.fetch_ai_models(ai_override=ai_override)
+    return AiModelsResponse(
+        status=res.get("status", "ok"),
+        message=res.get("message", "模型清單獲取完成"),
+        provider=res.get("provider", ""),
+        models=res.get("models", []),
     )
 
 

@@ -15,8 +15,10 @@
 4. [功能二：會後一鍵生成 AI 決策報告 (AI-004 Post-Event AI Decision Report)](#四功能二會後一鍵生成-ai-決策報告-ai-004-post-event-ai-decision-report)
 5. [功能三：AI 一鍵靈感出題 (AI-001 Intelligent Poll Generator & Batch Creation)](#五功能三ai-一鍵靈感出題-ai-001-intelligent-poll-generator--batch-creation)
 6. [功能四：Q&A 語意去重與同義題合併 (AI-002 Semantic Q&A Deduplication & Merging)](#六功能四qa-語意去重與同義題合併-ai-002-semantic-qa-deduplication--merging)
-7. [後端 API 契約與資料庫 Schema 總整](#七後端-api-契約與資料庫-schema-總整)
-8. [自動化測試與資安驗證總結](#八自動化測試與資安驗證總結)
+7. [AI 模型與金鑰自訂架構與智慧動態選單 (Custom AI Key & Model Auto-Discovery)](#七ai-模型與金鑰自訂架構與智慧動態選單-custom-ai-key--model-auto-discovery)
+8. [後端 API 契約與資料庫 Schema 總整](#八後端-api-契約與資料庫-schema-總整)
+9. [自動化測試與資安驗證總結](#九自動化測試與資安驗證總結)
+
 
 ---
 
@@ -222,7 +224,42 @@ LiveEngage v2 領先傳統 Slido，推出**大螢幕即時語意聚合引擎**�
 
 ---
 
-## 七、後端 API 契約與資料庫 Schema 總整
+## 七、AI 模型與金鑰自訂架構與智慧動態選單 (Custom AI Key & Model Auto-Discovery)
+
+### 1. 業務價值與設計初衷
+不同企業或主辦單位可能擁有自己的 LLM 訂閱或內部私有模型（如 OpenRouter、Google Gemini、OpenAI、Ollama 等）。LiveEngage v2 具備**零後端外洩的自訂金鑰架構**：
+- **本地安全性保障**：主持人金鑰純粹儲存於瀏覽器 `localStorage`，絕不寫入後端資料庫或永久日誌。
+- **動態 Header 注入**：前端呼叫任一 AI 增強功能時，透過專屬 HTTP Header 動態覆蓋預設設定：
+  - `X-AI-API-Key`: 使用者自訂 API Key
+  - `X-AI-Provider`: `openrouter` / `gemini` / `openai` / `custom` / `auto`
+  - `X-AI-Model`: 模型名稱（如 `google/gemini-2.5-flash`, `deepseek/deepseek-chat`）
+  - `X-AI-Base-Url`: 自訂 API Base URL
+
+### 2. 智慧模型過濾與動態下拉選單 (Dynamic Model Discovery)
+針對主流服務商（如 OpenRouter 有數百種模型、各模型更迭頻繁且舊模型易下架）的痛點，LiveEngage v2 打造了**全自動模型動態探測與智慧過濾引擎**：
+1. **深度文字模型過濾 (Non-Text Filtering)**：
+   - OpenRouter：檢查 `architecture.output_modalities` 必須包含 `text`，過濾純生圖、音訊辨識與批次模型（排除 `dall-e`, `stable-diffusion`, `flux`, `whisper`, `tts`, `embedding`, `moderation`, `:batch` 等）。
+   - Google Gemini：查詢 `/v1beta/models`，嚴格過濾 `supportedGenerationMethods` 必須包含 `generateContent`。
+   - OpenAI / 相容 API：查詢 `/models` 並排除非 Chat 類型的 embedding / audio 模型。
+2. **智慧排序與免費額度置頂 (Free Tier Prioritization)**：
+   - 具有 `:free` 標記之免費模型自動置頂於專屬分組 `<optgroup label="⭐ 免費/推薦額度模型 (Free)">`，便利無付費額度的使用者直接選用。
+   - 主流優選旗艦（Gemini 2.5、GPT-4o、Claude 3.5、DeepSeek）排於優先位置。
+3. **極致友善的互動體驗 (Interactive UX)**：
+   - **即打即篩 (Live Search)**：提供模型關鍵字即時搜尋框，輸入 `flash`、`free`、`gpt` 即可秒級過濾 350+ 模型。
+   - **釘選底部操作列 (Pinned Footer)**：對話框設有專屬 Pinned Footer，連線測試、重設、取消與儲存按鈕永不被長選單或回傳訊息遮擋推擠。
+   - **404/舊模型下架自動提示與恢復**：當所選模型因官方下架回傳 404 時，系統自動判定為 warning 狀態，並立刻載入服務商最新可用清單供主持人一鍵挑選切換，保證不中斷操作。
+
+### 3. API 契約
+- **測試連線與取得模型**：`POST /api/v1/ai/test-connection`
+  - 請求：`{ "api_key": "...", "provider": "openrouter", "model": "...", "base_url": "..." }`
+  - 回應：`{ "status": "ok" | "warning" | "error", "message": "...", "provider": "...", "model": "...", "latency_ms": 120, "models": [...] }`
+- **直接獲取可用文字模型清單**：`POST /api/v1/ai/models`
+  - 請求：`{ "api_key": "...", "provider": "openrouter", "base_url": "..." }`
+  - 回應：`{ "status": "ok", "message": "...", "provider": "...", "models": [{ "id": "...", "name": "...", "is_free": true }] }`
+
+---
+
+## 八、後端 API 契約與資料庫 Schema 總整
 
 ### 1. 資料庫變更記錄
 - **Alembic 遷移**：`alembic/versions/0008_ai_feature_enums.py`
@@ -235,6 +272,8 @@ LiveEngage v2 領先傳統 Slido，推出**大螢幕即時語意聚合引擎**�
 
 | 模組 | HTTP 方法與路徑 | 功能說明 | 授權要求 |
 | :--- | :--- | :--- | :--- |
+| **AI 模型與連線** | `POST /api/v1/ai/test-connection` | 測試金鑰與連線並回傳可用模型清單 | Public / Host |
+| **AI 模型清單** | `POST /api/v1/ai/models` | 動態探測並過濾指定服務商之可用文字模型 | Public / Host |
 | **Poll 文字雲** | `POST /api/v1/polls/{id}/ai-cluster` | 開關文字雲語意聚合視角 | Host / Public |
 | **決策報告** | `POST /api/v1/sessions/{id}/ai-report` | 生成／重新整理 AI 決策報告 | Host User |
 | **決策報告** | `GET /api/v1/sessions/{id}/ai-report` | 查詢已生成的決策報告快取 | Host User |
@@ -246,7 +285,7 @@ LiveEngage v2 領先傳統 Slido，推出**大螢幕即時語意聚合引擎**�
 
 ---
 
-## 八、自動化測試與資安驗證總結
+## 九、自動化測試與資安驗證總結
 
 為貫徹專案嚴謹的工程規範與 DoD（Definition of Done），本次實作建立之所有功能均包含完整自動化單元測試：
 

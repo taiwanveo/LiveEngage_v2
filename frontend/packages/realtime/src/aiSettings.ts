@@ -22,12 +22,13 @@ export const DEFAULT_AI_CONFIGS: Record<
 > = {
   openrouter: {
     label: "OpenRouter（多模型推薦）",
-    defaultModel: "google/gemini-2.0-flash-001",
+    defaultModel: "google/gemini-2.5-flash",
     defaultBaseUrl: "https://openrouter.ai/api/v1",
     placeholder: "sk-or-v1-...",
     popularModels: [
-      "google/gemini-2.0-flash-001",
-      "deepseek/deepseek-r1",
+      "google/gemini-2.5-flash",
+      "google/gemini-2.5-flash-lite",
+      "deepseek/deepseek-chat",
       "openai/gpt-4o-mini",
       "anthropic/claude-3.5-haiku",
       "meta-llama/llama-3.3-70b-instruct",
@@ -35,10 +36,10 @@ export const DEFAULT_AI_CONFIGS: Record<
   },
   gemini: {
     label: "Google Gemini",
-    defaultModel: "gemini-2.0-flash",
+    defaultModel: "gemini-2.5-flash",
     defaultBaseUrl: "https://generativelanguage.googleapis.com/v1beta/openai",
     placeholder: "AIzaSy...",
-    popularModels: ["gemini-2.0-flash", "gemini-1.5-flash", "gemini-1.5-pro"],
+    popularModels: ["gemini-2.5-flash", "gemini-2.5-flash-lite", "gemini-2.5-pro", "gemini-2.0-flash"],
   },
   openai: {
     label: "OpenAI",
@@ -49,10 +50,10 @@ export const DEFAULT_AI_CONFIGS: Record<
   },
   auto: {
     label: "自動辨識 Provider",
-    defaultModel: "google/gemini-2.0-flash-001",
+    defaultModel: "google/gemini-2.5-flash",
     defaultBaseUrl: "https://openrouter.ai/api/v1",
     placeholder: "輸入任意相容 API Key",
-    popularModels: ["google/gemini-2.0-flash-001", "gpt-4o-mini", "gemini-2.0-flash"],
+    popularModels: ["google/gemini-2.5-flash", "gpt-4o-mini", "gemini-2.5-flash"],
   },
   custom: {
     label: "自訂相容 API（如 Ollama / vLLM）",
@@ -68,7 +69,7 @@ export function getAiConfig(): AiConfig {
     return {
       apiKey: "",
       provider: "openrouter",
-      model: "google/gemini-2.0-flash-001",
+      model: "google/gemini-2.5-flash",
       baseUrl: "https://openrouter.ai/api/v1",
     };
   }
@@ -79,7 +80,7 @@ export function getAiConfig(): AiConfig {
       return {
         apiKey: "",
         provider: "openrouter",
-        model: "google/gemini-2.0-flash-001",
+        model: "google/gemini-2.5-flash",
         baseUrl: "https://openrouter.ai/api/v1",
       };
     }
@@ -88,14 +89,14 @@ export function getAiConfig(): AiConfig {
     return {
       apiKey: (parsed.apiKey || "").trim(),
       provider,
-      model: (parsed.model || "").trim() || DEFAULT_AI_CONFIGS[provider]?.defaultModel || "google/gemini-2.0-flash-001",
+      model: (parsed.model || "").trim() || DEFAULT_AI_CONFIGS[provider]?.defaultModel || "google/gemini-2.5-flash",
       baseUrl: (parsed.baseUrl || "").trim() || DEFAULT_AI_CONFIGS[provider]?.defaultBaseUrl || "https://openrouter.ai/api/v1",
     };
   } catch {
     return {
       apiKey: "",
       provider: "openrouter",
-      model: "google/gemini-2.0-flash-001",
+      model: "google/gemini-2.5-flash",
       baseUrl: "https://openrouter.ai/api/v1",
     };
   }
@@ -132,12 +133,28 @@ export function getAiHeaders(): Record<string, string> {
   return headers;
 }
 
+export interface AiModelItem {
+  id: string;
+  name: string;
+  description?: string | null;
+  context_length?: number | null;
+  is_free?: boolean;
+}
+
+export interface AiModelsResponse {
+  status: "ok" | "error" | "warning";
+  message: string;
+  provider?: string;
+  models: AiModelItem[];
+}
+
 export interface TestAiConnectionResult {
   status: "ok" | "error" | "warning";
   message: string;
   provider?: string;
   model?: string;
   latency_ms: number;
+  models?: AiModelItem[];
 }
 
 export async function testAiConnection(
@@ -170,12 +187,52 @@ export async function testAiConnection(
       provider: data.provider || config.provider,
       model: data.model || config.model,
       latency_ms: typeof data.latency_ms === "number" ? data.latency_ms : 0,
+      models: Array.isArray(data.models) ? data.models : [],
     };
   } catch (err: unknown) {
     return {
       status: "error",
       message: `連線請求異常：${err instanceof Error ? err.message : String(err)}`,
       latency_ms: 0,
+      models: [],
+    };
+  }
+}
+
+export async function fetchAiModels(
+  config: Partial<AiConfig>,
+  authToken?: string | null
+): Promise<AiModelsResponse> {
+  try {
+    const headers: Record<string, string> = {
+      "Content-Type": "application/json",
+    };
+    if (authToken) {
+      headers["Authorization"] = `Bearer ${authToken}`;
+    }
+
+    const res = await fetch(apiUrl("/api/v1/ai/models"), {
+      method: "POST",
+      headers,
+      body: JSON.stringify({
+        api_key: config.apiKey || "",
+        provider: config.provider || "auto",
+        base_url: config.baseUrl || "",
+      }),
+    });
+
+    const data = await res.json();
+    return {
+      status: data.status || (res.ok ? "ok" : "error"),
+      message: data.message || (res.ok ? "已載入可用模型清單" : `載入失敗 (HTTP ${res.status})`),
+      provider: data.provider || config.provider,
+      models: Array.isArray(data.models) ? data.models : [],
+    };
+  } catch (err: unknown) {
+    return {
+      status: "error",
+      message: `載入模型清單異常：${err instanceof Error ? err.message : String(err)}`,
+      models: [],
     };
   }
 }

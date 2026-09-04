@@ -960,12 +960,12 @@ def _resolve_ai_config(ai_override: AiConfigOverride | None = None) -> tuple[str
         if not base_url or base_url == "https://api.openai.com/v1":
             base_url = "https://openrouter.ai/api/v1"
         if not model or model == "gpt-4o-mini":
-            model = "google/gemini-2.0-flash-001"
+            model = "google/gemini-2.5-flash"
     elif provider == "gemini":
         if not base_url or base_url == "https://api.openai.com/v1":
             base_url = "https://generativelanguage.googleapis.com/v1beta/openai"
         if not model or model == "gpt-4o-mini":
-            model = "gemini-2.0-flash"
+            model = "gemini-2.5-flash"
     elif provider == "openai":
         if not base_url:
             base_url = "https://api.openai.com/v1"
@@ -975,10 +975,165 @@ def _resolve_ai_config(ai_override: AiConfigOverride | None = None) -> tuple[str
     return api_key, provider, model, base_url
 
 
+async def fetch_ai_models(
+    ai_override: AiConfigOverride | None = None,
+) -> dict[str, Any]:
+    """獲取指定 Provider 的可用文字模型清單，並過濾排除純生圖、音訊、Embedding 等不適用模型。"""
+    import httpx
+
+    api_key, provider, _, base_url = _resolve_ai_config(ai_override)
+    models: list[dict[str, Any]] = []
+
+    # 1. OpenRouter
+    if provider == "openrouter" or "openrouter.ai" in base_url:
+        target_url = "https://openrouter.ai/api/v1/models"
+        headers: dict[str, str] = {"User-Agent": "LiveEngage v2"}
+        if api_key:
+            headers["Authorization"] = f"Bearer {api_key}"
+            headers["HTTP-Referer"] = "https://liveengage.pages.dev"
+            headers["X-Title"] = "LiveEngage v2"
+        try:
+            async with httpx.AsyncClient(timeout=10.0) as client:
+                resp = await client.get(target_url, headers=headers)
+                if not resp.is_success:
+                    return {
+                        "status": "error",
+                        "message": f"無法獲取 OpenRouter 模型列表 (HTTP {resp.status_code}): {resp.text[:120]}",
+                        "provider": provider,
+                        "models": [],
+                    }
+                data = resp.json().get("data", [])
+                for m in data:
+                    mid = m.get("id", "")
+                    arch = m.get("architecture") or {}
+                    out_mods = arch.get("output_modalities") or ["text"]
+                    if "text" not in out_mods:
+                        continue
+                    if ":batch" in mid:
+                        continue
+                    mid_lower = mid.lower()
+                    if any(x in mid_lower for x in ["embedding", "moderation", "guard", "whisper", "dall-e", "stable-diffusion", "flux"]):
+                        continue
+                    if mid_lower.endswith(("-image", "-image-preview")):
+                        continue
+                    models.append({
+                        "id": mid,
+                        "name": m.get("name") or mid,
+                        "description": m.get("description"),
+                        "context_length": m.get("context_length"),
+                        "is_free": mid.endswith(":free"),
+                    })
+        except Exception as e:
+            return {
+                "status": "error",
+                "message": f"連線 OpenRouter 失敗 ({type(e).__name__}): {str(e)[:120]}",
+                "provider": provider,
+                "models": [],
+            }
+
+    # 2. Google Gemini
+    elif provider == "gemini" or "generativelanguage.googleapis.com" in base_url:
+        if not api_key:
+            return {
+                "status": "warning",
+                "message": "請先填寫 Google Gemini API Key 以獲取最新模型清單。",
+                "provider": provider,
+                "models": [],
+            }
+        target_url = f"https://generativelanguage.googleapis.com/v1beta/models?key={api_key}"
+        try:
+            async with httpx.AsyncClient(timeout=10.0) as client:
+                resp = await client.get(target_url)
+                if not resp.is_success:
+                    return {
+                        "status": "error",
+                        "message": f"無法獲取 Gemini 模型列表 (HTTP {resp.status_code}): {resp.text[:120]}",
+                        "provider": provider,
+                        "models": [],
+                    }
+                gemini_models = resp.json().get("models", [])
+                for gm in gemini_models:
+                    methods = gm.get("supportedGenerationMethods", [])
+                    if "generateContent" not in methods:
+                        continue
+                    raw_name = gm.get("name", "")
+                    model_id = raw_name.replace("models/", "")
+                    models.append({
+                        "id": model_id,
+                        "name": gm.get("displayName") or model_id,
+                        "description": gm.get("description"),
+                        "context_length": gm.get("inputTokenLimit"),
+                        "is_free": False,
+                    })
+        except Exception as e:
+            return {
+                "status": "error",
+                "message": f"連線 Gemini 失敗 ({type(e).__name__}): {str(e)[:120]}",
+                "provider": provider,
+                "models": [],
+            }
+
+    # 3. OpenAI or Custom
+    else:
+        target_url = f"{base_url.rstrip('/')}/models"
+        headers = {}
+        if api_key:
+            headers["Authorization"] = f"Bearer {api_key}"
+        try:
+            async with httpx.AsyncClient(timeout=10.0) as client:
+                resp = await client.get(target_url, headers=headers)
+                if not resp.is_success:
+                    return {
+                        "status": "error",
+                        "message": f"無法獲取模型列表 (HTTP {resp.status_code}): {resp.text[:120]}",
+                        "provider": provider,
+                        "models": [],
+                    }
+                data = resp.json().get("data", [])
+                for m in data:
+                    mid = m.get("id", "")
+                    mid_lower = mid.lower()
+                    if any(x in mid_lower for x in ["embedding", "dall-e", "tts", "whisper", "moderation", "realtime", "audio", "rerank"]):
+                        continue
+                    models.append({
+                        "id": mid,
+                        "name": mid,
+                        "description": None,
+                        "context_length": None,
+                        "is_free": False,
+                    })
+        except Exception as e:
+            return {
+                "status": "error",
+                "message": f"連線失敗 ({type(e).__name__}): {str(e)[:120]}",
+                "provider": provider,
+                "models": [],
+            }
+
+    def sort_key(m: dict[str, Any]) -> tuple[int, int, str]:
+        free_rank = 0 if m.get("is_free") else 1
+        mid = m.get("id", "").lower()
+        provider_rank = 2
+        if any(p in mid for p in ["gemini-2.5", "gemini-3", "gpt-4o", "claude-3.5", "deepseek"]):
+            provider_rank = 0
+        elif any(p in mid for p in ["google/", "openai/", "anthropic/", "deepseek/"]):
+            provider_rank = 1
+        return (free_rank, provider_rank, m.get("name", "").lower())
+
+    models.sort(key=sort_key)
+
+    return {
+        "status": "ok",
+        "message": f"成功載入 {len(models)} 個可用文字處理模型",
+        "provider": provider,
+        "models": models,
+    }
+
+
 async def test_ai_connection(
     ai_override: AiConfigOverride | None = None,
 ) -> dict[str, Any]:
-    """驗證 LLM 連線與 API Key 有效性。"""
+    """驗證 LLM 連線與 API Key 有效性，並載入最新可用文字模型清單。"""
     import time
     import httpx
 
@@ -990,9 +1145,41 @@ async def test_ai_connection(
             "provider": provider,
             "model": model,
             "latency_ms": 0,
+            "models": [],
         }
 
-    headers = {
+    started = time.perf_counter()
+
+    # 1. 先嘗試獲取模型清單（同時能檢驗 API Key 是否有效）
+    models_res = await fetch_ai_models(ai_override)
+    models = models_res.get("models", [])
+
+    # 如果模型清單請求直接報 401/403，代表 API Key 無效
+    if models_res.get("status") == "error" and any(code in models_res.get("message", "") for code in ["401", "403"]):
+        latency_ms = int((time.perf_counter() - started) * 1000)
+        return {
+            "status": "error",
+            "message": f"API Key 驗證失敗：{models_res.get('message')}",
+            "provider": provider,
+            "model": model,
+            "latency_ms": latency_ms,
+            "models": [],
+        }
+
+    # 2. 若使用者未填寫模型名稱
+    if not model:
+        latency_ms = int((time.perf_counter() - started) * 1000)
+        return {
+            "status": "ok",
+            "message": f"API Key 驗證成功！已成功載入 {len(models)} 個可用模型，請由下方選單挑選。",
+            "provider": provider,
+            "model": model,
+            "latency_ms": latency_ms,
+            "models": models,
+        }
+
+    # 3. 測試呼叫該模型 chat/completions
+    headers: dict[str, str] = {
         "Authorization": f"Bearer {api_key}",
         "Content-Type": "application/json",
     }
@@ -1000,7 +1187,6 @@ async def test_ai_connection(
         headers["HTTP-Referer"] = "https://liveengage.pages.dev"
         headers["X-Title"] = "LiveEngage v2"
 
-    started = time.perf_counter()
     try:
         async with httpx.AsyncClient(timeout=8.0) as client:
             resp = await client.post(
@@ -1018,19 +1204,31 @@ async def test_ai_connection(
             if resp.is_success:
                 return {
                     "status": "ok",
-                    "message": f"連線成功！LLM 模型 [{model}] 回應正常（耗時 {latency_ms}ms）",
+                    "message": f"連線成功！LLM 模型 [{model}] 回應正常（耗時 {latency_ms}ms）。已載入 {len(models)} 個可用模型。",
                     "provider": provider,
                     "model": model,
                     "latency_ms": latency_ms,
+                    "models": models,
                 }
             else:
-                body_snippet = resp.text[:120].replace("\n", " ")
+                body_snippet = resp.text[:140].replace("\n", " ")
+                # 若為 404 或模型不存在，但 API Key 是有效的（已取到模型清單）
+                if resp.status_code in (404, 400) and len(models) > 0:
+                    return {
+                        "status": "warning",
+                        "message": f"API Key 有效，但原模型 [{model}] 目前無法使用 (HTTP {resp.status_code})。已為您獲取 {len(models)} 個最新可用模型，請由下方選單挑選！",
+                        "provider": provider,
+                        "model": model,
+                        "latency_ms": latency_ms,
+                        "models": models,
+                    }
                 return {
                     "status": "error",
                     "message": f"API 回應錯誤 (HTTP {resp.status_code}): {body_snippet}",
                     "provider": provider,
                     "model": model,
                     "latency_ms": latency_ms,
+                    "models": models,
                 }
     except Exception as exc:
         latency_ms = int((time.perf_counter() - started) * 1000)
@@ -1040,6 +1238,7 @@ async def test_ai_connection(
             "provider": provider,
             "model": model,
             "latency_ms": latency_ms,
+            "models": models,
         }
 
 
