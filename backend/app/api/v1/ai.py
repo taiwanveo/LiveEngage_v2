@@ -12,6 +12,7 @@ from app.core.deps import get_current_user
 from app.models.user import User
 from app.schemas.ai import (
     AiGeneratePollsRequest,
+    AiGeneratePollsResponse,
     AiQuestionAssistRequest,
     AiRewriteRequest,
     AiStubResponse,
@@ -21,12 +22,12 @@ from app.services import ai_service
 router = APIRouter(prefix="/ai", tags=["ai"])
 
 
-@router.post("/generate-polls", response_model=AiStubResponse)
+@router.post("/generate-polls", response_model=AiGeneratePollsResponse)
 async def generate_polls(
     payload: AiGeneratePollsRequest,
     db: Annotated[AsyncSession, Depends(get_session)],
     user: Annotated[User, Depends(get_current_user)],
-) -> AiStubResponse:
+) -> AiGeneratePollsResponse:
     """AI-001：依主題產生 Poll 草稿。"""
     return await ai_service.generate_polls(db, user=user, payload=payload)
 

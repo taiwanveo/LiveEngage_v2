@@ -12,6 +12,7 @@ from app.core.db import get_session
 from app.core.deps import get_current_user
 from app.models.user import User
 from app.schemas.interaction import (
+    BatchPollCreateRequest,
     InteractionCreateRequest,
     InteractionResponse,
     InteractionReorderRequest,
@@ -50,6 +51,23 @@ async def create_interaction(
 ) -> InteractionResponse:
     """建立互動項目（BE-002）。"""
     return await interaction_service.create_interaction(
+        db, room_id=room_id, host=host, payload=payload
+    )
+
+
+@router.post(
+    "/rooms/{room_id}/interactions/batch",
+    response_model=list[InteractionResponse],
+    status_code=201,
+)
+async def batch_create_interactions(
+    room_id: uuid.UUID,
+    payload: BatchPollCreateRequest,
+    db: Annotated[AsyncSession, Depends(get_session)],
+    host: Annotated[User, Depends(get_current_user)],
+) -> list[InteractionResponse]:
+    """批次建立互動項目與題目選項（AI 靈感出題一鍵套用）。"""
+    return await interaction_service.batch_create_interactions(
         db, room_id=room_id, host=host, payload=payload
     )
 

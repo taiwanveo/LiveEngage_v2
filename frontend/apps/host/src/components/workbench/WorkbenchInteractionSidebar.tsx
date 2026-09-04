@@ -25,6 +25,7 @@ interface Props {
   onNewType: (t: WorkbenchCreateType) => void;
   onNewTitle: (v: string) => void;
   onCreate: () => void;
+  onOpenAiModal?: () => void;
   onSelect: (id: string) => void;
   onReorder?: (orderedIds: string[]) => void;
 }
@@ -206,14 +207,26 @@ export function WorkbenchInteractionSidebar(props: Props): React.JSX.Element {
             placeholder="標題（選填）"
             className="le-input w-full !py-1 !text-[11px] placeholder:text-[10px]"
           />
-          <button
-            type="button"
-            className="le-btn-primary w-full !min-h-[32px] !py-1.5 !text-[11px]"
-            onClick={props.onCreate}
-            disabled={props.creating}
-          >
-            {props.creating ? "…" : "新增互動"}
-          </button>
+          <div className="flex gap-1.5">
+            <button
+              type="button"
+              className="le-btn-primary flex-1 !min-h-[32px] !py-1.5 !text-[11px]"
+              onClick={props.onCreate}
+              disabled={props.creating}
+            >
+              {props.creating ? "…" : "新增互動"}
+            </button>
+            {props.onOpenAiModal ? (
+              <button
+                type="button"
+                onClick={props.onOpenAiModal}
+                className="flex items-center justify-center gap-1 rounded-lg border border-purple-500/40 bg-purple-500/10 px-2.5 py-1.5 text-[11px] font-semibold text-purple-600 dark:text-purple-300 hover:bg-purple-500/20 transition shadow-sm"
+                title="AI 一鍵靈感出題"
+              >
+                <span>✨ AI 出題</span>
+              </button>
+            ) : null}
+          </div>
         </div>
       </div>
       <ul

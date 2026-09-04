@@ -94,3 +94,52 @@ export async function reorderWorkbenchInteractions(
     }
   );
 }
+
+export interface BatchPollCreateItem {
+  title: string;
+  type: string;
+  description?: string | null;
+  options?: string[];
+  settings?: Record<string, unknown>;
+}
+
+export interface AiGeneratedPollItem {
+  title: string;
+  type: string;
+  description?: string | null;
+  options: string[];
+  rationality: string;
+}
+
+export interface AiGeneratePollsResponse {
+  polls: AiGeneratedPollItem[];
+  result?: Record<string, unknown>;
+  latency_ms: number;
+}
+
+export async function generateAiPolls(payload: {
+  topic: string;
+  count?: number;
+  poll_type?: string;
+  context?: string;
+}): Promise<AiGeneratePollsResponse> {
+  return api<AiGeneratePollsResponse>(`/api/v1/ai/generate-polls`, {
+    method: "POST",
+    body: payload,
+  });
+}
+
+export async function batchCreateInteractions(
+  roomId: string,
+  polls: BatchPollCreateItem[]
+): Promise<InteractionSummary[]> {
+  return api<InteractionSummary[]>(
+    `/api/v1/rooms/${roomId}/interactions/batch`,
+    {
+      method: "POST",
+      body: { polls },
+      idempotencyKey: crypto.randomUUID(),
+    }
+  );
+}
+

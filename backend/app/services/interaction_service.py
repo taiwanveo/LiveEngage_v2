@@ -23,6 +23,7 @@ from app.models.session import Session
 from app.models.user import User
 from app.realtime import events
 from app.schemas.interaction import (
+    BatchPollCreateRequest,
     InteractionCreateRequest,
     InteractionResponse,
     InteractionReorderRequest,
@@ -195,6 +196,62 @@ async def create_interaction(
     await db.commit()
     await db.refresh(interaction)
     return _to_response(interaction)
+
+
+async def batch_create_interactions(
+    db: AsyncSession,
+    *,
+    room_id: uuid.UUID,
+    host: User,
+    payload: BatchPollCreateRequest,
+) -> list[InteractionResponse]:
+    """批次建立互動項目與選項（AI 靈感出題一鍵匯入）。"""
+    assert_can_edit_content(host)
+    await _load_room_for_host(db, room_id, host)
+
+    max_order = await db.execute(
+        select(func.coalesce(func.max(Interaction.order_no), -1)).where(
+            Interaction.room_id == room_id
+        )
+    )
+    current_order = int(max_order.scalar_one())
+
+    created_interactions: list[Interaction] = []
+    for poll_item in payload.polls:
+        current_order += 1
+        interaction_id = uuid7()
+        interaction = Interaction(
+            id=interaction_id,
+            room_id=room_id,
+            type=poll_item.type,
+            title=poll_item.title,
+            description=poll_item.description,
+            status=InteractionStatus.IDLE,
+            order_no=current_order,
+            settings_jsonb=merge_live_aggregate_defaults(poll_item.type, poll_item.settings),
+            created_by=host.id,
+        )
+        db.add(interaction)
+        created_interactions.append(interaction)
+
+        if poll_item.options and poll_item.type in (InteractionType.MULTIPLE_CHOICE, InteractionType.RANKING):
+            for opt_idx, opt_text in enumerate(poll_item.options):
+                if opt_text.strip():
+                    db.add(
+                        PollOption(
+                            id=uuid7(),
+                            interaction_id=interaction_id,
+                            text=opt_text.strip(),
+                            order_no=opt_idx,
+                            is_correct=False,
+                        )
+                    )
+
+    await db.commit()
+    for item in created_interactions:
+        await db.refresh(item)
+
+    return [_to_response(i) for i in created_interactions]
 
 
 async def update_interaction(

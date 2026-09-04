@@ -58,6 +58,7 @@ import {
   canRevealPollResult,
   POLL_REVEAL_REQUIRES_STARTED_HINT,
 } from "../components/PollControlBar";
+import { AiPollGeneratorModal } from "../components/polls/AiPollGeneratorModal";
 import { isPollRunning } from "../lib/pollTypes";
 import {
   applyHostPollActionSuccess,
@@ -106,6 +107,7 @@ export function SessionWorkbenchPage({
   const selfActionGuard = useRef(createSelfPollActionGuard());
   const [newType, setNewType] = useState<WorkbenchCreateType>("multiple_choice");
   const [newTitle, setNewTitle] = useState("");
+  const [aiModalOpen, setAiModalOpen] = useState(false);
 
   const sessionsQuery = useQuery({
     queryKey: ["host-sessions"],
@@ -584,6 +586,7 @@ export function SessionWorkbenchPage({
             onNewType={setNewType}
             onNewTitle={setNewTitle}
             onCreate={() => createMutation.mutate()}
+            onOpenAiModal={() => setAiModalOpen(true)}
             onSelect={selectItem}
             onReorder={(orderedIds) => reorderMutation.mutate(orderedIds)}
           />
@@ -619,6 +622,12 @@ export function SessionWorkbenchPage({
           </>
         }
         preview={<WorkbenchPreviewPanel item={selectedItem} wsConnected={connected} />}
+      />
+      <AiPollGeneratorModal
+        roomId={roomId}
+        isOpen={aiModalOpen}
+        onClose={() => setAiModalOpen(false)}
+        onSuccess={() => showSuccess("成功建立 AI 靈感題庫！")}
       />
       {systemNoticeModal}
     </>

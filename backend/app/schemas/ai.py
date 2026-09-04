@@ -7,10 +7,31 @@ from typing import Any
 from pydantic import BaseModel, Field
 
 
+class AiGeneratedPollItem(BaseModel):
+    """AI 生成的單一投票題目草稿。"""
+
+    title: str
+    type: str = "multiple_choice"  # multiple_choice, word_cloud, rating, open_text, ranking
+    description: str = ""
+    options: list[str] = Field(default_factory=list)
+    settings: dict[str, Any] = Field(default_factory=dict)
+    rationality: str = ""
+
+
 class AiGeneratePollsRequest(BaseModel):
     topic: str = Field(min_length=1, max_length=500)
     count: int = Field(default=3, ge=1, le=10)
     context: str | None = None
+    poll_type: str | None = None  # "mixed", "multiple_choice", "word_cloud", "rating", "open_text", "ranking"
+
+
+class AiGeneratePollsResponse(BaseModel):
+    """AI 產生題目的結構化回應。"""
+
+    polls: list[AiGeneratedPollItem]
+    result: dict[str, Any] = Field(default_factory=dict)
+    is_ai_generated: bool = True
+    latency_ms: int
 
 
 class AiRewriteRequest(BaseModel):

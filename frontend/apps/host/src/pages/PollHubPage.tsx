@@ -24,6 +24,7 @@ import {
   POLL_TYPES,
   type PollInteractionType,
 } from "../lib/pollTypes";
+import { AiPollGeneratorModal } from "../components/polls/AiPollGeneratorModal";
 
 interface Props {
   roomId: string;
@@ -36,6 +37,7 @@ export function PollHubPage({ roomId, onLogout }: Props): React.JSX.Element {
   const editable = canEditHostContent();
   const [newType, setNewType] = useState<PollInteractionType>("multiple_choice");
   const [newTitle, setNewTitle] = useState("");
+  const [aiModalOpen, setAiModalOpen] = useState(false);
 
   const { data: items, isLoading, error } = useQuery({
     queryKey: ["interactions", roomId],
@@ -148,6 +150,14 @@ export function PollHubPage({ roomId, onLogout }: Props): React.JSX.Element {
           >
             {createMutation.isPending ? "建立中…" : "建立"}
           </button>
+          <button
+            type="button"
+            onClick={() => setAiModalOpen(true)}
+            className="flex items-center gap-1.5 rounded-lg border border-purple-500/40 bg-purple-500/10 px-3 py-2 text-xs font-semibold text-purple-600 dark:text-purple-300 hover:bg-purple-500/20 transition shadow-sm"
+            title="由 AI 針對主題智慧設計互動題庫並一鍵批次建立"
+          >
+            <span>✨ AI 靈感出題</span>
+          </button>
         </HubCreateCard>
       ) : null}
 
@@ -214,6 +224,12 @@ export function PollHubPage({ roomId, onLogout }: Props): React.JSX.Element {
           )}
         </ul>
       </section>
+      <AiPollGeneratorModal
+        roomId={roomId}
+        isOpen={aiModalOpen}
+        onClose={() => setAiModalOpen(false)}
+        onSuccess={() => showSuccess("成功建立 AI 靈感題庫！")}
+      />
       {systemNoticeModal}
     </HostShell>
   );

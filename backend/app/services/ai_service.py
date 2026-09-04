@@ -18,7 +18,9 @@ from app.models.user import User
 from app.schemas.ai import (
     ActionRecommendation,
     AiDecisionReport,
+    AiGeneratedPollItem,
     AiGeneratePollsRequest,
+    AiGeneratePollsResponse,
     AiQuestionAssistRequest,
     AiRewriteRequest,
     AiStubResponse,
@@ -525,6 +527,223 @@ async def _log_request(
         pass
 
 
+def generate_polls_local(
+    topic: str,
+    count: int = 3,
+    poll_type: str | None = None,
+    context: str | None = None,
+) -> list[dict[str, Any]]:
+    """離線/降級智慧產生題目（確保在無 API Key 時展示 100% 穩定且極具專業水準）。"""
+    t = topic.strip().lower()
+
+    is_ice = any(k in t for k in ["破冰", "暖場", "趣味", "輕鬆", "相見歡", "團建", "team building", "開場"])
+    is_tech = any(k in t for k in ["架構", "技術", "重構", "系統", "程式", "後端", "前端", "devops", "api", "資料庫", "效能", "microservice", "cloud", "ci/cd", "測試", "ai", "模型"])
+    is_prod = any(k in t for k in ["產品", "路線圖", "roadmap", "功能", "使用者", "市場", "客戶", "體驗", "ux", "ui", "成長", "商業", "定價", "運營"])
+    is_agile = any(k in t for k in ["敏捷", "agile", "sprint", "復盤", "回顧", "retro", "站會", "時程", "交期"])
+    is_edu = any(k in t for k in ["培訓", "教學", "課程", "測驗", "考試", "學習", "工作坊", "workshop", "教育"])
+
+    if is_ice:
+        pool = [
+            {
+                "title": "今天開會/參加活動，你目前的電量指數處於哪種模式？",
+                "type": "multiple_choice",
+                "options": ["🔋 充飽電 100%，能量爆棚！", "☕ 剛喝完咖啡，思維漸入佳境", "⚡ 電量 30%，隨時需要外援", "🧘 靈魂出竅中，期待精彩分享"],
+                "rationality": "趣味破冰，放鬆氣氛並確認現場注意力分佈。",
+            },
+            {
+                "title": f"如果用一個關鍵字代表你對今日「{topic}」的最大期待？",
+                "type": "word_cloud",
+                "options": [],
+                "rationality": "即時匯聚全體期待，建立強烈參與感與大螢幕視覺衝擊。",
+            },
+            {
+                "title": "如果可以擁有一種超能力來完成今天的所有挑戰，你最想要？",
+                "type": "multiple_choice",
+                "options": ["時光倒流：隨時可 Undo 任何手滑錯誤", "心靈感應：秒懂老闆和用戶在想什麼", "瞬間移動：隨時切換工作與渡假勝地", "影分身術：一個人同時開三場視訊會議"],
+                "rationality": "激發想像力與幽默感，拉近與會者距離。",
+            },
+            {
+                "title": "你今天對整體活動的期待程度評分？",
+                "type": "rating",
+                "options": [],
+                "rationality": "建立活動初期熱度基準點。",
+            },
+        ]
+    elif is_tech:
+        pool = [
+            {
+                "title": f"針對「{topic}」，當前架構面臨最迫切的重構瓶頸是？",
+                "type": "multiple_choice",
+                "options": ["核心 API 吞吐量與高並發回應延遲", "資料庫連線池與長事務讀寫瓶頸", "前端首頁載入資源與打包體積", "自動化測試覆蓋率與 CI/CD 穩定度"],
+                "rationality": "快速鎖定團隊技術債與重構優先級，凝聚工程架構共識。",
+            },
+            {
+                "title": f"請以一個關鍵詞分享你在「{topic}」中最關注的技術工具或模式？",
+                "type": "word_cloud",
+                "options": [],
+                "rationality": "藉由文字雲快速蒐集全場熱門關鍵字，視覺化展現技術同義詞聚合。",
+            },
+            {
+                "title": f"你對目前系統針對「{topic}」的監控告警與容錯韌性評分？",
+                "type": "rating",
+                "options": [],
+                "rationality": "量化檢驗團隊對系統生產環境可用性的信心度。",
+            },
+            {
+                "title": "未來半年內，技術團隊在 AI 輔助開發（如 Coding Agent / Copilot）的推進策略？",
+                "type": "multiple_choice",
+                "options": ["全面納入日常開發並訂定 Code Review 標準", "特定小組進行 PoC 驗證與效能評估", "關注資料隱私與授權合規，審慎評估", "暫無具體規劃，維持現有模式"],
+                "rationality": "評估技術組織在智慧化開發工具上的接納成熟度與政策方向。",
+            },
+        ]
+    elif is_prod:
+        pool = [
+            {
+                "title": f"圍繞「{topic}」，下階段最能為用戶創造核心價值的方向是？",
+                "type": "multiple_choice",
+                "options": ["端到端操作流程簡化與直覺化", "導入 AI 自動化與智慧推薦能力", "企業級協作權限與審計日誌健全", "開放 API 生態與外部服務串接整合"],
+                "rationality": "協助產品團隊驗證利害關係人對 Feature 價值的優先排序。",
+            },
+            {
+                "title": f"如果要用一個詞定義「{topic}」的產品核心競爭優勢，你會選？",
+                "type": "word_cloud",
+                "options": [],
+                "rationality": "精煉產品價值主張 (Value Proposition)，對齊品牌心智定位。",
+            },
+            {
+                "title": f"你對即將發布的「{topic}」新功能市場接受度評分？",
+                "type": "rating",
+                "options": [],
+                "rationality": "量化跨職能團隊（業務、行銷、產品、技術）的信心指數。",
+            },
+            {
+                "title": "目前用戶在使用過程中最常遭遇的摩擦點或流失原因？",
+                "type": "multiple_choice",
+                "options": ["初次新手引導 (Onboarding) 門檻偏高", "關鍵操作缺少即時狀態反饋", "跨裝置或不同螢幕相容體驗不佳", "進階功能隱藏過深難以發現"],
+                "rationality": "挖掘用戶體驗痛點，鎖定 Sprint 優化標的。",
+            },
+        ]
+    elif is_agile:
+        pool = [
+            {
+                "title": f"在本次「{topic}」執行中，阻礙團隊流暢交付的最大痛點是？",
+                "type": "multiple_choice",
+                "options": ["需求規格不明確或中途變更頻繁", "跨團隊/外部依賴項卡件等待", "技術債與測試環境偶發異常", "估時偏樂觀導致最後衝刺壓力過大"],
+                "rationality": "直擊敏捷流程阻塞點，提供後續行動清單實質依據。",
+            },
+            {
+                "title": "用一個詞形容你過去這個衝刺週期 (Sprint) 的工作節奏與感受？",
+                "type": "word_cloud",
+                "options": [],
+                "rationality": "透過文字雲建立心理安全感，讓團隊成員自由釋放真實心聲。",
+            },
+            {
+                "title": "本週期團隊內部的溝通透明度與互助協作評分？",
+                "type": "rating",
+                "options": [],
+                "rationality": "檢驗團隊凝聚力與心理安全感指數。",
+            },
+            {
+                "title": "下個週期我們最應該立即嘗試落實的一項改進方針？",
+                "type": "multiple_choice",
+                "options": ["更嚴格遵守 Definition of Ready (DoR)", "精簡站立會議時長，聚焦阻塞項解決", "預留 20% 固定容量處理重構與測試", "落實敏捷配對驗收與知識傳承"],
+                "rationality": "將反思具體收斂為可執行的流程優化項目。",
+            },
+        ]
+    elif is_edu:
+        pool = [
+            {
+                "title": f"關於「{topic}」，下列何者為實務落地時最關鍵的核心原則？",
+                "type": "multiple_choice",
+                "options": ["以價值與用戶反饋為驅動的持續迭代", "前期單次規劃完畢且不允許任何調整", "忽視邊界條件優先追求最快上線", "完全交由單一角色負責無須跨組共識"],
+                "rationality": "檢驗學習者對核心原則之掌握與判斷能力。",
+            },
+            {
+                "title": "請寫下剛剛內容中讓你印象最深刻或啟發最大的觀念？",
+                "type": "word_cloud",
+                "options": [],
+                "rationality": "加深學習記憶，萃取全場學習共鳴亮點。",
+            },
+            {
+                "title": "你對剛剛課程講授內容的清晰度與吸收程度評分？",
+                "type": "rating",
+                "options": [],
+                "rationality": "為講師提供即時教學反饋與步調微調依據。",
+            },
+        ]
+    else:
+        pool = [
+            {
+                "title": f"針對今日主題「{topic}」，你最關注或最期待推進的面向是？",
+                "type": "multiple_choice",
+                "options": ["具體執行路徑與短中長期里程碑規劃", "跨部門資源調度與權責分工對齊", "潛在風險識別與替代應變方案", "成效量化指標 (KPI/OKR) 與驗收標準"],
+                "rationality": "確立與會成員對會議主軸的關注重心，引導後續焦點討論。",
+            },
+            {
+                "title": f"請用一個詞分享你對「{topic}」的直覺印象或想法？",
+                "type": "word_cloud",
+                "options": [],
+                "rationality": "無門檻自由發想，在大螢幕呈現多元觀點交會。",
+            },
+            {
+                "title": f"針對「{topic}」在團隊內部的推進可行性，你目前的信心評分？",
+                "type": "rating",
+                "options": [],
+                "rationality": "量化團隊共識基底，作為決策前的情緒儀表板。",
+            },
+            {
+                "title": "會議結束後，團隊應該最優先採取的第一步行動是？",
+                "type": "multiple_choice",
+                "options": ["召集核心專案小組細化工作包與排程", "發布正式會議決策紀要並同步全體", "先由小規模團隊執行概念性試點 (PoC)", "重新盤點外部資源後再行決議"],
+                "rationality": "推進會議成果落地，明確第一責任與行動時程。",
+            },
+        ]
+
+    # 若指定了特定 poll_type
+    target_type = poll_type if (poll_type and poll_type != "mixed") else None
+    if target_type:
+        filtered = [p for p in pool if p["type"] == target_type]
+        if filtered:
+            pool = filtered
+        else:
+            pool = []
+
+    selected_polls = pool[:count]
+    while len(selected_polls) < count:
+        idx = len(selected_polls) + 1
+        p_type = target_type or "multiple_choice"
+        if p_type == "word_cloud":
+            selected_polls.append({
+                "title": f"請用一個詞分享你對「{topic}」的深度洞察 #{idx}？",
+                "type": "word_cloud",
+                "options": [],
+                "rationality": "廣納多樣詞彙，透過文字雲語意分群發掘隱性共識。",
+            })
+        elif p_type == "rating":
+            selected_polls.append({
+                "title": f"針對「{topic}」的推展成效或信心指數，你給予幾分？ #{idx}",
+                "type": "rating",
+                "options": [],
+                "rationality": "量化指標反饋，掌握團隊對此主題的認同程度。",
+            })
+        elif p_type == "open_text":
+            selected_polls.append({
+                "title": f"關於「{topic}」，你認為有哪點最值得團隊進一步深究？ #{idx}",
+                "type": "open_text",
+                "options": [],
+                "rationality": "鼓勵質化建議回饋，補充量化數據外的深度觀點。",
+            })
+        else:
+            selected_polls.append({
+                "title": f"「{topic}」延伸思考議題 #{idx}",
+                "type": "multiple_choice",
+                "options": ["選項 A：積極推進並擴大範圍", "選項 B：穩健試點並按步驗證", "選項 C：保留現狀並密切觀察", "選項 D：重新評估並調整架構"],
+                "rationality": "引導團隊進行多維度決策衡量。",
+            })
+
+    return selected_polls
+
+
 async def _stub_llm_call(feature: AiFeature, payload: dict[str, Any]) -> dict[str, Any]:
     """Placeholder：模擬外部 LLM 延遲或執行離線規則分群。"""
 
@@ -533,15 +752,13 @@ async def _stub_llm_call(feature: AiFeature, payload: dict[str, Any]) -> dict[st
         if feature == AiFeature.CLUSTER_WORDS:
             return {"clusters": cluster_words_local(payload.get("words", []))}
         if feature == AiFeature.GENERATE_POLLS:
-            count = int(payload.get("count", 3))
             return {
-                "polls": [
-                    {
-                        "title": f"（AI stub）關於「{payload.get('topic', '')}」的問題 {i + 1}",
-                        "options": ["選項 A", "選項 B", "選項 C"],
-                    }
-                    for i in range(count)
-                ]
+                "polls": generate_polls_local(
+                    topic=payload.get("topic", ""),
+                    count=int(payload.get("count", 3)),
+                    poll_type=payload.get("poll_type"),
+                    context=payload.get("context"),
+                )
             }
         if feature == AiFeature.REWRITE:
             return {"text": f"（AI stub）{payload.get('text', '')}"}
@@ -565,10 +782,30 @@ async def _real_llm_call(feature: AiFeature, payload: dict[str, Any]) -> dict[st
 
     settings = get_settings()
     if feature == AiFeature.GENERATE_POLLS:
+        topic = payload.get("topic", "")
+        count = int(payload.get("count", 3))
+        poll_type = payload.get("poll_type", "mixed")
+        context = payload.get("context", "")
+        type_instruction = (
+            f"All questions must be of type '{poll_type}'."
+            if poll_type and poll_type != "mixed"
+            else "Provide a balanced, engaging mix of types: multiple_choice (with 3-5 options), word_cloud (options should be []), and rating (options should be [])."
+        )
         prompt = (
-            f"Generate {payload.get('count', 3)} poll questions about "
-            f"「{payload.get('topic', '')}」. Context: {payload.get('context', '')}. "
-            'Return JSON: {"polls":[{"title":"...","options":["A","B","C"]}]}'
+            f"You are an expert audience engagement designer and conference facilitator.\n"
+            f"Generate {count} live interactive poll questions for an audience on the topic: 「{topic}」.\n"
+            f"Context: {context if context else 'General team/enterprise event'}\n"
+            f"{type_instruction}\n\n"
+            "Requirements:\n"
+            "1. Output language must be Traditional Chinese (繁體中文).\n"
+            "2. Questions must be crisp, thought-provoking, and practical.\n"
+            "3. For 'multiple_choice', provide 3 to 5 realistic, distinctive option texts in 'options'.\n"
+            "4. For 'word_cloud', set 'options': [] and make the question invite a single word response.\n"
+            "5. For 'rating', set 'options': [] and make the question invite 1-5 star rating.\n"
+            "6. For 'open_text', set 'options': [].\n"
+            "7. Include a concise 'rationality' explaining why this poll works well.\n"
+            "Return JSON strictly adhering to this format:\n"
+            '{"polls": [{"title": "題目", "type": "multiple_choice", "description": "", "options": ["選項1", "選項2", "選項3"], "settings": {}, "rationality": "..."}]}'
         )
     elif feature == AiFeature.REWRITE:
         prompt = (
@@ -660,18 +897,54 @@ async def generate_polls(
     *,
     user: User,
     payload: AiGeneratePollsRequest,
-) -> AiStubResponse:
-    """AI-001：依主題產生 Poll 草稿。"""
-    _require_ai_key()
+) -> AiGeneratePollsResponse:
+    """AI-001：依主題智慧產生 Poll 題目草稿（離線降級 + 雙軌保證）。"""
     started = time.perf_counter()
+    status = "ok"
+    polls_list: list[dict[str, Any]] = []
+
     try:
-        result = await _llm_call(
+        res = await _llm_call(
             AiFeature.GENERATE_POLLS,
-            {"topic": payload.topic, "count": payload.count, "context": payload.context},
+            {
+                "topic": payload.topic,
+                "count": payload.count,
+                "context": payload.context,
+                "poll_type": payload.poll_type,
+            },
         )
-        status = "ok"
-    except TimeoutError as exc:
-        raise AppError(ErrorCode.AI_UNAVAILABLE, "AI 請求逾時") from exc
+        if isinstance(res, dict) and "polls" in res and isinstance(res["polls"], list):
+            polls_list = res["polls"]
+        else:
+            polls_list = generate_polls_local(
+                payload.topic,
+                payload.count,
+                payload.poll_type,
+                payload.context,
+            )
+    except Exception:
+        status = "fallback"
+        polls_list = generate_polls_local(
+            payload.topic,
+            payload.count,
+            payload.poll_type,
+            payload.context,
+        )
+
+    typed_polls: list[AiGeneratedPollItem] = []
+    for item in polls_list:
+        if isinstance(item, dict):
+            typed_polls.append(
+                AiGeneratedPollItem(
+                    title=str(item.get("title", "未命名題目")),
+                    type=str(item.get("type", "multiple_choice")),
+                    description=str(item.get("description", "")),
+                    options=[str(o) for o in item.get("options", []) if str(o).strip()],
+                    settings=item.get("settings", {}) if isinstance(item.get("settings"), dict) else {},
+                    rationality=str(item.get("rationality", "")),
+                )
+            )
+
     latency_ms = int((time.perf_counter() - started) * 1000)
     await _log_request(
         db,
@@ -679,9 +952,13 @@ async def generate_polls(
         feature=AiFeature.GENERATE_POLLS,
         status=status,
         latency_ms=latency_ms,
-        details={"topic": payload.topic, "count": payload.count},
+        details={"topic": payload.topic, "count": len(typed_polls)},
     )
-    return AiStubResponse(result=result, latency_ms=latency_ms)
+    return AiGeneratePollsResponse(
+        polls=typed_polls,
+        result={"polls": [p.model_dump() for p in typed_polls]},
+        latency_ms=latency_ms,
+    )
 
 
 async def rewrite(

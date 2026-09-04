@@ -28,6 +28,18 @@ class InteractionCreateRequest(BaseModel):
     settings: dict[str, Any] = Field(default_factory=dict)
 
 
+class BatchPollCreateItem(BaseModel):
+    type: InteractionType
+    title: str = Field(min_length=1, max_length=500)
+    description: str | None = None
+    options: list[str] = Field(default_factory=list)
+    settings: dict[str, Any] = Field(default_factory=dict)
+
+
+class BatchPollCreateRequest(BaseModel):
+    polls: list[BatchPollCreateItem] = Field(min_length=1, max_length=20)
+
+
 class InteractionUpdateRequest(BaseModel):
     title: str | None = Field(default=None, max_length=500)
     description: str | None = None
