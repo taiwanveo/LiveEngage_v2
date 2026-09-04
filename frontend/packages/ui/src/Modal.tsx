@@ -10,8 +10,8 @@ export interface ModalProps {
   title: string;
   children: React.ReactNode;
   footer?: React.ReactNode;
-  /** 預設 sm */
-  size?: "sm" | "md" | "lg" | "xl" | "2xl";
+  /** 預設 md */
+  size?: "sm" | "md" | "lg" | "xl" | "2xl" | "3xl" | "4xl" | "5xl";
   /** 底部顯示「關閉」按鈕（預設 true，若提供 footer 則不顯示） */
   showCloseButton?: boolean;
   closeLabel?: string;
@@ -23,6 +23,9 @@ const SIZE_CLASS: Record<NonNullable<ModalProps["size"]>, string> = {
   lg: "max-w-lg",
   xl: "max-w-xl",
   "2xl": "max-w-2xl",
+  "3xl": "max-w-3xl",
+  "4xl": "max-w-4xl",
+  "5xl": "max-w-5xl",
 };
 
 export function Modal({
