@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from typing import Any
+import uuid
 
 from pydantic import BaseModel, Field
 
@@ -107,4 +108,47 @@ class GenerateAiReportRequest(BaseModel):
     """生成 AI 決策報告之請求參數。"""
 
     force_refresh: bool = False
+
+
+# ── AI Q&A 語意去重與同義題合併 Schema（AI-002）────────────────────
+
+
+class AiQuestionItem(BaseModel):
+    id: str
+    content: str
+    author_display: str | None = None
+    is_anonymous: bool = False
+    upvote_count: int = 0
+    status: str = "approved"
+    created_at: str | None = None
+
+
+class AiQuestionCluster(BaseModel):
+    cluster_id: str
+    primary_question: AiQuestionItem
+    duplicate_questions: list[AiQuestionItem]
+    combined_upvotes: int
+    similarity_reason: str
+
+
+class AiDedupQuestionsResponse(BaseModel):
+    clusters: list[AiQuestionCluster]
+    total_duplicates_found: int
+    is_ai_generated: bool = True
+    latency_ms: int = 0
+
+
+class MergeQuestionsRequest(BaseModel):
+    primary_question_id: uuid.UUID
+    duplicate_question_ids: list[uuid.UUID] = Field(..., min_length=1)
+
+
+class MergeQuestionsResponse(BaseModel):
+    primary_question_id: uuid.UUID
+    merged_question_ids: list[uuid.UUID]
+    new_upvote_count: int
+    new_score: int
+    total_upvotes_added: int
+    message: str
+
 

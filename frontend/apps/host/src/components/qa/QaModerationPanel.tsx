@@ -13,6 +13,7 @@ import { useSystemNotice } from "@liveengage/ui";
 import { getAccessToken } from "../../lib/auth";
 import { listModeration, moderate, reply } from "../../lib/qaApi";
 import type { ModerateAction, QuestionPublic, QuestionReply } from "../../types";
+import { QaAiDedupBar } from "./QaAiDedupBar";
 
 const WS_BACKUP_REFETCH_MS = 5_000;
 
@@ -192,14 +193,17 @@ export function QaModerationPanel({
 
   if (compact) {
     return (
-      <CompactQaPanel
-        grouped={grouped}
-        loading={isLoading}
-        wsConnected={disableWs ? true : wsConnected}
-        pendingActions={pendingActions}
-        approvedActions={approvedActions}
-        answeredActions={answeredActions}
-      />
+      <>
+        <QaAiDedupBar roomId={roomId} />
+        <CompactQaPanel
+          grouped={grouped}
+          loading={isLoading}
+          wsConnected={disableWs ? true : wsConnected}
+          pendingActions={pendingActions}
+          approvedActions={approvedActions}
+          answeredActions={answeredActions}
+        />
+      </>
     );
   }
 
@@ -210,6 +214,7 @@ export function QaModerationPanel({
           即時連線中斷，每 {WS_BACKUP_REFETCH_MS / 1000} 秒自動同步審核列表。
         </p>
       ) : null}
+      <QaAiDedupBar roomId={roomId} />
       <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
         <Column
           title="待審"

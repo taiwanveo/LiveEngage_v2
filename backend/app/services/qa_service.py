@@ -42,7 +42,18 @@ from app.schemas.question import (
     VoteResult,
 )
 from app.serializers.mask_identity import mask_identity
-from app.services import audit_service, rate_limit_service, interaction_service, qa_redis
+from app.schemas.ai import (
+    AiDedupQuestionsResponse,
+    MergeQuestionsRequest,
+    MergeQuestionsResponse,
+)
+from app.services import (
+    ai_service,
+    audit_service,
+    rate_limit_service,
+    interaction_service,
+    qa_redis,
+)
 
 _DEFAULT_PAGE_SIZE = 50
 _VOTABLE_STATUSES = {QuestionStatus.APPROVED, QuestionStatus.ANSWERED}
@@ -658,3 +669,141 @@ async def reply_question(
         )
 
     return reply_resp
+
+
+async def dedup_room_questions(
+    db: AsyncSession,
+    *,
+    room_id: uuid.UUID,
+    host: User,
+) -> AiDedupQuestionsResponse:
+    """以 AI 掃描房間內進行中與待審提問，進行語意去重與同義推薦（AI-002）。"""
+    await interaction_service.ensure_room_access(db, room_id, host)
+
+    # 撈取非 archived 且非 dismissed 的提問（例如 approved, pending, answered）
+    stmt = (
+        select(Question, Participant.display_name)
+        .outerjoin(Participant, Question.participant_id == Participant.id)
+        .where(
+            Question.room_id == room_id,
+            Question.status.in_([QuestionStatus.APPROVED, QuestionStatus.PENDING, QuestionStatus.ANSWERED]),
+        )
+        .order_by(Question.created_at.desc())
+    )
+    rows = (await db.execute(stmt)).all()
+
+    questions_payload = []
+    for q, name in rows:
+        author = _author_display(is_anonymous=q.is_anonymous, display_name=name)
+        questions_payload.append({
+            "id": str(q.id),
+            "content": q.content,
+            "author_display": author,
+            "is_anonymous": q.is_anonymous,
+            "upvote_count": q.upvote_count,
+            "status": q.status.value,
+            "created_at": q.created_at.isoformat() if q.created_at else None,
+        })
+
+    return await ai_service.dedup_questions(db, user=host, questions=questions_payload)
+
+
+async def merge_duplicate_questions(
+    db: AsyncSession,
+    *,
+    room_id: uuid.UUID,
+    host: User,
+    payload: MergeQuestionsRequest,
+) -> MergeQuestionsResponse:
+    """將同義/重複提問合併至主提問（AI-002）。
+
+    - 聚合重複題目的讚數至主提問（累計加總）。
+    - 重複題狀態改為 dismissed，並新增一則主持人說明回覆。
+    - 即時透過 WebSocket 廣播主提問票數更新與重複題關閉事件。
+    - 寫入審計日誌。
+    """
+    await interaction_service.ensure_room_access(db, room_id, host)
+
+    # 1. 主提問
+    primary_q = await _get_question(db, payload.primary_question_id)
+    if primary_q.room_id != room_id:
+        raise AppError(ErrorCode.FORBIDDEN, "主提問不屬於此房間")
+
+    # 2. 重複提問
+    dup_stmt = select(Question).where(
+        Question.id.in_(payload.duplicate_question_ids),
+        Question.room_id == room_id,
+        Question.id != payload.primary_question_id,
+    )
+    dup_rows = (await db.execute(dup_stmt)).scalars().all()
+    if not dup_rows:
+        raise AppError(ErrorCode.VALIDATION_ERROR, "未找到有效的重複題目可供合併")
+
+    total_upvotes_to_add = 0
+    merged_ids: list[uuid.UUID] = []
+
+    for dq in dup_rows:
+        total_upvotes_to_add += dq.upvote_count
+        merged_ids.append(dq.id)
+        dq.status = QuestionStatus.DISMISSED
+
+        # 加入主持人系統回覆
+        reply_id = uuid7()
+        reply_obj = QuestionReply(
+            id=reply_id,
+            question_id=dq.id,
+            author_type=ReplyAuthorType.HOST,
+            content=f"【AI 語意合併】此問題已由主持人合併至主提問：「{primary_q.content}」，原獲得之 {dq.upvote_count} 票已全數累計至主提問！",
+            is_private=False,
+            created_at=dt.datetime.now(dt.UTC),
+        )
+        db.add(reply_obj)
+
+    # 3. 累計票數至主提問
+    primary_q.upvote_count += total_upvotes_to_add
+    await db.commit()
+    await db.refresh(primary_q)
+
+    # 4. WebSocket 廣播
+    primary_display = await _participant_display_name(db, primary_q.participant_id)
+    primary_public = _to_public(primary_q, display_name=primary_display)
+    await events.publish(
+        room_id,
+        events.QUESTION_APPROVED,
+        {"question": primary_public.model_dump(mode="json")},
+        target_modes=events.MODE_ALL,
+    )
+
+    for mid in merged_ids:
+        await events.publish(
+            room_id,
+            events.QUESTION_DISMISSED,
+            {"question_id": str(mid)},
+            target_modes=events.MODE_ALL,
+        )
+
+    # 5. 紀錄審計日誌
+    await audit_service.log(
+        db,
+        actor=host,
+        action="question.merge_duplicates",
+        target_type="question",
+        target_id=primary_q.id,
+        session_id=primary_q.session_id,
+        room_id=primary_q.room_id,
+        details={
+            "merged_question_ids": [str(mid) for mid in merged_ids],
+            "total_upvotes_added": total_upvotes_to_add,
+            "new_upvote_count": primary_q.upvote_count,
+        },
+    )
+
+    return MergeQuestionsResponse(
+        primary_question_id=primary_q.id,
+        merged_question_ids=merged_ids,
+        new_upvote_count=primary_q.upvote_count,
+        new_score=primary_q.score,
+        total_upvotes_added=total_upvotes_to_add,
+        message=f"已成功合併 {len(merged_ids)} 道同義題目，主提問累計增加 {total_upvotes_to_add} 票！",
+    )
+

@@ -17,6 +17,11 @@ from app.core.deps import (
 from app.core.tokens import ParticipantTokenClaims
 from app.models.enums import QuestionStatus
 from app.models.user import User
+from app.schemas.ai import (
+    AiDedupQuestionsResponse,
+    MergeQuestionsRequest,
+    MergeQuestionsResponse,
+)
 from app.schemas.question import (
     ModerateRequest,
     QuestionCreateRequest,
@@ -127,3 +132,33 @@ async def reply_question(
     return await qa_service.reply_question(
         db, question_id=question_id, host=host, payload=payload
     )
+
+
+@router.post(
+    "/rooms/{room_id}/questions/ai-dedup",
+    response_model=AiDedupQuestionsResponse,
+)
+async def dedup_room_questions(
+    room_id: uuid.UUID,
+    db: Annotated[AsyncSession, Depends(get_session)],
+    host: Annotated[User, Depends(get_current_user)],
+) -> AiDedupQuestionsResponse:
+    """AI-002：掃描房間提問，進行語意去重與同義題目分群。"""
+    return await qa_service.dedup_room_questions(db, room_id=room_id, host=host)
+
+
+@router.post(
+    "/rooms/{room_id}/questions/merge",
+    response_model=MergeQuestionsResponse,
+)
+async def merge_duplicate_questions(
+    room_id: uuid.UUID,
+    payload: MergeQuestionsRequest,
+    db: Annotated[AsyncSession, Depends(get_session)],
+    host: Annotated[User, Depends(get_current_user)],
+) -> MergeQuestionsResponse:
+    """AI-002：將同義題目合併至主提問，並聚合累積所有重複提問之讚數。"""
+    return await qa_service.merge_duplicate_questions(
+        db, room_id=room_id, host=host, payload=payload
+    )
+

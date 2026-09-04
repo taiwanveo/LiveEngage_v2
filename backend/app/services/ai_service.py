@@ -18,10 +18,13 @@ from app.models.user import User
 from app.schemas.ai import (
     ActionRecommendation,
     AiDecisionReport,
+    AiDedupQuestionsResponse,
     AiGeneratedPollItem,
     AiGeneratePollsRequest,
     AiGeneratePollsResponse,
     AiQuestionAssistRequest,
+    AiQuestionCluster,
+    AiQuestionItem,
     AiRewriteRequest,
     AiStubResponse,
     DecisionConsensus,
@@ -744,6 +747,165 @@ def generate_polls_local(
     return selected_polls
 
 
+def dedup_questions_local(questions: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """離線/降級 Q&A 語意去重與同義題合併（AI-002）。
+
+    支援中英文同義詞概念歸一（簡報/投影片/ppt、錄影/重播/回放、程式碼/repo/github、費用/定價、高並發/效能等）
+    以及 Jaccard 字元重合度計算與票數聚合。
+    """
+    if len(questions) < 2:
+        return []
+
+    import uuid
+
+    SYNONYM_DOMAINS = [
+        {
+            "tag": "slides",
+            "keywords": ["簡報", "投影片", "講義", "ppt", "slide", "slides", "課件", "教材"],
+            "reason": "均在詢問演講簡報或投影片檔案的會後公開下載方式",
+        },
+        {
+            "tag": "recording",
+            "keywords": ["錄影", "錄音", "重播", "回放", "回看", "錄像", "video", "recording", "影音"],
+            "reason": "均在詢問活動全程錄影與會後回放觀看連結",
+        },
+        {
+            "tag": "code",
+            "keywords": ["原始碼", "代碼", "程式碼", "github", "repo", "專案網址", "開源", "open source"],
+            "reason": "均在詢問範例專案原始碼、GitHub 儲存庫或實作細節連結",
+        },
+        {
+            "tag": "pricing",
+            "keywords": ["費用", "收費", "免費", "價錢", "價格", "方案", "定價", "pricing", "cost", "付費", "計費"],
+            "reason": "均在關注商業產品方案、定價模式與計費收費方式",
+        },
+        {
+            "tag": "performance",
+            "keywords": ["高並發", "吞吐量", "延遲", "效能", "瓶頸", "latency", "performance", "qps", "連線池", "超載"],
+            "reason": "均在探討系統高並發架構承載力、延遲瓶頸與效能調優方針",
+        },
+        {
+            "tag": "ai_agent",
+            "keywords": ["coding agent", "copilot", "ai 工具", "模型", "llm", "ai 輔助", "agent"],
+            "reason": "均在關注 AI 輔助開發工具在工程團隊的導入與效益衡量",
+        },
+        {
+            "tag": "security",
+            "keywords": ["資安", "資安風險", "隱私", "授權", "安全", "合規", "token", "洩漏", "security"],
+            "reason": "均在評估系統資安合規、資料隱私防護與授權管控架構",
+        },
+    ]
+
+    noise_words = [
+        "請問", "請問一下", "想請問", "不知", "是否有", "會不會", "能否", "可以", "會", "嗎",
+        "的", "了", "呢", "一下", "大家", "老師", "講者", "您好", "請教", "我想問", "甚麼", "什麼",
+        "在哪", "哪裡", "如何", "怎麼", "提供", "公開", "下載", "分享", "索取", "取得", "獲得"
+    ]
+
+    def _normalize(text: str) -> tuple[str, set[str], set[str]]:
+        t = text.strip().lower()
+        matched_tags = set()
+        for dom in SYNONYM_DOMAINS:
+            if any(kw in t for kw in dom["keywords"]):
+                matched_tags.add(dom["tag"])
+
+        clean = t
+        for nw in noise_words:
+            clean = clean.replace(nw, "")
+        clean_chars = {c for c in clean if c.isalnum()}
+        return clean, clean_chars, matched_tags
+
+    normalized = [_normalize(q.get("content", "")) for q in questions]
+
+    n = len(questions)
+    # 建立相似度圖（Adjacency Graph）
+    adj: dict[int, set[int]] = {i: set() for i in range(n)}
+
+    for i in range(n):
+        c_i, chars_i, tags_i = normalized[i]
+        for j in range(i + 1, n):
+            c_j, chars_j, tags_j = normalized[j]
+
+            # 情況 1：命中相同特定領域同義標籤（例如 slides、recording、code 等）
+            common_tags = tags_i & tags_j
+            if common_tags:
+                adj[i].add(j)
+                adj[j].add(i)
+                continue
+
+            # 情況 2：字元 Jaccard 相似度高（排除過短問題）
+            if chars_i and chars_j:
+                union = chars_i | chars_j
+                inter = chars_i & chars_j
+                jaccard = len(inter) / len(union) if union else 0
+                if jaccard >= 0.45 and len(inter) >= 3:
+                    adj[i].add(j)
+                    adj[j].add(i)
+
+    # 連通分量分群 (Connected Components)
+    visited = set()
+    clusters: list[dict[str, Any]] = []
+
+    for i in range(n):
+        if i in visited:
+            continue
+        group_indices: list[int] = []
+        queue = [i]
+        visited.add(i)
+        while queue:
+            curr = queue.pop(0)
+            group_indices.append(curr)
+            for neighbor in adj[curr]:
+                if neighbor not in visited:
+                    visited.add(neighbor)
+                    queue.append(neighbor)
+
+        if len(group_indices) < 2:
+            continue
+
+        # 抽出同群題目
+        group_questions = [questions[idx] for idx in group_indices]
+
+        # 排序決定主提問：優先以 upvote_count 最高，同票數以長度最完整者為首
+        group_questions.sort(
+            key=lambda q: (
+                q.get("upvote_count", 0),
+                len(q.get("content", "")),
+            ),
+            reverse=True,
+        )
+
+        primary_q = group_questions[0]
+        duplicate_qs = group_questions[1:]
+        combined_upvotes = sum(q.get("upvote_count", 0) for q in group_questions)
+
+        # 決定聚合原因說明
+        common_tags = set()
+        for idx in group_indices:
+            common_tags.update(normalized[idx][2])
+
+        reason = ""
+        for dom in SYNONYM_DOMAINS:
+            if dom["tag"] in common_tags:
+                reason = dom["reason"]
+                break
+        if not reason:
+            reason = f"均在討論「{primary_q.get('content', '')[:18]}...」相關核心議題，語意高度重複"
+
+        cluster_id = f"cluster-{uuid.uuid4().hex[:8]}"
+        clusters.append({
+            "cluster_id": cluster_id,
+            "primary_question": primary_q,
+            "duplicate_questions": duplicate_qs,
+            "combined_upvotes": combined_upvotes,
+            "similarity_reason": reason,
+        })
+
+    # 依總票數高低排序 clusters
+    clusters.sort(key=lambda c: c["combined_upvotes"], reverse=True)
+    return clusters
+
+
 async def _stub_llm_call(feature: AiFeature, payload: dict[str, Any]) -> dict[str, Any]:
     """Placeholder：模擬外部 LLM 延遲或執行離線規則分群。"""
 
@@ -770,6 +932,8 @@ async def _stub_llm_call(feature: AiFeature, payload: dict[str, Any]) -> dict[st
             }
         if feature == AiFeature.GENERATE_REPORT:
             return generate_decision_report_local(payload.get("data", {}))
+        if feature == AiFeature.DEDUP_QUESTIONS:
+            return {"clusters": dedup_questions_local(payload.get("questions", []))}
         return {"message": "stub"}
 
     return await _run_with_timeout(_inner())
@@ -845,6 +1009,33 @@ async def _real_llm_call(feature: AiFeature, payload: dict[str, Any]) -> dict[st
             "7. action_recommendations: List of 3-5 concrete tasks with {owner, action, priority, timeline} where priority is 'high', 'medium', or 'low'.\n"
             "8. markdown_content: A complete, beautifully formatted Markdown report with titles, tables, bullet points, and key takeaways.\n"
             "Return strictly valid JSON adhering to this structure."
+        )
+    elif feature == AiFeature.DEDUP_QUESTIONS:
+        questions_input = payload.get("questions", [])
+        prompt = (
+            "You are an expert Q&A facilitator in live conferences and webinars. "
+            "Analyze the following list of audience questions, identify semantic duplicates or questions asking the exact same core intent with different wording, "
+            "and group them into deduplication clusters.\n\n"
+            f"Questions list (JSON):\n{json.dumps(questions_input, ensure_ascii=False)}\n\n"
+            "Requirements:\n"
+            "1. Group questions that share the exact same user intent (e.g. asking for slides/presentation files, recording/playback, repo/source code, pricing/plans, or system performance bottlenecks).\n"
+            "2. Each cluster must have at least 2 questions (1 primary_question and 1+ duplicate_questions).\n"
+            "3. Choose the best primary question (highest upvotes or most articulate wording).\n"
+            "4. Provide a clear similarity_reason in Traditional Chinese (繁體中文, e.g. '均在詢問演講簡報或投影片檔案的會後公開下載方式').\n"
+            "5. Calculate combined_upvotes = sum of upvote_count of all questions in the cluster.\n"
+            "Output strictly valid JSON with this format:\n"
+            "{\n"
+            '  "clusters": [\n'
+            '    {\n'
+            '      "cluster_id": "cluster-1",\n'
+            '      "primary_question_id": "...",\n'
+            '      "duplicate_question_ids": ["..."],\n'
+            '      "similarity_reason": "...",\n'
+            '      "combined_upvotes": 20\n'
+            '    }\n'
+            '  ]\n'
+            "}\n"
+            "If no duplicate questions exist, return {\"clusters\": []}."
         )
     else:
         prompt = (
@@ -959,6 +1150,120 @@ async def generate_polls(
         result={"polls": [p.model_dump() for p in typed_polls]},
         latency_ms=latency_ms,
     )
+
+
+async def dedup_questions(
+    db: AsyncSession,
+    *,
+    user: User,
+    questions: list[dict[str, Any]],
+) -> AiDedupQuestionsResponse:
+    """AI-002：Q&A 語意去重與同義題分群（雙軌保證，離線降級支援）。"""
+    started = time.perf_counter()
+    status = "ok"
+    clusters_data: list[dict[str, Any]] = []
+
+    try:
+        if len(questions) < 2:
+            return AiDedupQuestionsResponse(
+                clusters=[],
+                total_duplicates_found=0,
+                is_ai_generated=True,
+                latency_ms=0,
+            )
+
+        res = await _llm_call(
+            AiFeature.DEDUP_QUESTIONS,
+            {"questions": questions},
+        )
+        if isinstance(res, dict) and "clusters" in res and isinstance(res["clusters"], list):
+            raw_clusters = res["clusters"]
+            q_map = {str(q.get("id")): q for q in questions}
+            for rc in raw_clusters:
+                if "primary_question" in rc and isinstance(rc["primary_question"], dict):
+                    clusters_data.append(rc)
+                elif "primary_question_id" in rc:
+                    p_id = str(rc["primary_question_id"])
+                    d_ids = [str(did) for did in rc.get("duplicate_question_ids", [])]
+                    if p_id in q_map and d_ids:
+                        primary_q = q_map[p_id]
+                        dups = [q_map[did] for did in d_ids if did in q_map]
+                        if dups:
+                            clusters_data.append({
+                                "cluster_id": rc.get("cluster_id", f"cluster-{uuid.uuid4().hex[:8]}"),
+                                "primary_question": primary_q,
+                                "duplicate_questions": dups,
+                                "combined_upvotes": int(
+                                    rc.get(
+                                        "combined_upvotes",
+                                        primary_q.get("upvote_count", 0) + sum(d.get("upvote_count", 0) for d in dups),
+                                    )
+                                ),
+                                "similarity_reason": rc.get("similarity_reason", "同義提問意圖聚合"),
+                            })
+        if not clusters_data:
+            clusters_data = dedup_questions_local(questions)
+    except Exception:
+        status = "fallback"
+        clusters_data = dedup_questions_local(questions)
+
+    latency_ms = int((time.perf_counter() - started) * 1000)
+    await _log_request(
+        db,
+        user=user,
+        feature=AiFeature.DEDUP_QUESTIONS,
+        status=status,
+        latency_ms=latency_ms,
+        details={
+            "total_questions": len(questions),
+            "clusters_found": len(clusters_data),
+        },
+    )
+
+    cluster_items: list[AiQuestionCluster] = []
+    total_dups = 0
+    import uuid
+
+    for c in clusters_data:
+        p_q = c["primary_question"]
+        dups = c["duplicate_questions"]
+        total_dups += len(dups)
+        cluster_items.append(
+            AiQuestionCluster(
+                cluster_id=str(c.get("cluster_id", uuid.uuid4().hex[:8])),
+                primary_question=AiQuestionItem(
+                    id=str(p_q.get("id")),
+                    content=str(p_q.get("content", "")),
+                    author_display=p_q.get("author_display"),
+                    is_anonymous=bool(p_q.get("is_anonymous", False)),
+                    upvote_count=int(p_q.get("upvote_count", 0)),
+                    status=str(p_q.get("status", "approved")),
+                    created_at=str(p_q.get("created_at", "")) if p_q.get("created_at") else None,
+                ),
+                duplicate_questions=[
+                    AiQuestionItem(
+                        id=str(d.get("id")),
+                        content=str(d.get("content", "")),
+                        author_display=d.get("author_display"),
+                        is_anonymous=bool(d.get("is_anonymous", False)),
+                        upvote_count=int(d.get("upvote_count", 0)),
+                        status=str(d.get("status", "approved")),
+                        created_at=str(d.get("created_at", "")) if d.get("created_at") else None,
+                    )
+                    for d in dups
+                ],
+                combined_upvotes=int(c.get("combined_upvotes", 0)),
+                similarity_reason=str(c.get("similarity_reason", "")),
+            )
+        )
+
+    return AiDedupQuestionsResponse(
+        clusters=cluster_items,
+        total_duplicates_found=total_dups,
+        is_ai_generated=True,
+        latency_ms=latency_ms,
+    )
+
 
 
 async def rewrite(

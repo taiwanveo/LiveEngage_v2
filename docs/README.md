@@ -5,6 +5,7 @@
 | 文件 | 說明 |
 |------|------|
 | [服務架構.md](./服務架構.md) | **服務分工** — api / host / join / admin / worker（`le-participant` 舊網域轉址） |
+| [LiveEngage_v2_AI增強功能完整規格書.md](./LiveEngage_v2_AI增強功能完整規格書.md) | **AI 增強四大旗艦功能規格書** — 文字雲聚合、決策報告、靈感出題、Q&A 去重合併 |
 | [LiveEngage_AI_Coding_Agent_實作指引.md](./LiveEngage_AI_Coding_Agent_實作指引.md) | **AI／開發者總指引** — 鐵律、技術棧、契約速查、Sprint 順序、DoD |
 | [Zeabur_部署指引.md](./Zeabur_部署指引.md) | Zeabur 五服務部署、env、網域 |
 | [RUNBOOK.md](./RUNBOOK.md) | 現場運維、故障排除 |

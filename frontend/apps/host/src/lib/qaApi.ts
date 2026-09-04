@@ -45,3 +45,65 @@ export async function reply(
     idempotencyKey: newIdempotencyKey(),
   });
 }
+
+export interface AiQuestionItem {
+  id: string;
+  content: string;
+  author_display: string | null;
+  is_anonymous: boolean;
+  upvote_count: number;
+  status: string;
+  created_at?: string | null;
+}
+
+export interface AiQuestionCluster {
+  cluster_id: string;
+  primary_question: AiQuestionItem;
+  duplicate_questions: AiQuestionItem[];
+  combined_upvotes: number;
+  similarity_reason: string;
+}
+
+export interface AiDedupQuestionsResponse {
+  clusters: AiQuestionCluster[];
+  total_duplicates_found: number;
+  is_ai_generated: boolean;
+  latency_ms: number;
+}
+
+export interface MergeQuestionsResponse {
+  primary_question_id: string;
+  merged_question_ids: string[];
+  new_upvote_count: number;
+  new_score: number;
+  total_upvotes_added: number;
+  message: string;
+}
+
+export async function dedupRoomQuestions(
+  roomId: string
+): Promise<AiDedupQuestionsResponse> {
+  return api<AiDedupQuestionsResponse>(
+    `/api/v1/rooms/${roomId}/questions/ai-dedup`,
+    {
+      method: "POST",
+    }
+  );
+}
+
+export async function mergeDuplicateQuestions(
+  roomId: string,
+  payload: {
+    primary_question_id: string;
+    duplicate_question_ids: string[];
+  }
+): Promise<MergeQuestionsResponse> {
+  return api<MergeQuestionsResponse>(
+    `/api/v1/rooms/${roomId}/questions/merge`,
+    {
+      method: "POST",
+      body: payload,
+    }
+  );
+}
+
