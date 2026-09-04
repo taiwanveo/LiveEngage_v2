@@ -7,7 +7,7 @@ import datetime as dt
 import uuid
 from typing import cast
 
-from sqlalchemy import func, select, delete, union_all
+from sqlalchemy import delete, func, select, union_all
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -18,20 +18,20 @@ from app.models.enums import InteractionStatus, InteractionType
 from app.models.interaction import Interaction
 from app.models.poll import PollOption, PollResponse
 from app.models.room import Room
-from app.models.sprint9 import QuizQuestion, SurveyQuestion
 from app.models.session import Session
+from app.models.sprint9 import QuizQuestion, SurveyQuestion
 from app.models.user import User
 from app.realtime import events
 from app.schemas.interaction import (
     BatchPollCreateRequest,
     InteractionCreateRequest,
-    InteractionResponse,
     InteractionReorderRequest,
+    InteractionResponse,
     InteractionUpdateRequest,
 )
 from app.schemas.poll import POLL_TYPES
-from app.services.poll_redis import acquire_room_lock, release_room_lock, set_poll_agg_ttl
 from app.services.live_aggregate_settings import merge_live_aggregate_defaults
+from app.services.poll_redis import acquire_room_lock, release_room_lock, set_poll_agg_ttl
 
 
 async def ensure_room_access(
@@ -216,6 +216,7 @@ async def batch_create_interactions(
     )
     current_order = int(max_order.scalar_one())
 
+    now = dt.datetime.now(dt.UTC)
     created_interactions: list[Interaction] = []
     for poll_item in payload.polls:
         current_order += 1
@@ -234,7 +235,10 @@ async def batch_create_interactions(
         db.add(interaction)
         created_interactions.append(interaction)
 
-        if poll_item.options and poll_item.type in (InteractionType.MULTIPLE_CHOICE, InteractionType.RANKING):
+        if poll_item.options and poll_item.type in (
+            InteractionType.MULTIPLE_CHOICE,
+            InteractionType.RANKING,
+        ):
             for opt_idx, opt_text in enumerate(poll_item.options):
                 if opt_text.strip():
                     db.add(
@@ -244,6 +248,7 @@ async def batch_create_interactions(
                             text=opt_text.strip(),
                             order_no=opt_idx,
                             is_correct=False,
+                            created_at=now,
                         )
                     )
 

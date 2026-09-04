@@ -45,7 +45,9 @@ class PollOption(UUIDPrimaryKeyMixin, Base):
     is_correct: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     order_no: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     created_at: Mapped[dt.datetime] = mapped_column(
-        DateTime(timezone=True), nullable=False
+        DateTime(timezone=True),
+        nullable=False,
+        default=lambda: dt.datetime.now(dt.UTC),
     )
 
     __table_args__ = (

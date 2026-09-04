@@ -145,8 +145,12 @@ export function AiPollGeneratorModal({
         settings: {},
       }));
 
-      await batchCreateInteractions(roomId, payload);
+      const created = await batchCreateInteractions(roomId, payload);
       await queryClient.invalidateQueries({ queryKey: ["interactions", roomId] });
+
+      if (created && created.length > 0 && window.location.hash.includes("/workbench")) {
+        window.location.hash = `#/rooms/${roomId}/workbench/${created[0].id}`;
+      }
 
       if (onSuccess) {
         onSuccess();
