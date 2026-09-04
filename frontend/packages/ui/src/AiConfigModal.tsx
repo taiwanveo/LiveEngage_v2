@@ -114,7 +114,7 @@ export function AiConfigModal({
       open={open}
       onClose={onClose}
       title="🤖 AI 模型與金鑰設定"
-      size="md"
+      size="2xl"
     >
       <div className="space-y-4 text-sm">
         <p className="text-xs text-muted leading-relaxed">
@@ -128,7 +128,7 @@ export function AiConfigModal({
           <label className="mb-1.5 block text-xs font-semibold text-foreground">
             1. 選擇 AI 服務商 (Provider)
           </label>
-          <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+          <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4">
             {(
               [
                 { id: "openrouter", name: "OpenRouter", badge: "推薦", icon: "🌐" },
@@ -141,19 +141,23 @@ export function AiConfigModal({
                 key={p.id}
                 type="button"
                 onClick={() => handleProviderChange(p.id)}
-                className={`flex flex-col items-center justify-center rounded-xl border p-2.5 text-center transition ${
+                className={`flex flex-col items-center justify-center rounded-xl border px-3 py-2.5 text-center transition min-w-0 ${
                   provider === p.id
                     ? "border-accent bg-accent/10 font-bold text-accent shadow-sm"
                     : "border-border/80 bg-surface hover:border-accent/50 text-foreground"
                 }`}
               >
-                <div className="flex items-center gap-1">
-                  <span>{p.icon}</span>
-                  <span className="text-xs">{p.name}</span>
+                <div className="flex items-center justify-center gap-1.5 w-full min-w-0">
+                  <span className="shrink-0 text-sm">{p.icon}</span>
+                  <span className="text-xs font-semibold whitespace-nowrap">{p.name}</span>
                 </div>
-                {p.badge && (
-                  <span className="mt-1 rounded-full bg-accent/20 px-1.5 py-0.2 text-[9px] font-semibold text-accent">
+                {p.badge ? (
+                  <span className="mt-1.5 inline-block rounded-full bg-accent/20 px-2 py-0.5 text-[10px] font-semibold text-accent leading-none">
                     {p.badge}
+                  </span>
+                ) : (
+                  <span className="mt-1.5 inline-block h-[14px] text-[10px] leading-none opacity-0 select-none">
+                    &nbsp;
                   </span>
                 )}
               </button>

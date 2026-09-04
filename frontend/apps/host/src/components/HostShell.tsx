@@ -1,7 +1,7 @@
 /** Host 頁面外殼：統一房間頂欄 + 內容區。 */
 
 import * as React from "react";
-import { HostRoomNavHeader } from "@liveengage/ui";
+import { AiConfigTrigger, HostRoomNavHeader } from "@liveengage/ui";
 import type { HostRoomNavItem, HostRoomSessionMeta } from "@liveengage/ui";
 import { HostRoomHeaderActions } from "./HostRoomHeaderActions";
 import { useHostRoomSessionMeta } from "../lib/useHostRoomSessionMeta";
@@ -90,6 +90,7 @@ export function HostShell({
         sessionMeta={sessionMeta ?? defaultSessionMeta}
         navItems={hostRoomNavItems(roomId, activeNav, navLive)}
         {...(actions ? { actions } : {})}
+        headerActions={<AiConfigTrigger />}
         onLogout={onLogout}
         chromeFooterActions={
           <HostRoomHeaderActions

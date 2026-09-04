@@ -12,7 +12,7 @@ import {
   useRoomWebSocket,
   type WsEvent,
 } from "@liveengage/realtime";
-import { HostRoomNavHeader, WorkbenchLayout, useSystemNotice } from "@liveengage/ui";
+import { AiConfigTrigger, HostRoomNavHeader, WorkbenchLayout, useSystemNotice } from "@liveengage/ui";
 import { getAccessToken, canEditHostContent } from "../lib/auth";
 import {
   createInteraction,
@@ -557,6 +557,7 @@ export function SessionWorkbenchPage({
                 </div>
               ) : null
             }
+            headerActions={<AiConfigTrigger />}
             chromeFooterActions={<HostRoomHeaderActions roomId={roomId} screen={screen} />}
             onLogout={onLogout}
             subRow={<HostRoomHubBreadcrumb roomId={roomId} currentLabel="工作台" />}

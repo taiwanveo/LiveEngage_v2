@@ -23,6 +23,8 @@ interface Props {
   navItems?: NavItem[];
   actions?: React.ReactNode;
   onLogout?: () => void;
+  /** 頂部設定列附加操作（例如 AI 設定按鈕，與主題／登出並列） */
+  headerActions?: React.ReactNode;
   /** 登出列下方（例如 Host 投影／分享） */
   chromeFooterActions?: React.ReactNode;
   /** 標題列下方固定列（例如 Host 麵包屑） */
@@ -47,10 +49,12 @@ export const APP_HEADER_PADDING = "px-4 py-3 sm:px-6";
 export function AppHeaderChrome({
   onLogout,
   logoutLabel = "登出",
+  headerActions,
   footerActions,
 }: {
   onLogout?: () => void;
   logoutLabel?: string;
+  headerActions?: React.ReactNode;
   footerActions?: React.ReactNode;
 }): React.JSX.Element {
   return (
@@ -59,6 +63,7 @@ export function AppHeaderChrome({
       aria-label="顯示設定與帳號"
     >
       <div className="flex flex-wrap items-center justify-end gap-1.5 sm:gap-2">
+        {headerActions}
         <ThemeSwitcher compact />
         {onLogout ? (
           <button
@@ -70,7 +75,9 @@ export function AppHeaderChrome({
           </button>
         ) : null}
       </div>
-      {footerActions ? <div className="flex items-center">{footerActions}</div> : null}
+      {footerActions ? (
+        <div className="flex flex-wrap items-center justify-end">{footerActions}</div>
+      ) : null}
     </div>
   );
 }
@@ -89,6 +96,7 @@ export function AppHeader({
   navItems,
   actions,
   onLogout,
+  headerActions,
   chromeFooterActions,
   subRow,
   logoutLabel = "登出",
@@ -150,6 +158,7 @@ export function AppHeader({
         </div>
 
         <AppHeaderChrome
+          {...(headerActions ? { headerActions } : {})}
           {...(onLogout ? { onLogout, logoutLabel } : { logoutLabel })}
           {...(chromeFooterActions ? { footerActions: chromeFooterActions } : {})}
         />

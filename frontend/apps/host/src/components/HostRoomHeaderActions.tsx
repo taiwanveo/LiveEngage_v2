@@ -5,7 +5,6 @@ import { useQuery } from "@tanstack/react-query";
 import { listSessions } from "../lib/sessionApi";
 import { useScreenControl } from "../lib/useScreenControl";
 import { useHostRoomNavLiveState } from "../lib/useHostRoomNavLiveState";
-import { AiConfigTrigger } from "@liveengage/ui";
 import { ScreenControlPanel } from "./ScreenControlPanel";
 
 interface Props {
@@ -32,16 +31,13 @@ function ScreenControlPanelWithSession({
   const session = sessionsQuery.data?.find((s) => s.default_room_id === roomId) ?? null;
 
   return (
-    <div className="flex items-center gap-2">
-      <AiConfigTrigger />
-      <ScreenControlPanel
-        roomId={roomId}
-        sessionCode={session?.code ?? null}
-        sessionTitle={session?.title ?? null}
-        screen={screen}
-        qaOpen={navLive.qaOpen}
-      />
-    </div>
+    <ScreenControlPanel
+      roomId={roomId}
+      sessionCode={session?.code ?? null}
+      sessionTitle={session?.title ?? null}
+      screen={screen}
+      qaOpen={navLive.qaOpen}
+    />
   );
 }
 

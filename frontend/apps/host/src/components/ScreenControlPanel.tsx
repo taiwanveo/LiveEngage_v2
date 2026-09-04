@@ -104,26 +104,26 @@ export function ScreenControlPanel({
   return (
     <>
       <div className="flex flex-wrap items-center justify-end gap-1.5">
-        <div className="mr-12 flex flex-wrap items-center gap-1.5 rounded-lg border border-border bg-surface-elevated/80 px-2 py-1">
+        <div className="flex flex-wrap items-center gap-1.5 rounded-lg border border-border bg-surface-elevated/80 px-2 py-1">
           <button
             type="button"
             disabled={!href}
             onClick={() => openThemedProjection("dark")}
-            className="le-btn-present-compact inline-flex items-center gap-1 rounded-full bg-primary-600 px-3 py-1 text-[11px] font-semibold text-white transition hover:bg-primary-700 disabled:opacity-50"
+            className="le-btn-present-compact inline-flex items-center gap-1 rounded-full bg-primary-600 px-2.5 py-1 text-[11px] font-semibold text-white transition hover:bg-primary-700 disabled:opacity-50"
             title="以專業深色主題開啟投影"
           >
             <PresentIcon size={14} />
-            <span>投影（深色主題）</span>
+            <span>投影（深色）</span>
           </button>
           <button
             type="button"
             disabled={!href}
             onClick={() => openThemedProjection("light")}
-            className="le-btn-present-compact inline-flex items-center gap-1 rounded-full border border-primary-600 bg-white px-3 py-1 text-[11px] font-semibold text-primary-700 transition hover:bg-primary-50 disabled:opacity-50"
+            className="le-btn-present-compact inline-flex items-center gap-1 rounded-full border border-primary-600 bg-white px-2.5 py-1 text-[11px] font-semibold text-primary-700 transition hover:bg-primary-50 disabled:opacity-50"
             title="以專業淺色主題開啟投影"
           >
             <PresentIcon size={14} className="text-primary-700" />
-            <span>投影（淺色主題）</span>
+            <span>投影（淺色）</span>
           </button>
           <button
             type="button"
@@ -145,7 +145,7 @@ export function ScreenControlPanel({
             className="le-btn-secondary le-btn-present-compact disabled:opacity-50"
             title="投影顯示即時總覽（參與者數、Q&A 數、Poll 數等）"
           >
-            即時總覽投影
+            即時總覽
           </button>
           <button
             type="button"
@@ -176,7 +176,7 @@ export function ScreenControlPanel({
             className="le-btn-secondary le-btn-present-compact disabled:opacity-50"
             title="複製投影網址"
           >
-            複製投影網址
+            複製網址
           </button>
           <button
             type="button"

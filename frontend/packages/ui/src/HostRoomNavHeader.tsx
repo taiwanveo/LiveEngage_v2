@@ -42,6 +42,8 @@ export interface HostRoomNavHeaderProps {
   /** 第二列控場按鈕（工作台） */
   navControls?: React.ReactNode;
   onLogout?: () => void;
+  /** 頂部設定列附加操作（例如 AI 設定按鈕，與主題／登出並列） */
+  headerActions?: React.ReactNode;
   chromeFooterActions?: React.ReactNode;
   subRow?: React.ReactNode;
   maxWidth?: "2xl" | "4xl" | "6xl" | "7xl" | "full";
@@ -168,6 +170,7 @@ export function HostRoomNavHeader({
   actions,
   navControls,
   onLogout,
+  headerActions,
   chromeFooterActions,
   subRow,
   maxWidth = "7xl",
@@ -190,6 +193,7 @@ export function HostRoomNavHeader({
               {...(brandHref ? { href: brandHref } : {})}
             />
             <AppHeaderChrome
+              {...(headerActions ? { headerActions } : {})}
               {...(onLogout ? { onLogout } : {})}
               {...(chromeFooterDesktop ? { footerActions: chromeFooterDesktop } : {})}
             />

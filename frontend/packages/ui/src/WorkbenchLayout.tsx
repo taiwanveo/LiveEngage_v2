@@ -16,7 +16,7 @@ export function WorkbenchLayout({
   preview,
 }: WorkbenchLayoutProps): React.JSX.Element {
   return (
-    <div className="le-page-bg flex min-h-full flex-col">
+    <div className="le-page-bg flex min-h-full flex-col overflow-x-clip">
       {toolbar}
       {/* 左欄為原 25% 的 2/3；釋出寬度全給右側預覽欄 */}
       <div className="relative z-10 grid min-h-0 flex-1 grid-cols-1 lg:grid-cols-[50fr_165fr_85fr]">
