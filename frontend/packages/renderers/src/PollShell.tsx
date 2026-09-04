@@ -9,6 +9,7 @@ interface PollShellProps {
   description: string | null;
   children: React.ReactNode;
   footer?: React.ReactNode;
+  headerAction?: React.ReactNode;
 }
 
 export function PollShell({
@@ -18,6 +19,7 @@ export function PollShell({
   description,
   children,
   footer,
+  headerAction,
 }: PollShellProps): React.JSX.Element {
   const isPresent = mode === "present";
 
@@ -30,21 +32,24 @@ export function PollShell({
       }
     >
       <header className={isPresent ? "mb-6 shrink-0 space-y-2" : "mb-6 space-y-2"}>
-        <div className="flex flex-wrap items-center gap-2">
-          {!isPresent ? (
-            <span className="rounded-full bg-surface-elevated px-3 py-1 text-xs font-medium text-muted">
-              {modeLabel(mode)}
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            {!isPresent ? (
+              <span className="rounded-full bg-surface-elevated px-3 py-1 text-xs font-medium text-muted">
+                {modeLabel(mode)}
+              </span>
+            ) : null}
+            <span
+              className={
+                isPresent
+                  ? presentStatusBadgeClass(status)
+                  : "rounded-full bg-accent-muted px-3 py-1 text-xs font-medium text-accent"
+              }
+            >
+              {statusLabel(status)}
             </span>
-          ) : null}
-          <span
-            className={
-              isPresent
-                ? presentStatusBadgeClass(status)
-                : "rounded-full bg-accent-muted px-3 py-1 text-xs font-medium text-accent"
-            }
-          >
-            {statusLabel(status)}
-          </span>
+          </div>
+          {headerAction ? <div className="shrink-0">{headerAction}</div> : null}
         </div>
         <h2
           className={
