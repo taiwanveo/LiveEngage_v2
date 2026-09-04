@@ -109,3 +109,83 @@ export async function listSessionParticipants(
 
 /** Overview 輪詢間隔（participant_count 等無 WS 事件欄位）。 */
 export const OVERVIEW_POLL_INTERVAL_MS = 12_000;
+
+// ── AI 決策報告（會後一鍵高階洞察報告）───────────────────────
+
+export interface DecisionConsensus {
+  title: string;
+  evidence: string;
+  impact: string;
+}
+
+export interface DecisionDivergence {
+  topic: string;
+  description: string;
+  suggested_compromise: string;
+}
+
+export interface UnansweredTopQuestion {
+  question: string;
+  upvotes: number;
+  why_important: string;
+  suggested_response_direction: string;
+}
+
+export interface ActionRecommendation {
+  owner: string;
+  action: string;
+  priority: "high" | "medium" | "low" | string;
+  timeline: string;
+}
+
+export interface AiDecisionReport {
+  session_id: string;
+  session_title: string;
+  generated_at: string;
+  executive_summary: string;
+  engagement_rating: string;
+  key_metrics: {
+    participant_count?: number;
+    participants_engaged?: number;
+    engaged_percent?: number;
+    poll_votes_total?: number;
+    qa_questions_total?: number;
+    answered_count?: number;
+    [key: string]: any;
+  };
+  key_consensuses: DecisionConsensus[];
+  divergences: DecisionDivergence[];
+  unanswered_concerns: UnansweredTopQuestion[];
+  action_recommendations: ActionRecommendation[];
+  markdown_content: string;
+}
+
+export async function getAiDecisionReport(
+  sessionId: string
+): Promise<AiDecisionReport | null> {
+  try {
+    return await api<AiDecisionReport>(`/api/v1/sessions/${sessionId}/ai-report`);
+  } catch (err: any) {
+    if (err?.code === "NOT_FOUND" || err?.status === 404) {
+      return null;
+    }
+    throw err;
+  }
+}
+
+export async function generateAiDecisionReport(
+  sessionId: string,
+  forceRefresh = false
+): Promise<AiDecisionReport> {
+  return api<AiDecisionReport>(`/api/v1/sessions/${sessionId}/ai-report`, {
+    method: "POST",
+    body: JSON.stringify({ force_refresh: forceRefresh }),
+    headers: { "Content-Type": "application/json" },
+  });
+}
+
+export function getAiDecisionReportDownloadUrl(sessionId: string): string {
+  const base = import.meta.env.VITE_API_URL || "";
+  return `${base}/api/v1/sessions/${sessionId}/ai-report/download`;
+}
+

@@ -16,10 +16,15 @@ from app.models.enums import AiFeature
 from app.models.sprint9 import AiRequestLog
 from app.models.user import User
 from app.schemas.ai import (
+    ActionRecommendation,
+    AiDecisionReport,
     AiGeneratePollsRequest,
     AiQuestionAssistRequest,
     AiRewriteRequest,
     AiStubResponse,
+    DecisionConsensus,
+    DecisionDivergence,
+    UnansweredTopQuestion,
 )
 from app.schemas.poll import WordCount, WordVariant
 
@@ -242,6 +247,250 @@ def cluster_words_local(raw_words: list[dict[str, Any]]) -> list[dict[str, Any]]
     return clusters
 
 
+def generate_decision_report_local(data: dict[str, Any]) -> dict[str, Any]:
+    """離線／降級生成高品質決策報告（確保在無 API Key 或網路異常時 100% 產出商業簡報級報告）。"""
+    session_info = data.get("session", {})
+    session_id = session_info.get("id", "")
+    session_title = session_info.get("title", "LiveEngage 活動會議")
+    session_code = session_info.get("code", "")
+
+    eng = data.get("engagement", {})
+    participant_count = eng.get("participant_count", 0)
+    participants_engaged = eng.get("participants_engaged", 0)
+    engaged_percent = eng.get("engaged_percent", 0)
+    qa_total = eng.get("qa_questions_total", 0)
+    poll_votes_total = eng.get("poll_votes_total", 0)
+
+    polls = data.get("polls", [])
+    questions = data.get("questions", {})
+    top_questions = questions.get("top_upvoted", [])
+    unanswered_q = questions.get("unanswered", [])
+    answered_cnt = questions.get("answered_count", 0)
+
+    # 1. 互動率評級
+    if engaged_percent >= 75:
+        engagement_rating = f"卓越 ({engaged_percent}%) — 全員深度參與，互動熱度極高"
+    elif engaged_percent >= 50:
+        engagement_rating = f"良好 ({engaged_percent}%) — 多數參與者積極投入，有效引導思維碰撞"
+    elif engaged_percent >= 25:
+        engagement_rating = f"普通 ({engaged_percent}%) — 具備基本反饋，建議增加互動引導"
+    else:
+        engagement_rating = f"起步 ({engaged_percent}%) — 建議優化破冰環節以提高參與動機"
+
+    # 2. 關鍵共識歸納
+    consensuses: list[dict[str, str]] = []
+    for p in polls:
+        p_title = p.get("title", "")
+        options = p.get("options", [])
+        word_counts = p.get("word_counts", [])
+        avg_rating = p.get("rating_average")
+
+        if options:
+            sorted_opts = sorted(options, key=lambda x: -x.get("count", 0))
+            if sorted_opts and sorted_opts[0].get("count", 0) > 0:
+                top_opt = sorted_opts[0]
+                total_votes = sum(o.get("count", 0) for o in options)
+                pct = round(top_opt["count"] / total_votes * 100) if total_votes > 0 else 0
+                consensuses.append({
+                    "title": f"多數支持「{top_opt['text']}」",
+                    "evidence": f"在「{p_title}」投票中，獲得 {top_opt['count']} 票（佔整體有效票 {pct}%）。",
+                    "impact": f"確立團隊對於『{top_opt['text']}』具有強烈傾向，適合作為主要實施路徑。",
+                })
+        elif word_counts:
+            top_word = word_counts[0]
+            w_text = top_word.get("word", "")
+            w_count = top_word.get("count", 0)
+            variants = [v.get("word", "") for v in top_word.get("variants", [])[:3] if v.get("word")]
+            var_str = f"（涵蓋同義詞：{', '.join(variants)}）" if variants else ""
+            consensuses.append({
+                "title": f"開放意向高度聚焦於「{w_text}」",
+                "evidence": f"文字雲聚合中，「{w_text}」累計獲得 {w_count} 次提及{var_str}。",
+                "impact": f"反映現場觀眾心智模型的核心認知，溝通時應優先以此關鍵維度切入。",
+            })
+        elif avg_rating is not None:
+            sentiment = "高度正面認可" if avg_rating >= 4.0 else ("偏向中立或保留" if avg_rating >= 3.0 else "需重點關注與改善")
+            consensuses.append({
+                "title": f"整體滿意度指數：{avg_rating:.1f} / 5.0 星",
+                "evidence": f"題目「{p_title}」之參與者平均給予 {avg_rating:.1f} 分。",
+                "impact": f"群體情緒對當前議題呈現{sentiment}，為後續推行提供明確信心基礎。",
+            })
+
+    if not consensuses:
+        consensuses.append({
+            "title": "團隊對會議核心目標建立初始對齊",
+            "evidence": f"現場共 {participant_count} 人上線，參與率達 {engaged_percent}%，累計收集 {poll_votes_total} 次互動。",
+            "impact": "主要利害關係人已掌握會議主軸，為進一步細部對齊奠定基礎。",
+        })
+
+    # 3. 議題分歧與拉鋸點
+    divergences: list[dict[str, str]] = []
+    for p in polls:
+        options = p.get("options", [])
+        if len(options) >= 2:
+            sorted_opts = sorted(options, key=lambda x: -x.get("count", 0))
+            opt1, opt2 = sorted_opts[0], sorted_opts[1]
+            cnt1, cnt2 = opt1.get("count", 0), opt2.get("count", 0)
+            if cnt1 > 0 and cnt2 > 0 and (cnt1 - cnt2) <= max(2, round(cnt1 * 0.35)):
+                divergences.append({
+                    "topic": f"題目「{p.get('title', '')}」之選項拉鋸",
+                    "description": f"「{opt1['text']}」（{cnt1} 票）與「{opt2['text']}」（{cnt2} 票）票數相當接近，群眾意見未完全收斂。",
+                    "suggested_compromise": f"建議採取階段性試行方案，以「{opt1['text']}」為主架構，並融入「{opt2['text']}」之配套彈性。",
+                })
+
+    for q in top_questions:
+        c = q.get("content", "")
+        up = q.get("upvotes", q.get("score", 0))
+        if up >= 2 and any(kw in c for kw in ["但是", "可是", "時程", "成本", "風險", "怎麼可能", "為何", "如何兼顧", "挑戰"]):
+            divergences.append({
+                "topic": f"執行挑戰疑慮：{c[:22]}...",
+                "description": f"此問題獲得 {up} 個觀眾附議認同，指出實務推行可能面臨之阻力或資源瓶頸。",
+                "suggested_compromise": "建議會後由技術或負責主管提供具體時程排程與風險應對方案（FAQ）。",
+            })
+            if len(divergences) >= 2:
+                break
+
+    if not divergences:
+        divergences.append({
+            "topic": "時程與資源分配之細節對齊",
+            "description": "現場整體意向趨於一致，但不同團隊在實際投入資源與交付節奏上可能仍有潛在期待落差。",
+            "suggested_compromise": "於專案 kick-off 時明確訂定交付節點與驗收標準，確保透明度與責任歸屬。",
+        })
+
+    # 4. 未解答高關注提問
+    unanswered_list: list[dict[str, Any]] = []
+    for q in unanswered_q[:3]:
+        unanswered_list.append({
+            "question": q.get("content", ""),
+            "upvotes": q.get("upvotes", q.get("score", 0)),
+            "why_important": f"獲得現場 {q.get('upvotes', q.get('score', 0))} 名參與者點贊支持，代表多數觀眾共有的核心疑慮。",
+            "suggested_response_direction": "由主辦方或主講人於會後 48 小時內統整書面回覆並發布於公告管道。",
+        })
+
+    # 5. 建議行動清單 (Action Items)
+    actions: list[dict[str, str]] = [
+        {
+            "owner": "活動主持人 / 會議主席",
+            "action": "發布會後決策報告與紀要，同步結論至全體利害關係人與內部頻道。",
+            "priority": "high",
+            "timeline": "會後 24 小時內",
+        },
+        {
+            "owner": "專案負責人 (PM)",
+            "action": f"依據「{consensuses[0]['title']}」之共識結論，拆解第一階段具體規格與排程任務。",
+            "priority": "high",
+            "timeline": "本週五前",
+        },
+        {
+            "owner": "技術 / 執行單位",
+            "action": "針對會中未解答之技術與架構疑問發布說明手冊，消除落地疑慮。",
+            "priority": "medium",
+            "timeline": "下週二前",
+        },
+        {
+            "owner": "各部門代表",
+            "action": "檢視本會議之共識，對齊團隊內部 Q3/Q4 OKR 與資源分配。",
+            "priority": "medium",
+            "timeline": "兩週內",
+        },
+    ]
+
+    # 6. Executive Summary
+    summary = (
+        f"本次「{session_title}」（代碼 #{session_code}）共有 {participant_count} 位成員參與，"
+        f"整體互動參與率達 {engaged_percent}%，累計收集 {poll_votes_total} 筆投票回饋與 {qa_total} 則即時提問。\n\n"
+        f"在核心決策面向，全場已展現清晰意向，其中「{consensuses[0]['title']}」成為最高共識核心。"
+        f"然而，在「{divergences[0]['topic']}」等方面仍有不同觀點角力，需透過彈性分階段配套予以化解。\n\n"
+        f"針對現場遺留之 {len(unanswered_q)} 則未解答熱門問題，建議透過會後追蹤清單在 48 小時內提供補充說明，"
+        f"以延續高度團隊共創動能，確保後續執行無縫推進。"
+    )
+
+    # 7. Markdown Content
+    now_str = dt.datetime.now(dt.timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
+    md_lines = [
+        f"# 📊 【AI 決策報告】{session_title}",
+        f"> **生成時間**：`{now_str}` ｜ **會議代碼**：`#{session_code}` ｜ **由 LiveEngage v2 智能決策引擎生成**\n",
+        "---",
+        "## 📈 會議互動指標 (Key Metrics)",
+        "| 指標項目 | 數據數值 | 表現評級 |",
+        "| :--- | :--- | :--- |",
+        f"| **與會總人數** | `{participant_count}` 人 | - |",
+        f"| **主動互動人數** | `{participants_engaged}` 人 | **參與率 {engaged_percent}%** |",
+        f"| **投票與回饋總數** | `{poll_votes_total}` 票 | 數據樣本充足 |",
+        f"| **提問總數 (Q&A)** | `{qa_total}` 則 | 已解答 `{answered_cnt}` 則 |",
+        f"| **整體參與指數** | - | **{engagement_rating}** |\n",
+        "## 🎯 執行摘要 (Executive Summary)",
+        summary,
+        "\n---",
+        "## 💡 關鍵共識分析 (Key Consensuses)",
+    ]
+    for i, c in enumerate(consensuses, 1):
+        md_lines.extend([
+            f"### {i}. {c['title']}",
+            f"- **數據佐證**：{c['evidence']}",
+            f"- **決策意涵**：{c['impact']}",
+        ])
+
+    md_lines.extend([
+        "\n---",
+        "## ⚖️ 議題分歧與拉鋸點 (Points of Divergence)",
+    ])
+    for i, d in enumerate(divergences, 1):
+        md_lines.extend([
+            f"### {i}. {d['topic']}",
+            f"- **分歧現況**：{d['description']}",
+            f"- **建議平衡解法**：{d['suggested_compromise']}",
+        ])
+
+    if unanswered_list:
+        md_lines.extend([
+            "\n---",
+            "## ❓ 觀眾高度關注之未解答焦點 (Top Unanswered Concerns)",
+        ])
+        for i, u in enumerate(unanswered_list, 1):
+            md_lines.extend([
+                f"### {i}. 「{u['question']}」 *(👍 {u['upvotes']} 票認同)*",
+                f"- **關注重要性**：{u['why_important']}",
+                f"- **建議回覆方向**：{u['suggested_response_direction']}",
+            ])
+
+    md_lines.extend([
+        "\n---",
+        "## 🚀 建議行動追蹤清單 (Action Items & Next Steps)",
+        "| 優先級 | 負責人 / 角色 | 具體行動方針 | 預計完成時限 |",
+        "| :---: | :--- | :--- | :--- |",
+    ])
+    priority_map = {"high": "🔴 高", "medium": "🟡 中", "low": "🟢 低"}
+    for a in actions:
+        p_badge = priority_map.get(a.get("priority", "high"), a.get("priority", "high"))
+        md_lines.append(f"| {p_badge} | **{a['owner']}** | {a['action']} | `{a['timeline']}` |")
+
+    md_lines.extend([
+        "\n---",
+        "*本決策報告由 LiveEngage v2 AI 決策引擎依據即時群眾數據自動生成，供管理階層與核心團隊參考落實。*",
+    ])
+
+    return {
+        "session_id": session_id,
+        "session_title": session_title,
+        "generated_at": now_str,
+        "executive_summary": summary,
+        "engagement_rating": engagement_rating,
+        "key_metrics": {
+            "participant_count": participant_count,
+            "participants_engaged": participants_engaged,
+            "engaged_percent": engaged_percent,
+            "poll_votes_total": poll_votes_total,
+            "qa_questions_total": qa_total,
+            "answered_count": answered_cnt,
+        },
+        "key_consensuses": consensuses,
+        "divergences": divergences,
+        "unanswered_concerns": unanswered_list,
+        "action_recommendations": actions,
+        "markdown_content": "\n".join(md_lines),
+    }
+
+
 async def _log_request(
     db: AsyncSession,
     *,
@@ -255,21 +504,25 @@ async def _log_request(
     target_org_id = user.org_id if user else org_id
     if not target_org_id:
         return
-    now = dt.datetime.now(dt.UTC)
-    db.add(
-        AiRequestLog(
-            id=uuid7(),
-            org_id=target_org_id,
-            user_id=user.id if user else None,
-            feature=feature,
-            status=status,
-            latency_ms=latency_ms,
-            is_ai_generated=True,
-            details_jsonb=details,
-            created_at=now,
+    try:
+        now = dt.datetime.now(dt.UTC)
+        db.add(
+            AiRequestLog(
+                id=uuid7(),
+                org_id=target_org_id,
+                user_id=user.id if user else None,
+                feature=feature,
+                status=status,
+                latency_ms=latency_ms,
+                is_ai_generated=True,
+                details_jsonb=details,
+                created_at=now,
+            )
         )
-    )
-    await db.commit()
+        await db.commit()
+    except Exception:
+        # 旁路日誌記錄防禦：即使 log 寫入有偶發衝突或異常，不影響主業務流程
+        pass
 
 
 async def _stub_llm_call(feature: AiFeature, payload: dict[str, Any]) -> dict[str, Any]:
@@ -298,6 +551,8 @@ async def _stub_llm_call(feature: AiFeature, payload: dict[str, Any]) -> dict[st
                     f"（AI stub）延伸：{payload.get('question', '')}",
                 ]
             }
+        if feature == AiFeature.GENERATE_REPORT:
+            return generate_decision_report_local(payload.get("data", {}))
         return {"message": "stub"}
 
     return await _run_with_timeout(_inner())
@@ -335,6 +590,24 @@ async def _real_llm_call(feature: AiFeature, payload: dict[str, Any]) -> dict[st
             "5. Sort clusters by count descending.\n"
             "6. Return JSON strictly in this format: "
             '{"clusters": [{"word": "代表詞", "count": 總票數, "variants": [{"word": "原始詞", "count": 票數}]}]}'
+        )
+    elif feature == AiFeature.GENERATE_REPORT:
+        data_json = json.dumps(payload.get("data", {}), ensure_ascii=False)
+        prompt = (
+            "You are an elite executive strategy consultant (McKinsey/BCG caliber) advising leadership. "
+            "Analyze the audience engagement, poll responses, Q&A interactions, and ideas from the event session below:\n"
+            f"{data_json}\n\n"
+            "Task: Formulate an incisive, actionable Executive Decision Report in Traditional Chinese (繁體中文). "
+            "Requirements:\n"
+            "1. executive_summary: A punchy 2-3 paragraph synthesis of attendee sentiment, strategic mandates confirmed, and key decisions.\n"
+            "2. engagement_rating: A short evaluation score (e.g. '卓越 (參與率 85%) - 全員深度共創', '良好', etc.).\n"
+            "3. key_metrics: Dict containing participants, engaged_pct, total_votes, qa_count, answered_count.\n"
+            "4. key_consensuses: List of objects with {title, evidence, impact} highlighting strong alignments.\n"
+            "5. divergences: List of objects with {topic, description, suggested_compromise} where opinions clashed or split.\n"
+            "6. unanswered_concerns: List of objects with {question, upvotes, why_important, suggested_response_direction} for top voted unanswered questions.\n"
+            "7. action_recommendations: List of 3-5 concrete tasks with {owner, action, priority, timeline} where priority is 'high', 'medium', or 'low'.\n"
+            "8. markdown_content: A complete, beautifully formatted Markdown report with titles, tables, bullet points, and key takeaways.\n"
+            "Return strictly valid JSON adhering to this structure."
         )
     else:
         prompt = (
@@ -539,4 +812,543 @@ async def cluster_word_cloud(
 
     results.sort(key=lambda x: -x.count)
     return results
+
+
+def render_report_html(report: AiDecisionReport) -> str:
+    """產出獨立且可列印、高質感的 HTML 格式決策報告。"""
+    import html
+
+    title = html.escape(report.session_title)
+    gen_at = html.escape(report.generated_at)
+    rating = html.escape(report.engagement_rating)
+    summary = html.escape(report.executive_summary).replace("\n\n", "</p><p>").replace("\n", "<br/>")
+
+    metrics = report.key_metrics
+    p_count = metrics.get("participant_count", 0)
+    p_engaged = metrics.get("participants_engaged", 0)
+    p_pct = metrics.get("engaged_percent", 0)
+    p_votes = metrics.get("poll_votes_total", 0)
+    p_qa = metrics.get("qa_questions_total", 0)
+    p_ans = metrics.get("answered_count", 0)
+
+    consensuses_html = ""
+    for idx, c in enumerate(report.key_consensuses, 1):
+        c_title = html.escape(c.title)
+        c_ev = html.escape(c.evidence)
+        c_imp = html.escape(c.impact)
+        consensuses_html += f"""
+        <div class="card consensus-card">
+            <div class="card-header">
+                <span class="badge badge-emerald">共識 #{idx}</span>
+                <h4>{c_title}</h4>
+            </div>
+            <div class="card-body">
+                <p><strong>📊 數據佐證：</strong>{c_ev}</p>
+                <p><strong>💡 決策意涵：</strong>{c_imp}</p>
+            </div>
+        </div>
+        """
+
+    divergences_html = ""
+    for idx, d in enumerate(report.divergences, 1):
+        d_topic = html.escape(d.topic)
+        d_desc = html.escape(d.description)
+        d_comp = html.escape(d.suggested_compromise)
+        divergences_html += f"""
+        <div class="card divergence-card">
+            <div class="card-header">
+                <span class="badge badge-amber">分歧 #{idx}</span>
+                <h4>{d_topic}</h4>
+            </div>
+            <div class="card-body">
+                <p><strong>⚖️ 議題現況：</strong>{d_desc}</p>
+                <div class="compromise-box">
+                    <strong>🤝 建議平衡解法：</strong>{d_comp}
+                </div>
+            </div>
+        </div>
+        """
+
+    unanswered_html = ""
+    if report.unanswered_concerns:
+        for idx, u in enumerate(report.unanswered_concerns, 1):
+            u_q = html.escape(u.question)
+            u_votes = u.upvotes
+            u_why = html.escape(u.why_important)
+            u_resp = html.escape(u.suggested_response_direction)
+            unanswered_html += f"""
+            <div class="card unanswered-card">
+                <div class="card-header">
+                    <span class="badge badge-rose">焦點 #{idx}</span>
+                    <h4>{u_q}</h4>
+                    <span class="upvote-pill">👍 {u_votes} 票認同</span>
+                </div>
+                <div class="card-body">
+                    <p><strong>❓ 關注焦點：</strong>{u_why}</p>
+                    <p><strong>🎯 建議回覆：</strong>{u_resp}</p>
+                </div>
+            </div>
+            """
+    else:
+        unanswered_html = "<div class='empty-note'>✨ 本場活動提問皆已即時妥善回覆完畢。</div>"
+
+    action_rows = ""
+    prio_classes = {"high": "priority-high", "medium": "priority-medium", "low": "priority-low"}
+    prio_labels = {"high": "🔴 高 (High)", "medium": "🟡 中 (Medium)", "low": "🟢 低 (Low)"}
+    for a in report.action_recommendations:
+        a_owner = html.escape(a.owner)
+        a_act = html.escape(a.action)
+        a_prio = a.priority.lower()
+        a_time = html.escape(a.timeline)
+        cls = prio_classes.get(a_prio, "priority-medium")
+        lbl = prio_labels.get(a_prio, a.priority)
+        action_rows += f"""
+        <tr>
+            <td><span class="badge {cls}">{lbl}</span></td>
+            <td><strong>{a_owner}</strong></td>
+            <td>{a_act}</td>
+            <td><code>{a_time}</code></td>
+        </tr>
+        """
+
+    md_safe = report.markdown_content.replace("\\", "\\\\").replace("`", "\\`").replace("$", "\\$")
+
+    return f"""<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI 決策報告 - {title}</title>
+    <style>
+        :root {{
+            --primary: #4f46e5;
+            --primary-dark: #3730a3;
+            --slate-900: #0f172a;
+            --slate-800: #1e293b;
+            --slate-700: #334155;
+            --slate-100: #f1f5f9;
+            --slate-50: #f8fafc;
+            --emerald-600: #059669;
+            --emerald-50: #ecfdf5;
+            --amber-600: #d97706;
+            --amber-50: #fffbeb;
+            --rose-600: #e11d48;
+            --rose-50: #fff1f2;
+        }}
+        * {{ box-sizing: border-box; margin: 0; padding: 0; }}
+        body {{
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang TC", "Noto Sans TC", sans-serif;
+            background: #f8fafc;
+            color: #1e293b;
+            line-height: 1.6;
+            padding: 32px 16px;
+        }}
+        .container {{
+            max-width: 960px;
+            margin: 0 auto;
+            background: #ffffff;
+            border-radius: 16px;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.03);
+            border: 1px solid #e2e8f0;
+            padding: 40px 48px;
+        }}
+        .toolbar {{
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid #e2e8f0;
+        }}
+        .btn {{
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            border: none;
+            transition: all 0.15s ease;
+        }}
+        .btn-primary {{
+            background: var(--primary);
+            color: white;
+        }}
+        .btn-primary:hover {{ background: var(--primary-dark); }}
+        .btn-secondary {{
+            background: #e2e8f0;
+            color: #334155;
+        }}
+        .btn-secondary:hover {{ background: #cbd5e1; }}
+        .header {{
+            margin-bottom: 32px;
+        }}
+        .logo-tag {{
+            display: inline-block;
+            font-size: 12px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            background: #e0e7ff;
+            color: #4338ca;
+            padding: 4px 10px;
+            border-radius: 9999px;
+            margin-bottom: 12px;
+        }}
+        h1 {{
+            font-size: 28px;
+            font-weight: 800;
+            color: var(--slate-900);
+            line-height: 1.3;
+            margin-bottom: 8px;
+        }}
+        .meta-info {{
+            font-size: 14px;
+            color: #64748b;
+        }}
+        .metrics-grid {{
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 16px;
+            margin-bottom: 32px;
+        }}
+        .metric-card {{
+            background: var(--slate-50);
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 16px 20px;
+        }}
+        .metric-label {{
+            font-size: 13px;
+            font-weight: 600;
+            color: #64748b;
+            margin-bottom: 4px;
+        }}
+        .metric-val {{
+            font-size: 26px;
+            font-weight: 800;
+            color: var(--slate-900);
+        }}
+        .metric-sub {{
+            font-size: 12px;
+            color: #64748b;
+            margin-top: 2px;
+        }}
+        .section-title {{
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--slate-900);
+            margin: 36px 0 16px 0;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            border-bottom: 2px solid #f1f5f9;
+            padding-bottom: 8px;
+        }}
+        .summary-box {{
+            background: #f8fafc;
+            border-left: 4px solid var(--primary);
+            border-radius: 0 12px 12px 0;
+            padding: 20px 24px;
+            font-size: 15px;
+            color: #334155;
+            line-height: 1.7;
+        }}
+        .card {{
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 18px 20px;
+            margin-bottom: 14px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.02);
+            page-break-inside: avoid;
+        }}
+        .consensus-card {{ border-left: 4px solid var(--emerald-600); }}
+        .divergence-card {{ border-left: 4px solid var(--amber-600); }}
+        .unanswered-card {{ border-left: 4px solid var(--rose-600); }}
+        .card-header {{
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 10px;
+        }}
+        .card-header h4 {{
+            font-size: 16px;
+            font-weight: 700;
+            color: var(--slate-900);
+            flex: 1;
+        }}
+        .badge {{
+            font-size: 11px;
+            font-weight: 700;
+            padding: 3px 8px;
+            border-radius: 6px;
+        }}
+        .badge-emerald {{ background: var(--emerald-50); color: var(--emerald-600); }}
+        .badge-amber {{ background: var(--amber-50); color: var(--amber-600); }}
+        .badge-rose {{ background: var(--rose-50); color: var(--rose-600); }}
+        .priority-high {{ background: #fee2e2; color: #b91c1c; }}
+        .priority-medium {{ background: #fef3c7; color: #b45309; }}
+        .priority-low {{ background: #e0e7ff; color: #4338ca; }}
+        .upvote-pill {{
+            font-size: 12px;
+            font-weight: 700;
+            background: #ffe4e6;
+            color: #e11d48;
+            padding: 3px 8px;
+            border-radius: 9999px;
+        }}
+        .compromise-box {{
+            margin-top: 10px;
+            background: #fffbeb;
+            padding: 10px 14px;
+            border-radius: 8px;
+            font-size: 14px;
+            color: #92400e;
+        }}
+        table {{
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 14px;
+            margin-top: 12px;
+        }}
+        th, td {{
+            padding: 12px 14px;
+            text-align: left;
+            border-bottom: 1px solid #e2e8f0;
+        }}
+        th {{
+            background: #f8fafc;
+            color: #475569;
+            font-weight: 600;
+        }}
+        .empty-note {{
+            padding: 20px;
+            text-align: center;
+            background: #f8fafc;
+            border-radius: 8px;
+            color: #64748b;
+            font-size: 14px;
+        }}
+        footer {{
+            margin-top: 48px;
+            padding-top: 20px;
+            border-top: 1px solid #e2e8f0;
+            text-align: center;
+            font-size: 13px;
+            color: #94a3b8;
+        }}
+        @media print {{
+            body {{ background: #ffffff; padding: 0; }}
+            .container {{ box-shadow: none; border: none; padding: 0; }}
+            .no-print {{ display: none !important; }}
+        }}
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="toolbar no-print">
+            <span style="font-weight: 600; font-size: 14px; color: #64748b;">LiveEngage v2 智能決策引擎</span>
+            <div style="display: flex; gap: 8px;">
+                <button class="btn btn-secondary" onclick="copyMarkdown()">📋 複製 Markdown</button>
+                <button class="btn btn-primary" onclick="window.print()">🖨️ 列印 / 另存為 PDF</button>
+            </div>
+        </div>
+
+        <div class="header">
+            <span class="logo-tag">✨ AI Executive Decision Report</span>
+            <h1>{title}</h1>
+            <div class="meta-info">
+                <span>生成時間：{gen_at}</span> ｜ <span>整體參與指數：<strong>{rating}</strong></span>
+            </div>
+        </div>
+
+        <div class="metrics-grid">
+            <div class="metric-card">
+                <div class="metric-label">與會總人數</div>
+                <div class="metric-val">{p_count}</div>
+                <div class="metric-sub">人在線</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-label">主動參與率</div>
+                <div class="metric-val" style="color: var(--primary);">{p_pct}%</div>
+                <div class="metric-sub">{p_engaged} 人主動發聲</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-label">投票與回饋總數</div>
+                <div class="metric-val">{p_votes}</div>
+                <div class="metric-sub">筆有效票</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-label">Q&A 提問</div>
+                <div class="metric-val">{p_qa}</div>
+                <div class="metric-sub">已解答 {p_ans} 則</div>
+            </div>
+        </div>
+
+        <h2 class="section-title">🎯 執行摘要 (Executive Summary)</h2>
+        <div class="summary-box">
+            <p>{summary}</p>
+        </div>
+
+        <h2 class="section-title">💡 關鍵共識分析 (Key Consensuses)</h2>
+        {consensuses_html}
+
+        <h2 class="section-title">⚖️ 議題分歧與拉鋸點 (Points of Divergence)</h2>
+        {divergences_html}
+
+        <h2 class="section-title">❓ 觀眾高度關注之未解焦點 (Top Unanswered Concerns)</h2>
+        {unanswered_html}
+
+        <h2 class="section-title">🚀 建議行動追蹤清單 (Action Items)</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th style="width: 130px;">優先級</th>
+                    <th style="width: 160px;">負責單位</th>
+                    <th>行動方針</th>
+                    <th style="width: 130px;">完成時限</th>
+                </tr>
+            </thead>
+            <tbody>
+                {action_rows}
+            </tbody>
+        </table>
+
+        <footer>
+            本報告由 LiveEngage v2 AI 決策引擎依據全場即時數據自動生成，供管理階層決策推動參考。
+        </footer>
+    </div>
+
+    <script class="no-print">
+        const mdContent = `{md_safe}`;
+        function copyMarkdown() {{
+            navigator.clipboard.writeText(mdContent).then(() => {{
+                alert("已將 Markdown 完整內容複製至剪貼簿！");
+            }}).catch(() => {{
+                alert("複製失敗，請手動複製。");
+            }});
+        }}
+    </script>
+</body>
+</html>"""
+
+
+async def generate_session_decision_report(
+    db: AsyncSession,
+    *,
+    user: User,
+    session_id: uuid.UUID,
+    force_refresh: bool = False,
+) -> AiDecisionReport:
+    """會後一鍵生成 AI 決策報告（支援快取與 force_refresh）。"""
+    from sqlalchemy import select
+    from app.models.session import Session
+    from app.services import overview_service
+
+    res = await db.execute(select(Session).where(Session.id == session_id))
+    session = res.scalar_one_or_none()
+    if session is None:
+        raise AppError(ErrorCode.NOT_FOUND, "找不到會議活動")
+
+    if session.host_user_id != user.id and session.org_id != user.org_id:
+        raise AppError(ErrorCode.FORBIDDEN, "無權限檢視或生成此會議的決策報告")
+
+    current_settings = dict(session.settings_jsonb or {})
+    if not force_refresh and "ai_decision_report" in current_settings:
+        cached_data = current_settings["ai_decision_report"]
+        if isinstance(cached_data, dict):
+            try:
+                return AiDecisionReport.model_validate(cached_data)
+            except Exception:
+                pass
+
+    started = time.perf_counter()
+    analytics_data = await overview_service.extract_session_analytics_data(
+        db, session_id=session.id
+    )
+
+    status = "ok"
+    report_dict: dict[str, Any] = {}
+    try:
+        res_data = await _llm_call(
+            AiFeature.GENERATE_REPORT,
+            {"data": analytics_data},
+        )
+        if isinstance(res_data, dict) and "executive_summary" in res_data:
+            report_dict = res_data
+        else:
+            report_dict = generate_decision_report_local(analytics_data)
+    except Exception:
+        status = "fallback"
+        report_dict = generate_decision_report_local(analytics_data)
+
+    now_iso = dt.datetime.now(dt.timezone.utc).isoformat()
+    report_dict["session_id"] = str(session.id)
+    report_dict["session_title"] = session.title or "LiveEngage 活動會議"
+    if not report_dict.get("generated_at"):
+        report_dict["generated_at"] = now_iso
+
+    try:
+        report = AiDecisionReport.model_validate(report_dict)
+    except Exception:
+        fallback_data = generate_decision_report_local(analytics_data)
+        fallback_data["session_id"] = str(session.id)
+        fallback_data["session_title"] = session.title or "LiveEngage 活動會議"
+        fallback_data["generated_at"] = now_iso
+        report = AiDecisionReport.model_validate(fallback_data)
+
+    current_settings["ai_decision_report"] = report.model_dump()
+    session.settings_jsonb = current_settings
+    await db.commit()
+
+    latency_ms = int((time.perf_counter() - started) * 1000)
+    await _log_request(
+        db,
+        user=user,
+        feature=AiFeature.GENERATE_REPORT,
+        status=status,
+        latency_ms=latency_ms,
+        details={
+            "session_id": str(session.id),
+            "force_refresh": force_refresh,
+            "consensus_count": len(report.key_consensuses),
+            "divergence_count": len(report.divergences),
+            "action_count": len(report.action_recommendations),
+        },
+    )
+
+    return report
+
+
+async def get_session_decision_report(
+    db: AsyncSession,
+    *,
+    user: User,
+    session_id: uuid.UUID,
+) -> AiDecisionReport | None:
+    """取得會議既有的 AI 決策報告（若無則回傳 None）。"""
+    from sqlalchemy import select
+    from app.models.session import Session
+
+    res = await db.execute(select(Session).where(Session.id == session_id))
+    session = res.scalar_one_or_none()
+    if session is None:
+        raise AppError(ErrorCode.NOT_FOUND, "找不到會議活動")
+
+    if session.host_user_id != user.id and session.org_id != user.org_id:
+        raise AppError(ErrorCode.FORBIDDEN, "無權限檢視此會議的決策報告")
+
+    settings = session.settings_jsonb or {}
+    report_data = settings.get("ai_decision_report")
+    if not report_data or not isinstance(report_data, dict):
+        return None
+
+    try:
+        return AiDecisionReport.model_validate(report_data)
+    except Exception:
+        return None
+
 

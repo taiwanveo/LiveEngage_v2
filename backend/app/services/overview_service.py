@@ -13,11 +13,11 @@ from app.core.tokens import ScreenTokenClaims
 from app.models.enums import InteractionStatus, InteractionType
 from app.models.interaction import Interaction
 from app.models.participant import Participant
-from app.models.poll import PollResponse as PollResponseRow
+from app.models.poll import PollOption, PollResponse as PollResponseRow
 from app.models.question import Question
 from app.models.room import Room
 from app.models.session import Session
-from app.models.sprint9 import QuizQuestion, SurveySubmission
+from app.models.sprint9 import Idea, QuizQuestion, SurveySubmission
 from app.models.user import User
 from app.schemas.overview import (
     ActivePollOverview,
@@ -476,3 +476,159 @@ async def get_session_overview(
         quiz_leaderboard_top=quiz_leaderboard_top,
         survey_summary=survey_summary,
     )
+
+
+async def extract_session_analytics_data(
+    db: AsyncSession, *, session_id: uuid.UUID
+) -> dict[str, Any]:
+    """萃取活動全維度數據，供 AI 生成會後決策報告。"""
+    session_res = await db.execute(select(Session).where(Session.id == session_id))
+    session = session_res.scalar_one_or_none()
+    if not session:
+        raise AppError(ErrorCode.NOT_FOUND, "找不到活動")
+
+    engagement = await _engagement_summary(db, session_id=session_id)
+
+    room_ids_res = await db.execute(
+        select(Room.id).where(Room.session_id == session_id)
+    )
+    room_ids = [r[0] for r in room_ids_res.all()]
+
+    polls_data: list[dict[str, Any]] = []
+    if room_ids:
+        interactions_res = await db.execute(
+            select(Interaction)
+            .where(
+                Interaction.room_id.in_(room_ids),
+                Interaction.type.in_(tuple(POLL_TYPES)),
+            )
+            .order_by(Interaction.order_no.asc(), Interaction.created_at.asc())
+        )
+        for poll in interactions_res.scalars().all():
+            try:
+                results = await poll_service.get_poll_results(
+                    db, poll.id, is_host=True
+                )
+                poll_dict: dict[str, Any] = {
+                    "id": str(poll.id),
+                    "title": poll.title or "未命名題目",
+                    "type": str(poll.type),
+                    "response_count": results.response_count,
+                }
+                if results.option_counts:
+                    opts_res = await db.execute(
+                        select(PollOption).where(PollOption.interaction_id == poll.id)
+                    )
+                    opts_map = {str(o.id): o.text for o in opts_res.scalars().all()}
+                    poll_dict["options"] = [
+                        {
+                            "text": opts_map.get(str(oc.option_id), str(oc.option_id)),
+                            "count": oc.count,
+                        }
+                        for oc in results.option_counts
+                    ]
+                if results.word_counts:
+                    poll_dict["word_counts"] = [
+                        {
+                            "word": wc.word,
+                            "count": wc.count,
+                            "variants": [v.model_dump() for v in wc.variants]
+                            if wc.variants
+                            else [],
+                        }
+                        for wc in results.word_counts[:10]
+                    ]
+                if results.average is not None:
+                    poll_dict["rating_average"] = results.average
+                    poll_dict["distribution"] = results.distribution
+                if results.ranking_order_counts:
+                    poll_dict["ranking_orders"] = [
+                        {
+                            "labels": rc.order_labels,
+                            "count": rc.count,
+                            "pct": rc.percentage,
+                        }
+                        for rc in results.ranking_order_counts[:5]
+                    ]
+                polls_data.append(poll_dict)
+            except Exception:
+                pass
+
+    questions_stmt = (
+        select(Question)
+        .where(
+            Question.session_id == session_id,
+            Question.status.in_(_PUBLIC_LIST_STATUSES),
+        )
+        .order_by(Question.score.desc(), Question.created_at.desc())
+    )
+    q_rows = (await db.execute(questions_stmt)).scalars().all()
+    questions_data: list[dict[str, Any]] = []
+    unanswered_questions: list[dict[str, Any]] = []
+    answered_questions: list[dict[str, Any]] = []
+
+    for q in q_rows:
+        up, _, score = await qa_redis.get_effective_counts(db, q)
+        q_item = {
+            "id": str(q.id),
+            "content": q.content,
+            "score": score,
+            "upvotes": up,
+            "is_answered": q.is_answered,
+        }
+        questions_data.append(q_item)
+        if q.is_answered:
+            answered_questions.append(q_item)
+        else:
+            unanswered_questions.append(q_item)
+
+    ideas_data: list[dict[str, Any]] = []
+    if room_ids:
+        ideas_interactions_res = await db.execute(
+            select(Interaction.id).where(
+                Interaction.room_id.in_(room_ids),
+                Interaction.type == InteractionType.IDEAS,
+            )
+        )
+        idea_board_ids = [r[0] for r in ideas_interactions_res.all()]
+        if idea_board_ids:
+            ideas_stmt = (
+                select(Idea)
+                .where(
+                    Idea.board_interaction_id.in_(idea_board_ids),
+                    Idea.is_hidden == False,  # noqa: E712
+                )
+                .order_by(Idea.created_at.desc())
+                .limit(10)
+            )
+            idea_rows = (await db.execute(ideas_stmt)).scalars().all()
+            ideas_data = [
+                {"content": i.content, "category": i.category}
+                for i in idea_rows
+            ]
+
+    return {
+        "session": {
+            "id": str(session.id),
+            "title": session.title,
+            "code": session.code,
+            "status": str(session.status),
+            "description": session.description or "",
+        },
+        "engagement": {
+            "participant_count": engagement.participant_count,
+            "participants_engaged": engagement.participants_engaged,
+            "engaged_percent": engagement.engaged_percent,
+            "qa_questions_total": engagement.qa_questions_total,
+            "poll_votes_total": engagement.poll_votes_total,
+        },
+        "polls": polls_data,
+        "questions": {
+            "total": len(questions_data),
+            "top_upvoted": questions_data[:5],
+            "unanswered": unanswered_questions[:5],
+            "answered_count": len(answered_questions),
+        },
+        "ideas": ideas_data,
+    }
+
