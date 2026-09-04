@@ -134,6 +134,12 @@ export function AiConfigModal({
       setAvailableModels(result.models);
     }
 
+    if (result.suggested_model) {
+      setModel(result.suggested_model);
+    } else if (result.status === "warning" && result.model && result.model !== model) {
+      setModel(result.model);
+    }
+
     if (result.status === "ok") {
       setTestStatus("success");
       setTestMsg(result.message);
@@ -372,17 +378,61 @@ export function AiConfigModal({
           </p>
         </div>
 
+        {/* Test Result Alert (連線驗證結果提示：置於模型選單正上方，連動呈現最新狀態) */}
+        {testStatus !== "idle" && (
+          <div
+            className={`rounded-xl border-2 p-3.5 text-xs transition shadow-sm ${
+              testStatus === "testing"
+                ? "border-accent/60 bg-accent/15 text-foreground animate-pulse"
+                : testStatus === "success"
+                ? "border-emerald-500 bg-emerald-500/15 text-emerald-950 dark:text-emerald-100 font-semibold"
+                : testStatus === "warning"
+                ? "border-amber-500 bg-amber-100 text-amber-950 dark:bg-amber-950 dark:border-amber-400 dark:text-amber-50 font-semibold"
+                : "border-danger bg-danger/15 text-danger font-semibold"
+            }`}
+          >
+            <div className="flex items-start gap-2.5">
+              <span className="text-base shrink-0 mt-0.5">
+                {testStatus === "testing" && "⏳"}
+                {testStatus === "success" && "✅"}
+                {testStatus === "warning" && "⚠️"}
+                {testStatus === "error" && "❌"}
+              </span>
+              <div className="flex-1">
+                {testStatus === "warning" && (
+                  <div className="text-[11px] font-bold text-amber-900 dark:text-amber-300 uppercase tracking-wide mb-0.5">
+                    連線成功提醒（已自動為您切換至推薦模型）
+                  </div>
+                )}
+                {testStatus === "success" && (
+                  <div className="text-[11px] font-bold text-emerald-800 dark:text-emerald-300 uppercase tracking-wide mb-0.5">
+                    連線成功
+                  </div>
+                )}
+                {testStatus === "error" && (
+                  <div className="text-[11px] font-bold text-danger uppercase tracking-wide mb-0.5">
+                    連線失敗
+                  </div>
+                )}
+                <div className="break-words leading-relaxed font-sans text-xs">
+                  {testMsg}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* 3. Model Selection Dropdown & Custom Input (永遠可見下拉選單) */}
         <div className="space-y-2">
           <div className="flex items-center justify-between">
-            <label className="text-xs font-semibold text-foreground flex items-center gap-2">
+            <label className="text-xs font-bold text-foreground flex items-center gap-2">
               <span>3. 模型名稱 (Model Name)</span>
               {availableModels.length > 0 ? (
-                <span className="rounded bg-accent/15 px-2 py-0.5 text-[10px] font-mono text-accent font-semibold">
-                  ✓ 已載入 {availableModels.length} 個即時模型
+                <span className="rounded-full bg-accent/20 border border-accent/40 px-2.5 py-0.5 text-[10px] font-mono text-accent font-bold">
+                  ✓ 線上即時可用模型 ({availableModels.length})
                 </span>
               ) : (
-                <span className="rounded bg-surface-elevated border border-border px-2 py-0.5 text-[10px] text-muted">
+                <span className="rounded-full bg-surface-elevated border border-border px-2 py-0.5 text-[10px] text-muted">
                   精選推薦清單 ({combinedModels.length})
                 </span>
               )}
@@ -391,60 +441,70 @@ export function AiConfigModal({
               type="button"
               onClick={handleFetchModels}
               disabled={loadingModels || testStatus === "testing"}
-              className="text-xs text-accent hover:underline inline-flex items-center gap-1 font-medium disabled:opacity-50"
+              className="text-xs text-accent hover:underline inline-flex items-center gap-1 font-semibold disabled:opacity-50"
               title="由服務商 API 即時抓取最新可用文字模型清單"
             >
               <span>{loadingModels ? "⏳ 讀取中…" : "🔄 讀取即時完整模型清單"}</span>
             </button>
           </div>
 
-          <div className="space-y-2.5 rounded-xl border border-border/80 bg-surface/60 p-3.5 shadow-sm">
+          <div className="space-y-3 rounded-xl border-2 border-border/80 bg-surface/60 p-4 shadow-sm">
             {/* 關鍵字快速篩選 */}
-            {combinedModels.length > 8 && (
-              <div className="relative flex items-center">
-                <input
-                  type="text"
-                  value={modelFilter}
-                  onChange={(e) => setModelFilter(e.target.value)}
-                  placeholder="🔍 快速篩選模型（例如：flash, gpt, free, deepseek, claude）..."
-                  className="le-input w-full !text-xs !py-1.5 pr-8"
-                />
-                {modelFilter && (
-                  <button
-                    type="button"
-                    onClick={() => setModelFilter("")}
-                    className="absolute right-2.5 text-xs text-muted hover:text-foreground"
-                    title="清除搜尋"
-                  >
-                    ✕
-                  </button>
-                )}
-              </div>
-            )}
+            <div className="relative flex items-center">
+              <input
+                type="text"
+                value={modelFilter}
+                onChange={(e) => setModelFilter(e.target.value)}
+                placeholder="🔍 快速篩選模型（例如：flash, gpt, free, deepseek, claude）..."
+                className="le-input w-full !text-xs !py-2 pr-8"
+              />
+              {modelFilter && (
+                <button
+                  type="button"
+                  onClick={() => setModelFilter("")}
+                  className="absolute right-3 text-xs text-muted hover:text-foreground font-bold"
+                  title="清除搜尋"
+                >
+                  ✕
+                </button>
+              )}
+            </div>
 
             {/* 模型下拉式選單：無論何時皆直接顯示 */}
             <div>
-              <label className="block text-[11px] font-medium text-muted mb-1">
-                ▼ 模型下拉式選單（點擊即可切換模型）：
-              </label>
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="block text-xs font-bold text-foreground">
+                  ▼ 模型下拉挑選清單（點擊即可切換模型）：
+                </label>
+                <span className="text-[11px] text-muted">
+                  符合篩選：{filteredModels.length} 款
+                </span>
+              </div>
               <select
-                value={combinedModels.some((m) => m.id === model) ? model : "__custom__"}
+                value={
+                  combinedModels.some((m) => m.id === model)
+                    ? model
+                    : model
+                    ? "__current_unlisted__"
+                    : "__custom__"
+                }
                 onChange={(e) => {
-                  if (e.target.value && e.target.value !== "__custom__") {
+                  if (e.target.value && e.target.value !== "__current_unlisted__" && e.target.value !== "__custom__") {
                     setModel(e.target.value);
                   }
                 }}
-                className="le-input w-full font-mono text-xs cursor-pointer bg-surface py-2 border-accent/40 font-medium"
+                className="w-full rounded-xl border-2 border-accent/60 bg-surface-elevated px-3.5 py-3 text-xs font-bold text-foreground cursor-pointer shadow-sm hover:border-accent focus:border-accent focus:ring-2 focus:ring-accent/30 transition"
               >
-                <option value="">
-                  {combinedModels.some((m) => m.id === model)
-                    ? `-- 切換模型 (目前已選: ${model}) --`
-                    : `-- 請從下拉選單挑選模型 (${filteredModels.length} 個選項) --`}
-                </option>
+                {/* 若目前填寫的模型不在清單中，顯式作為警告選項標記 */}
+                {!combinedModels.some((m) => m.id === model) && model && (
+                  <option value="__current_unlisted__">
+                    ⚠️ 目前填寫（未在官方可用清單）：{model} — 建議改選下方推薦模型
+                  </option>
+                )}
 
                 {/* Free models group */}
                 {filteredModels.some((m) => m.is_free) && (
-                  <optgroup label="🎁 免費用量模型 (Free Tier)">
+                  <optgroup label="🎁 免費用量模型 (Free Tier - 0 費用)">
                     {filteredModels
                       .filter((m) => m.is_free)
                       .map((m) => (
@@ -457,7 +517,7 @@ export function AiConfigModal({
 
                 {/* Recommended models group */}
                 {filteredModels.some((m) => !m.is_free && m.group.includes("推薦")) && (
-                  <optgroup label="⭐ 推薦主流文字處理模型">
+                  <optgroup label="⭐ 推薦主流文字處理模型（極速 / 高智慧 / 穩定）">
                     {filteredModels
                       .filter((m) => !m.is_free && m.group.includes("推薦"))
                       .map((m) => (
@@ -470,7 +530,7 @@ export function AiConfigModal({
 
                 {/* Other models group */}
                 {filteredModels.some((m) => !m.is_free && !m.group.includes("推薦")) && (
-                  <optgroup label={`🌐 更多可用文字模型 (${filteredModels.filter((m) => !m.is_free && !m.group.includes("推薦")).length})`}>
+                  <optgroup label={`🌐 更多可用文字模型（共 ${filteredModels.filter((m) => !m.is_free && !m.group.includes("推薦")).length} 款）`}>
                     {filteredModels
                       .filter((m) => !m.is_free && !m.group.includes("推薦"))
                       .map((m) => (
@@ -481,13 +541,31 @@ export function AiConfigModal({
                   </optgroup>
                 )}
 
-                <option value="__custom__">✎ 自訂輸入模型 ID...</option>
+                <option value="__custom__">✎ 手動自訂輸入模型 ID...</option>
               </select>
+            </div>
+
+            {/* 目前選中模型狀態卡片 */}
+            <div className="flex items-center justify-between rounded-lg bg-surface-hover/80 px-3 py-2 border border-border/80 text-xs">
+              <div className="flex items-center gap-2">
+                <span className="text-base">🎯</span>
+                <div>
+                  <div className="font-bold text-foreground">
+                    {combinedModels.find((m) => m.id === model)?.name || model}
+                  </div>
+                  <div className="font-mono text-[10px] text-muted">目前模型 ID: {model}</div>
+                </div>
+              </div>
+              {combinedModels.find((m) => m.id === model)?.is_free && (
+                <span className="rounded bg-emerald-500/20 px-2 py-0.5 text-[10px] font-bold text-emerald-600 dark:text-emerald-400">
+                  免費額度
+                </span>
+              )}
             </div>
 
             {/* 目前選用之模型 ID 輸入框 */}
             <div className="flex items-center gap-2 pt-1 border-t border-border/50">
-              <span className="text-[11px] text-muted shrink-0 font-medium">目前模型 ID：</span>
+              <span className="text-[11px] text-muted shrink-0 font-semibold">自訂模型 ID：</span>
               <input
                 type="text"
                 value={model}
@@ -520,7 +598,7 @@ export function AiConfigModal({
           )}
         </div>
 
-        {/* Base URL (Optional / Advanced) */}
+        {/* 4. Base URL (Optional / Advanced) */}
         <div>
           <label className="mb-1 block text-xs font-semibold text-foreground">
             4. API 伺服器位址 (Base URL)
@@ -533,31 +611,6 @@ export function AiConfigModal({
             className="le-input w-full font-mono text-xs text-muted"
           />
         </div>
-
-        {/* Test Result Alert */}
-        {testStatus !== "idle" && (
-          <div
-            className={`rounded-xl border p-3 text-xs ${
-              testStatus === "testing"
-                ? "border-accent/40 bg-accent/10 text-foreground animate-pulse"
-                : testStatus === "success"
-                ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-800 dark:text-emerald-200"
-                : testStatus === "warning"
-                ? "border-amber-500/40 bg-amber-500/10 text-amber-800 dark:text-amber-200"
-                : "border-danger/40 bg-danger/10 text-danger"
-            }`}
-          >
-            <div className="flex items-start gap-2">
-              <span className="text-sm">
-                {testStatus === "testing" && "⏳"}
-                {testStatus === "success" && "✅"}
-                {testStatus === "warning" && "ℹ️"}
-                {testStatus === "error" && "⚠️"}
-              </span>
-              <span className="flex-1 break-all leading-relaxed font-mono">{testMsg}</span>
-            </div>
-          </div>
-        )}
 
       </div>
     </Modal>

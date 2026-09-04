@@ -63,6 +63,7 @@ async def test_connection(
         message=res.get("message", "連線測試完成"),
         provider=res.get("provider", ""),
         model=res.get("model", ""),
+        suggested_model=res.get("suggested_model"),
         latency_ms=res.get("latency_ms", 0),
         models=res.get("models", []),
     )

@@ -153,6 +153,7 @@ export interface TestAiConnectionResult {
   message: string;
   provider?: string;
   model?: string;
+  suggested_model?: string;
   latency_ms: number;
   models?: AiModelItem[];
 }

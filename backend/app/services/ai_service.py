@@ -1214,11 +1214,24 @@ async def test_ai_connection(
                 body_snippet = resp.text[:140].replace("\n", " ")
                 # 若為 404 或模型不存在，但 API Key 是有效的（已取到模型清單）
                 if resp.status_code in (404, 400) and len(models) > 0:
+                    model_ids = {m.get("id") for m in models}
+                    if "google/gemini-2.5-flash" in model_ids:
+                        replacement = "google/gemini-2.5-flash"
+                    elif "deepseek/deepseek-chat" in model_ids:
+                        replacement = "deepseek/deepseek-chat"
+                    elif "openai/gpt-4o-mini" in model_ids:
+                        replacement = "openai/gpt-4o-mini"
+                    elif models:
+                        replacement = models[0].get("id", "google/gemini-2.5-flash")
+                    else:
+                        replacement = "google/gemini-2.5-flash"
+
                     return {
                         "status": "warning",
-                        "message": f"API Key 有效，但原模型 [{model}] 目前無法使用 (HTTP {resp.status_code})。已為您獲取 {len(models)} 個最新可用模型，請由下方選單挑選！",
+                        "message": f"API Key 驗證成功！原模型 [{model}] 目前在服務商無法使用 (HTTP {resp.status_code})。系統已自動為您切換至推薦模型 [{replacement}]，並載入 {len(models)} 個最新可用模型供您下拉切換！",
                         "provider": provider,
-                        "model": model,
+                        "model": replacement,
+                        "suggested_model": replacement,
                         "latency_ms": latency_ms,
                         "models": models,
                     }

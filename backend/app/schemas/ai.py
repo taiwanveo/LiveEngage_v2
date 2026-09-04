@@ -194,6 +194,7 @@ class AiTestConnectionResponse(BaseModel):
     message: str
     provider: str = ""
     model: str = ""
+    suggested_model: str | None = None
     latency_ms: int = 0
     models: list[AiModelItem] = []
 
