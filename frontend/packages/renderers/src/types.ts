@@ -45,9 +45,16 @@ export interface RankingOrderCount {
   percentage: number;
 }
 
+export interface WordVariant {
+  word: string;
+  count: number;
+}
+
 export interface WordCount {
   word: string;
   count: number;
+  variants?: WordVariant[] | null;
+  is_ai_clustered?: boolean;
 }
 
 export interface TextEntry {
@@ -65,6 +72,7 @@ export interface PollResults {
   option_counts?: OptionCount[] | null;
   ranking_order_counts?: RankingOrderCount[] | null;
   word_counts?: WordCount[] | null;
+  is_ai_clustered?: boolean;
   average?: number | null;
   distribution?: Record<string, number> | null;
   entries?: TextEntry[] | null;

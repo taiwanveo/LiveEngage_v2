@@ -62,6 +62,8 @@ class WordCloudSettings(BaseModel):
     max_submissions: int = Field(default=3, ge=1, le=10)
     show_result: bool = True
     profanity_mode: Literal["off", "block", "mask", "review"] = "off"
+    ai_cluster: bool = False
+
 
 
 class OpenTextSettings(BaseModel):
@@ -242,9 +244,18 @@ class RankingOrderCount(BaseModel):
     percentage: float
 
 
+class WordVariant(BaseModel):
+    """AI 語意聚合之原始詞彙與票數明細。"""
+
+    word: str
+    count: int
+
+
 class WordCount(BaseModel):
     word: str
     count: int
+    variants: list[WordVariant] | None = None
+    is_ai_clustered: bool = False
 
 
 class TextEntry(BaseModel):
@@ -267,11 +278,20 @@ class PollResults(BaseModel):
     ranking_order_counts: list[RankingOrderCount] | None = None
     # word_cloud
     word_counts: list[WordCount] | None = None
+    is_ai_clustered: bool = False
     # rating
     average: float | None = None
     distribution: dict[int, int] | None = None
     # open_text
     entries: list[TextEntry] | None = None
+
+
+class AiClusterRequest(BaseModel):
+    """控場端觸發或切換 AI 語意聚合。"""
+
+    enabled: bool = True
+    force_refresh: bool = False
+
 
 
 def parse_answer(itype: InteractionType, raw: dict[str, object]) -> PollAnswer:

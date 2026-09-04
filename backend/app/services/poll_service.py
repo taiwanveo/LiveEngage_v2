@@ -55,11 +55,13 @@ from app.schemas.poll import (
     WordCloudAnswer,
     WordCloudSettings,
     WordCount,
+    WordVariant,
+    AiClusterRequest,
     parse_answer,
     parse_settings,
 )
 from app.serializers.mask_identity import mask_identity
-from app.services import audit_service, rate_limit_service
+from app.services import ai_service, audit_service, rate_limit_service
 from app.services.poll_redis import (
     acquire_room_lock,
     check_poll_submit_rate_limit,
@@ -1035,6 +1037,7 @@ async def get_poll_results(
     *,
     is_host: bool,
     screen_room_id: uuid.UUID | None = None,
+    ai_cluster: bool | None = None,
 ) -> PollResults:
     """讀取結果；participant 受 ``result_visible`` 控制。"""
     result = await db.execute(
@@ -1072,12 +1075,53 @@ async def get_poll_results(
             option_counts=await _get_mc_option_counts(db, interaction_id),
         )
     if itype == InteractionType.WORD_CLOUD:
+        settings = dict(interaction.settings_jsonb or {})
+        use_cluster = (
+            ai_cluster
+            if ai_cluster is not None
+            else bool(settings.get("ai_cluster", False))
+        )
+        raw_words = await _get_word_counts(db, interaction_id)
+        if use_cluster and raw_words:
+            cached = settings.get("ai_cluster_cache")
+            cached_count = settings.get("ai_cluster_cache_count")
+            if cached and cached_count == response_count:
+                try:
+                    word_counts = [WordCount.model_validate(c) for c in cached]
+                    return PollResults(
+                        interaction_id=interaction_id,
+                        type=itype,
+                        status=interaction.status,
+                        response_count=response_count,
+                        word_counts=word_counts,
+                        is_ai_clustered=True,
+                    )
+                except Exception:
+                    pass
+
+            clustered = await ai_service.cluster_word_cloud(
+                db, org_id=interaction.org_id, words=raw_words
+            )
+            settings["ai_cluster_cache"] = [c.model_dump() for c in clustered]
+            settings["ai_cluster_cache_count"] = response_count
+            interaction.settings_jsonb = settings
+            await db.commit()
+            return PollResults(
+                interaction_id=interaction_id,
+                type=itype,
+                status=interaction.status,
+                response_count=response_count,
+                word_counts=clustered,
+                is_ai_clustered=True,
+            )
+
         return PollResults(
             interaction_id=interaction_id,
             type=itype,
             status=interaction.status,
             response_count=response_count,
-            word_counts=await _get_word_counts(db, interaction_id),
+            word_counts=raw_words,
+            is_ai_clustered=False,
         )
     if itype == InteractionType.RATING:
         average, distribution = await _get_rating_results(db, interaction_id)
@@ -1589,3 +1633,75 @@ async def _get_ranking_average_counts(
         scores.append((uuid.UUID(oid), score))
     scores.sort(key=lambda x: -x[1])
     return [OptionCount(option_id=oid, count=score) for oid, score in scores]
+
+
+async def toggle_word_cloud_ai_cluster(
+    db: AsyncSession,
+    interaction_id: uuid.UUID,
+    host: User,
+    payload: AiClusterRequest,
+) -> PollResults:
+    """控場端切換或手動重整文字雲 AI 語意聚合。"""
+    result = await db.execute(
+        select(Interaction).where(Interaction.id == interaction_id)
+    )
+    interaction = result.scalars().first()
+    if interaction is None:
+        raise AppError(ErrorCode.NOT_FOUND, "找不到互動項目")
+    if interaction.type != InteractionType.WORD_CLOUD:
+        raise AppError(ErrorCode.VALIDATION_ERROR, "只有文字雲互動支援語意聚合")
+    assert_can_edit_content(host)
+    if interaction.org_id != host.org_id:
+        raise AppError(ErrorCode.FORBIDDEN, "無權操作此互動項目")
+
+    settings = dict(interaction.settings_jsonb or {})
+    response_count = await _count_responses(db, interaction_id)
+    raw_words = await _get_word_counts(db, interaction_id)
+
+    if not payload.enabled:
+        settings["ai_cluster"] = False
+        settings.pop("ai_cluster_cache", None)
+        settings.pop("ai_cluster_cache_count", None)
+        interaction.settings_jsonb = settings
+        await db.commit()
+
+        await events.publish(
+            interaction.room_id,
+            events.POLL_RESULT_REVEALED,
+            {"poll_id": str(interaction_id), "ai_cluster": False},
+        )
+
+        return PollResults(
+            interaction_id=interaction_id,
+            type=interaction.type,
+            status=interaction.status,
+            response_count=response_count,
+            word_counts=raw_words,
+            is_ai_clustered=False,
+        )
+
+    # 啟用 AI 語意聚合或強制刷新
+    clustered = await ai_service.cluster_word_cloud(
+        db, user=host, org_id=interaction.org_id, words=raw_words
+    )
+    settings["ai_cluster"] = True
+    settings["ai_cluster_cache"] = [c.model_dump() for c in clustered]
+    settings["ai_cluster_cache_count"] = response_count
+    interaction.settings_jsonb = settings
+    await db.commit()
+
+    await events.publish(
+        interaction.room_id,
+        events.POLL_RESULT_REVEALED,
+        {"poll_id": str(interaction_id), "ai_cluster": True},
+    )
+
+    return PollResults(
+        interaction_id=interaction_id,
+        type=interaction.type,
+        status=interaction.status,
+        response_count=response_count,
+        word_counts=clustered,
+        is_ai_clustered=True,
+    )
+

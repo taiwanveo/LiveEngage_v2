@@ -1,0 +1,1453 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LiveEngage 參賽敘事手冊</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=Noto+Sans+TC:wght@400;500;700&family=Noto+Serif+TC:wght@700;900&display=swap">
+
+<style>
+/* ─────────────────────────────────────────────────────────────
+   投影廳 Projection Hall — LiveEngage 參賽敘事手冊
+   淺色為基準；深色僅覆寫 token。
+   ───────────────────────────────────────────────────────────── */
+
+:root {
+  --paper:      #F5F4EF;
+  --surface:    #FFFFFF;
+  --surface-2:  #EDEDE6;
+  --ink:        #16233A;
+  --ink-soft:   #3A4A66;
+  --mute:       #6B7A94;
+  --rule:       #D7D8CF;
+  --rule-soft:  #E5E5DD;
+
+  --beam:       #A8710F;   /* 投影燈琥珀 — 主強調 */
+  --beam-bg:    #F7EBD4;
+  --data:       #10645F;   /* 數據青綠 — 次強調 */
+  --data-bg:    #DCEDEB;
+  --alarm:      #A32F22;   /* 語意色：僅用於風險 */
+  --alarm-bg:   #F7E2DE;
+
+  --shadow:     0 1px 2px rgba(22,35,58,.06), 0 8px 24px -12px rgba(22,35,58,.18);
+
+  --f-display:  "Noto Serif TC", "Songti TC", serif;
+  --f-body:     "Noto Sans TC", system-ui, -apple-system, sans-serif;
+  --f-mono:     "IBM Plex Mono", "SFMono-Regular", Consolas, monospace;
+
+  --measure:    68ch;
+  --step-0:     1rem;
+  --step-1:     1.16rem;
+  --step-2:     1.42rem;
+  --step-3:     1.8rem;
+  --step-4:     2.4rem;
+  --step-5:     3.3rem;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper:     #101828;
+    --surface:   #16233A;
+    --surface-2: #1D2E4A;
+    --ink:       #E8EAF0;
+    --ink-soft:  #B9C2D4;
+    --mute:      #8494AE;
+    --rule:      #2A3D5C;
+    --rule-soft: #22334F;
+
+    --beam:      #E9B44C;
+    --beam-bg:   #33280F;
+    --data:      #48B3A8;
+    --data-bg:   #0E2E2C;
+    --alarm:     #E0705E;
+    --alarm-bg:  #3A1A16;
+
+    --shadow:    0 1px 2px rgba(0,0,0,.3), 0 10px 30px -14px rgba(0,0,0,.6);
+  }
+}
+
+:root[data-theme="dark"] {
+  --paper:     #101828;
+  --surface:   #16233A;
+  --surface-2: #1D2E4A;
+  --ink:       #E8EAF0;
+  --ink-soft:  #B9C2D4;
+  --mute:      #8494AE;
+  --rule:      #2A3D5C;
+  --rule-soft: #22334F;
+
+  --beam:      #E9B44C;
+  --beam-bg:   #33280F;
+  --data:      #48B3A8;
+  --data-bg:   #0E2E2C;
+  --alarm:     #E0705E;
+  --alarm-bg:  #3A1A16;
+
+  --shadow:    0 1px 2px rgba(0,0,0,.3), 0 10px 30px -14px rgba(0,0,0,.6);
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--f-body);
+  font-size: var(--step-0);
+  line-height: 1.75;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ── 版面骨架 ─────────────────────────────────────────────── */
+
+.shell {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0;
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 0 clamp(1.25rem, 4vw, 2.5rem);
+}
+
+@media (min-width: 1024px) {
+  .shell { grid-template-columns: 208px minmax(0, 1fr); gap: 3.5rem; }
+}
+
+.rail { display: none; }
+
+@media (min-width: 1024px) {
+  .rail {
+    display: block;
+    position: sticky;
+    top: 0;
+    align-self: start;
+    height: 100vh;
+    overflow-y: auto;
+    padding: 2.75rem 0;
+  }
+}
+
+.rail-title {
+  font-family: var(--f-mono);
+  font-size: .68rem;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: var(--mute);
+  margin: 0 0 1rem;
+}
+
+.rail-nav { display: flex; flex-direction: column; gap: .1rem; }
+
+.rail-nav a {
+  display: block;
+  padding: .38rem .7rem;
+  border-left: 2px solid var(--rule-soft);
+  color: var(--ink-soft);
+  text-decoration: none;
+  font-size: .88rem;
+  line-height: 1.45;
+  transition: color .15s, border-color .15s, background .15s;
+}
+
+.rail-nav a:hover { color: var(--ink); background: var(--surface-2); }
+
+.rail-nav a.on {
+  color: var(--beam);
+  border-left-color: var(--beam);
+  font-weight: 700;
+}
+
+.rail-nav a:focus-visible,
+a:focus-visible,
+button:focus-visible,
+summary:focus-visible {
+  outline: 2px solid var(--beam);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+main { padding-bottom: 6rem; min-width: 0; }
+
+/* ── 頁首 ─────────────────────────────────────────────────── */
+
+.masthead {
+  padding: clamp(3rem, 8vw, 5.5rem) 0 clamp(2rem, 5vw, 3rem);
+  border-bottom: 1px solid var(--rule);
+}
+
+.eyebrow {
+  font-family: var(--f-mono);
+  font-size: .7rem;
+  letter-spacing: .16em;
+  text-transform: uppercase;
+  color: var(--beam);
+  margin: 0 0 1.1rem;
+}
+
+.masthead h1 {
+  font-family: var(--f-display);
+  font-weight: 900;
+  font-size: var(--step-5);
+  line-height: 1.12;
+  letter-spacing: -.015em;
+  text-wrap: balance;
+  margin: 0 0 1.1rem;
+}
+
+.masthead .standfirst {
+  font-size: var(--step-1);
+  color: var(--ink-soft);
+  max-width: var(--measure);
+  margin: 0 0 2rem;
+  text-wrap: pretty;
+}
+
+.meta-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.5rem 2.5rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--rule-soft);
+}
+
+.meta-strip div { min-width: 0; }
+
+.meta-strip dt {
+  font-family: var(--f-mono);
+  font-size: .66rem;
+  letter-spacing: .13em;
+  text-transform: uppercase;
+  color: var(--mute);
+  margin: 0 0 .2rem;
+}
+
+.meta-strip dd {
+  margin: 0;
+  font-family: var(--f-mono);
+  font-size: 1.05rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── 區塊 ─────────────────────────────────────────────────── */
+
+section { padding-top: clamp(3rem, 7vw, 4.5rem); scroll-margin-top: 1.5rem; }
+
+.sec-label {
+  font-family: var(--f-mono);
+  font-size: .7rem;
+  letter-spacing: .16em;
+  text-transform: uppercase;
+  color: var(--mute);
+  margin: 0 0 .55rem;
+}
+
+h2 {
+  font-family: var(--f-display);
+  font-weight: 700;
+  font-size: var(--step-4);
+  line-height: 1.22;
+  letter-spacing: -.01em;
+  text-wrap: balance;
+  margin: 0 0 1rem;
+}
+
+h3 {
+  font-family: var(--f-display);
+  font-weight: 700;
+  font-size: var(--step-2);
+  line-height: 1.35;
+  text-wrap: balance;
+  margin: 2.25rem 0 .7rem;
+}
+
+h4 {
+  font-family: var(--f-body);
+  font-weight: 700;
+  font-size: var(--step-0);
+  margin: 1.5rem 0 .5rem;
+}
+
+p, ul, ol { max-width: var(--measure); }
+p { margin: 0 0 1.05rem; text-wrap: pretty; }
+ul, ol { margin: 0 0 1.05rem; padding-left: 1.25rem; }
+li { margin-bottom: .42rem; }
+li::marker { color: var(--mute); }
+
+a { color: var(--beam); text-decoration-thickness: 1px; text-underline-offset: 2px; }
+
+strong { font-weight: 700; }
+
+code {
+  font-family: var(--f-mono);
+  font-size: .87em;
+  background: var(--surface-2);
+  padding: .12em .38em;
+  border-radius: 3px;
+}
+
+.lead {
+  font-size: var(--step-1);
+  color: var(--ink-soft);
+  max-width: var(--measure);
+}
+
+/* ── 卡片 ─────────────────────────────────────────────────── */
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-left: 3px solid var(--accent, var(--rule));
+  border-radius: 3px;
+  padding: 1.6rem 1.75rem;
+  margin: 0 0 1.1rem;
+  box-shadow: var(--shadow);
+}
+
+.card > :last-child { margin-bottom: 0; }
+.card p, .card ul, .card ol { max-width: none; }
+
+.card-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: .6rem .85rem;
+  margin-bottom: .7rem;
+}
+
+.card-key {
+  font-family: var(--f-mono);
+  font-weight: 600;
+  font-size: .78rem;
+  letter-spacing: .1em;
+  color: var(--accent, var(--mute));
+  white-space: nowrap;
+}
+
+.card-title {
+  font-family: var(--f-display);
+  font-weight: 700;
+  font-size: var(--step-2);
+  line-height: 1.3;
+  margin: 0;
+}
+
+.card--beam  { --accent: var(--beam); }
+.card--data  { --accent: var(--data); }
+.card--alarm { --accent: var(--alarm); }
+
+.tag {
+  display: inline-block;
+  font-family: var(--f-mono);
+  font-size: .68rem;
+  letter-spacing: .08em;
+  padding: .16rem .5rem;
+  border-radius: 2px;
+  white-space: nowrap;
+  background: var(--surface-2);
+  color: var(--ink-soft);
+}
+
+.tag--beam  { background: var(--beam-bg);  color: var(--beam); }
+.tag--data  { background: var(--data-bg);  color: var(--data); }
+.tag--alarm { background: var(--alarm-bg); color: var(--alarm); }
+
+/* ── 表格 ─────────────────────────────────────────────────── */
+
+.table-wrap {
+  overflow-x: auto;
+  margin: 0 0 1.3rem;
+  border: 1px solid var(--rule);
+  border-radius: 3px;
+  background: var(--surface);
+}
+
+table { border-collapse: collapse; width: 100%; font-size: .93rem; }
+
+th, td {
+  text-align: left;
+  padding: .68rem .9rem;
+  border-bottom: 1px solid var(--rule-soft);
+  vertical-align: top;
+}
+
+thead th {
+  font-family: var(--f-mono);
+  font-size: .68rem;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--mute);
+  font-weight: 600;
+  background: var(--surface-2);
+  border-bottom: 1px solid var(--rule);
+  white-space: nowrap;
+}
+
+tbody tr:last-child td { border-bottom: none; }
+td.num { font-family: var(--f-mono); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.yes { color: var(--data); font-weight: 700; }
+.no  { color: var(--alarm); font-weight: 700; }
+
+/* ── 文字雲對照 ───────────────────────────────────────────── */
+
+.figure {
+  margin: 1.5rem 0 1.8rem;
+  border: 1px solid var(--rule);
+  border-radius: 3px;
+  overflow: hidden;
+  background: var(--surface);
+}
+
+.figure-grid { display: grid; grid-template-columns: 1fr; }
+
+@media (min-width: 760px) {
+  .figure-grid { grid-template-columns: 1fr 1fr; }
+  .figure-pane + .figure-pane { border-left: 1px solid var(--rule); border-top: none; }
+}
+
+.figure-pane { padding: 1.25rem 1.4rem 1.5rem; min-width: 0; }
+.figure-pane + .figure-pane { border-top: 1px solid var(--rule); }
+
+.pane-label {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  font-family: var(--f-mono);
+  font-size: .68rem;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--mute);
+  margin-bottom: 1rem;
+  padding-bottom: .5rem;
+  border-bottom: 1px solid var(--rule-soft);
+}
+
+.pane-label b { font-weight: 600; color: var(--ink-soft); }
+
+.cloud {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: .45rem .7rem;
+  min-height: 190px;
+  align-content: center;
+}
+
+.cloud span {
+  font-family: var(--f-body);
+  line-height: 1.2;
+  color: var(--mute);
+}
+
+.cloud--after span {
+  font-family: var(--f-display);
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.cloud--after span.w1 { font-size: 2.7rem; color: var(--beam); }
+.cloud--after span.w2 { font-size: 2.05rem; color: var(--data); }
+.cloud--after span.w3 { font-size: 1.75rem; }
+.cloud--after span.w4 { font-size: 1.4rem;  color: var(--ink-soft); }
+.cloud--after span.w5 { font-size: 1.05rem; color: var(--mute); }
+
+.cloud--after span sub {
+  font-family: var(--f-mono);
+  font-size: .34em;
+  font-weight: 400;
+  vertical-align: baseline;
+  color: var(--mute);
+  margin-left: .2em;
+}
+
+.figure-cap {
+  padding: .85rem 1.4rem;
+  border-top: 1px solid var(--rule);
+  background: var(--surface-2);
+  font-size: .87rem;
+  color: var(--ink-soft);
+}
+
+.figure-cap > :last-child { margin-bottom: 0; }
+.figure-cap p { max-width: none; margin-bottom: 0; }
+
+/* ── 敘事引文 ─────────────────────────────────────────────── */
+
+.pitch {
+  position: relative;
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-top: 3px solid var(--beam);
+  border-radius: 3px;
+  padding: 2rem 2rem 1.5rem;
+  margin: 1.5rem 0;
+  box-shadow: var(--shadow);
+}
+
+.pitch p {
+  font-family: var(--f-display);
+  font-weight: 700;
+  font-size: var(--step-2);
+  line-height: 1.62;
+  max-width: 56ch;
+  margin: 0 0 1rem;
+  text-wrap: pretty;
+}
+
+.pitch p:last-of-type { margin-bottom: 1.4rem; }
+.pitch em { font-style: normal; color: var(--beam); }
+
+.copy-btn {
+  font-family: var(--f-mono);
+  font-size: .74rem;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  background: transparent;
+  color: var(--ink-soft);
+  border: 1px solid var(--rule);
+  border-radius: 2px;
+  padding: .4rem .8rem;
+  cursor: pointer;
+  transition: color .15s, border-color .15s, background .15s;
+}
+
+.copy-btn:hover { color: var(--beam); border-color: var(--beam); background: var(--beam-bg); }
+.copy-btn[data-done="1"] { color: var(--data); border-color: var(--data); background: var(--data-bg); }
+
+/* ── 時程 ─────────────────────────────────────────────────── */
+
+.timeline { margin: 1.5rem 0 1rem; border-left: 2px solid var(--rule); padding-left: 0; list-style: none; }
+
+.timeline li {
+  position: relative;
+  padding: 0 0 1.5rem 1.6rem;
+  margin: 0;
+  max-width: var(--measure);
+}
+
+.timeline li::before {
+  content: "";
+  position: absolute;
+  left: -7px;
+  top: .55rem;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--paper);
+  border: 2px solid var(--accent, var(--mute));
+}
+
+.timeline li.is-beam  { --accent: var(--beam); }
+.timeline li.is-data  { --accent: var(--data); }
+.timeline li.is-alarm { --accent: var(--alarm); }
+
+.tl-when {
+  font-family: var(--f-mono);
+  font-size: .7rem;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--accent, var(--mute));
+  display: block;
+  margin-bottom: .1rem;
+}
+
+.tl-what { font-weight: 700; display: block; margin-bottom: .15rem; }
+.tl-note { color: var(--ink-soft); font-size: .93rem; }
+
+/* ── 內部模式 ─────────────────────────────────────────────── */
+
+.mode-bar {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: .75rem 1.25rem;
+  padding: .6rem clamp(1.25rem, 4vw, 2.5rem);
+  background: var(--surface);
+  border-bottom: 1px solid var(--rule);
+  backdrop-filter: blur(8px);
+}
+
+.mode-bar-inner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: .75rem 1.25rem;
+  width: 100%;
+  max-width: 1180px;
+  margin: 0 auto;
+}
+
+.mode-hint {
+  font-family: var(--f-mono);
+  font-size: .72rem;
+  letter-spacing: .04em;
+  color: var(--mute);
+}
+
+.switch { display: inline-flex; align-items: center; gap: .6rem; cursor: pointer; user-select: none; }
+
+.switch input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+
+.switch-track {
+  width: 40px;
+  height: 22px;
+  border-radius: 11px;
+  background: var(--surface-2);
+  border: 1px solid var(--rule);
+  position: relative;
+  transition: background .18s, border-color .18s;
+  flex: none;
+}
+
+.switch-track::after {
+  content: "";
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--mute);
+  transition: transform .18s, background .18s;
+}
+
+.switch input:checked + .switch-track { background: var(--alarm-bg); border-color: var(--alarm); }
+.switch input:checked + .switch-track::after { transform: translateX(18px); background: var(--alarm); }
+.switch input:focus-visible + .switch-track { outline: 2px solid var(--beam); outline-offset: 2px; }
+
+.switch-label {
+  font-family: var(--f-mono);
+  font-size: .74rem;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  font-weight: 600;
+  color: var(--ink-soft);
+  white-space: nowrap;
+}
+
+.internal { display: none; }
+body.internal-on .internal { display: block; }
+body.internal-on td.internal, body.internal-on th.internal { display: table-cell; }
+body.internal-on span.internal, body.internal-on .internal-inline { display: inline; }
+
+.internal-note {
+  border: 1px dashed var(--alarm);
+  background: var(--alarm-bg);
+  border-radius: 3px;
+  padding: 1rem 1.25rem;
+  margin: 1rem 0;
+}
+
+.internal-note > :last-child { margin-bottom: 0; }
+.internal-note p, .internal-note ul { max-width: none; }
+
+.internal-note .in-label {
+  font-family: var(--f-mono);
+  font-size: .68rem;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  font-weight: 600;
+  color: var(--alarm);
+  display: block;
+  margin-bottom: .4rem;
+}
+
+/* ── 頁尾 ─────────────────────────────────────────────────── */
+
+footer {
+  margin-top: 5rem;
+  padding-top: 1.75rem;
+  border-top: 1px solid var(--rule);
+  font-size: .87rem;
+  color: var(--mute);
+}
+
+footer p { max-width: var(--measure); }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { transition: none !important; animation: none !important; scroll-behavior: auto !important; }
+}
+
+html { scroll-behavior: smooth; }
+</style>
+
+<div class="mode-bar">
+  <div class="mode-bar-inner">
+    <span class="mode-hint">簡報模式：對外敘述。內部模式：加註真實實作狀態，不要投影。</span>
+    <label class="switch">
+      <input type="checkbox" id="internalToggle">
+      <span class="switch-track"></span>
+      <span class="switch-label">內部模式</span>
+    </label>
+  </div>
+</div>
+
+<div class="shell">
+
+  <aside class="rail">
+    <p class="rail-title">目次</p>
+    <nav class="rail-nav" id="railNav">
+      <a href="#overview">專案定位</a>
+      <a href="#pitch">競賽敘事</a>
+      <a href="#highlights">三個亮點</a>
+      <a href="#pains">四個痛點</a>
+      <a href="#roadmap">優先級與時程</a>
+      <a href="#spec">技術速查</a>
+      <a href="#qa">問答備戰</a>
+    </nav>
+  </aside>
+
+  <main>
+
+    <header class="masthead">
+      <p class="eyebrow">AI 創新競賽 · 參賽素材</p>
+      <h1>把碎片化的現場民意，還原成看得懂的答案</h1>
+      <p class="standfirst">
+        LiveEngage（即時互動通）是一套 Slido 類的即時互動平台。這份文件整理它的亮點、
+        它解決的痛點、以及一條可以直接搬進簡報的敘事線。
+      </p>
+      <dl class="meta-strip">
+        <div><dt>後端</dt><dd>15,047 行</dd></div>
+        <div><dt>前端</dt><dd>22,208 行</dd></div>
+        <div><dt>測試</dt><dd>3,334 行</dd></div>
+        <div><dt>互動型態</dt><dd>9 種</dd></div>
+        <div><dt>部署服務</dt><dd>6 個</dd></div>
+        <div><dt>初賽期限</dt><dd>10/31</dd></div>
+      </dl>
+    </header>
+
+    <!-- ───────────────────────────────────────── 專案定位 -->
+    <section id="overview">
+      <p class="sec-label">01 — 專案定位</p>
+      <h2>LiveEngage 是什麼</h2>
+
+      <p class="lead">
+        一套低門檻、即時同步、支援匿名互動、可由主持人控場、可視覺化展示、可匯出分析的會議互動平台。
+      </p>
+
+      <p>
+        使用流程是一條直線：主持人建立活動 → 參與者掃 QR 免登入加入 → Q&amp;A 與投票即時互動 →
+        大螢幕投影展示 → 活動後匯出分析。適用場景涵蓋會議、課程、直播、研討會、企業 Town Hall
+        與教育訓練。
+      </p>
+
+      <p>
+        產品的核心價值不是「題型很多」，而是<strong>讓主持人能在現場順暢地蒐集、展示、篩選與分析參與者的真實想法</strong>。
+        這個定位決定了後面所有的技術選擇——延遲、斷線容錯、匿名保護、權限控管，每一項都是為了讓現場不出事。
+      </p>
+
+      <h3>九種互動型態</h3>
+      <p>
+        Q&amp;A、單選／多選、文字雲、開放文字、評分、排序、Quiz 競賽、問卷、Ideas 想法牆。
+        每一種都有獨立的作答介面、即時聚合邏輯與投影視圖。
+      </p>
+
+      <h3>六個獨立部署的服務</h3>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr><th>服務</th><th>使用者</th><th>職責</th></tr>
+          </thead>
+          <tbody>
+            <tr><td><strong>api</strong></td><td>—</td><td>FastAPI REST + WebSocket，唯一對外 API</td></tr>
+            <tr><td><strong>host</strong></td><td>主持人／助理主持人</td><td>控場、審核、投影遙控</td></tr>
+            <tr><td><strong>join</strong></td><td>現場參與者</td><td>免登入加入與作答</td></tr>
+            <tr><td><strong>screen</strong></td><td>大螢幕／OBS</td><td>唯讀投影，獨立網域與 token</td></tr>
+            <tr><td><strong>admin</strong></td><td>組織管理員</td><td>成員、品牌、匯出、稽核</td></tr>
+            <tr><td><strong>worker</strong></td><td>—</td><td>Celery 背景任務，無公開網域</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ───────────────────────────────────────── 競賽敘事 -->
+    <section id="pitch">
+      <p class="sec-label">02 — 競賽敘事</p>
+      <h2>簡報要講的那一段話</h2>
+
+      <p>
+        不要說「我們做了一個有 AI 的互動平台」——那是一句沒有資訊量的話。要說的是一個
+        <strong>只有這個平台能解、而且非解不可</strong>的問題：
+      </p>
+
+      <div class="pitch">
+        <p>
+          即時互動工具收集了大量現場民意，卻因為<em>語言的碎片化</em>而讓資料失去意義。
+        </p>
+        <p>
+          300 個人說「很棒／超讚／不錯」，系統看到的是 300 個孤立字串；
+          20 個人問同一件事，最重要的問題反而被稀釋到看不見。
+        </p>
+        <p>
+          我們用<em>語意理解</em>把碎片還原成民意——並且在放 AI 進來之前，
+          先把稽核、開關、降級與匿名保護的軌道蓋好。
+        </p>
+        <button class="copy-btn" id="copyPitch" type="button">複製這段敘事</button>
+      </div>
+
+      <h3>這條敘事線為什麼有效</h3>
+      <ul>
+        <li><strong>痛點具體可演示。</strong>不是空泛的「提升效率」，是一個能在螢幕上並排對照給評審看的落差。</li>
+        <li><strong>AI 是必要的，不是裝飾。</strong>字串比對永遠解不了同義詞——這件事沒有語意理解真的做不到。</li>
+        <li><strong>治理故事讓作品高於 hackathon 等級。</strong>多數參賽作品是「串了 API」，這裡是「先蓋好軌道才讓 AI 上車」。</li>
+        <li><strong>可量化。</strong>合併前後的詞彙數、Top 5 問題排序的變化，都是能寫在投影片上的硬指標。</li>
+      </ul>
+
+      <div class="internal-note internal">
+        <span class="in-label">內部備註</span>
+        <p>
+          這段敘事的每一句話在對外語境下都站得住：碎片化問題是真的、語意理解是唯一解法也是真的、
+          治理軌道（稽核表、開關、旁路設計、匿名遮蔽）是<strong>已經寫進程式的</strong>。
+          唯一還沒到位的是語意聚合本身的實作。
+        </p>
+        <p>
+          所以講的時候把重心放在<strong>問題定義</strong>與<strong>架構準備度</strong>，
+          不要主動說「我們現場跑給你看」。
+        </p>
+      </div>
+    </section>
+
+    <!-- ───────────────────────────────────────── 亮點 -->
+    <section id="highlights">
+      <p class="sec-label">03 — 三個亮點</p>
+      <h2>評審會記住的三件事</h2>
+
+      <div class="card card--beam">
+        <div class="card-head">
+          <span class="card-key">亮點 01</span>
+          <h3 class="card-title" style="margin:0">AI 治理框架先於 AI 而存在</h3>
+        </div>
+        <p>
+          大部分競賽作品的順序是「先串 OpenAI API，之後再想治理」。這個專案反過來——
+          稽核表、標記欄位、組織級開關、降級路徑，在 AI 功能之前就已經在 schema 裡了。
+        </p>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr><th>治理能力</th><th>實作位置</th><th style="text-align:center">多數作品有嗎</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>AI 呼叫全量稽核（prompt／輸出／延遲／狀態）</td><td><code>AiRequestLog</code></td><td style="text-align:center" class="no">✗</td></tr>
+              <tr><td>AI 產物標記 <code>is_ai_generated</code></td><td><code>models/sprint9.py</code></td><td style="text-align:center" class="no">✗</td></tr>
+              <tr><td>組織層級 AI 開關（Admin 可停用）</td><td><code>ai_enabled</code></td><td style="text-align:center" class="no">✗</td></tr>
+              <tr><td>AI 為旁路：10s timeout、不阻塞核心</td><td>鐵律 6</td><td style="text-align:center" class="no">✗</td></tr>
+              <tr><td>匿名身分統一遮蔽（AI 也拿不到真名）</td><td><code>mask_identity</code></td><td style="text-align:center" class="no">✗</td></tr>
+              <tr><td>審核／控場／匯出／權限變更全寫 audit log</td><td><code>AuditLog</code></td><td style="text-align:center" class="no">✗</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p style="margin-bottom:0">
+          <strong>可以直接講的一句話：</strong>「企業採購 AI 工具最大的阻力不是效果，是治理。
+          我們的作法是先蓋好可稽核、可關閉、可降級的軌道，AI 才上車。」
+        </p>
+      </div>
+
+      <div class="card card--data">
+        <div class="card-head">
+          <span class="card-key">亮點 02</span>
+          <h3 class="card-title" style="margin:0">即時系統的硬工程</h3>
+        </div>
+        <p>這些不是 AI，但它們證明這個團隊有能力承載 AI：</p>
+        <ul>
+          <li><strong>同一 Room 同時只有一個 active Poll</strong>——Redis 鎖 + DB 樂觀鎖雙保險。</li>
+          <li><strong>寫入走 REST、WebSocket 只做廣播</strong>——明確的架構鐵律，避開即時系統最常見的一致性地獄。</li>
+          <li><strong>事件 payload 帶絕對值而非增量</strong>——斷線重連不會算錯票數。</li>
+          <li><strong>所有寫入端點支援 <code>Idempotency-Key</code></strong>（Redis SETNX，TTL 24h）——手機網路不穩重送不會重複計票。</li>
+          <li><strong>斷線備援</strong>——Session state 快照 + 30s 輪詢，WebSocket 掛掉仍能恢復現場。</li>
+          <li><strong>投影端獨立部署</strong>——獨立網域 + screen token，可直接餵給 OBS Browser Source。</li>
+        </ul>
+        <p style="margin-bottom:0">
+          這一段的說服力在於：現場活動只有一次機會，不能重來。上面每一條都是為了「不要在 300 人面前出錯」。
+        </p>
+      </div>
+
+      <div class="card">
+        <div class="card-head">
+          <span class="card-key">亮點 03</span>
+          <h3 class="card-title" style="margin:0">規格驅動的完成度</h3>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>指標</th><th>數值</th></tr></thead>
+            <tbody>
+              <tr><td>後端</td><td class="num">15,047 行 / 107 檔（Python 3.14 · FastAPI · SQLAlchemy 2.0 async）</td></tr>
+              <tr><td>前端</td><td class="num">22,208 行 / 209 檔（React 19 · TypeScript strict · Vite）</td></tr>
+              <tr><td>測試</td><td class="num">3,334 行 / 20 檔</td></tr>
+              <tr><td>版本紀錄</td><td class="num">186 commits</td></tr>
+              <tr><td>正式規格書</td><td class="num">PRD / SRS / SDS 三份</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p style="margin-bottom:0">
+          最值得講的不是行數，是<strong>紀律</strong>：測試檔名必須含 SRS 驗收條件編號
+          （例如 <code>test_fe004_ac1_realtime_receive</code>），而且衝突時的優先序被明文寫死——
+          <strong>SRS 驗收 &gt; SDS 設計 &gt; 實作指引 &gt; 自行判斷</strong>。這是工程成熟度的證據，不是口號。
+        </p>
+      </div>
+    </section>
+
+    <!-- ───────────────────────────────────────── 痛點 -->
+    <section id="pains">
+      <p class="sec-label">04 — 四個痛點</p>
+      <h2>只有握有現場資料流才解得了的問題</h2>
+
+      <p class="lead">
+        關鍵原則：<strong>不要做通用 LLM 功能</strong>。產生題目、改寫文字這些 ChatGPT 都能做，沒有創新性。
+        要做的是只有握有「即時、匿名、現場、多人同時產生的短文本流」才做得到的事。
+      </p>
+
+      <!-- 痛點 A -->
+      <div class="card card--beam">
+        <div class="card-head">
+          <span class="card-key">痛點 A</span>
+          <h3 class="card-title" style="margin:0">中文文字雲根本不能用</h3>
+          <span class="tag tag--beam">Demo 效果最強</span>
+        </div>
+
+        <p>
+          中文沒有空白斷詞，而且同義表達極多。現場問「你對這場演講的感受？」，300 個人會打出幾十種寫法。
+          純字串比對的結果是：文字雲變成一片大小相同的碎片，<strong>完全喪失視覺意義</strong>。
+        </p>
+
+        <p>這是所有 Slido 類產品在中文場景的共同硬傷——Slido 自己也沒解決。</p>
+
+        <figure class="figure">
+          <div class="figure-grid">
+            <div class="figure-pane">
+              <div class="pane-label"><span>字串比對</span><b>24 個詞 · 各 1 票</b></div>
+              <div class="cloud" aria-label="碎片化的文字雲：24 個相同大小的詞彙">
+                <span>很棒</span><span>超讚</span><span>讚</span><span>不錯</span>
+                <span>很好</span><span>太棒了</span><span>棒</span><span>好棒</span>
+                <span>精彩</span><span>很精彩</span><span>內容豐富</span><span>豐富</span>
+                <span>有料</span><span>很有料</span><span>有收穫</span><span>收穫很多</span>
+                <span>受益良多</span><span>學到很多</span><span>學到東西</span><span>實用</span>
+                <span>很實用</span><span>很有幫助</span><span>步調有點快</span><span>講太快</span>
+              </div>
+            </div>
+            <div class="figure-pane">
+              <div class="pane-label"><span>語意聚合</span><b>5 個群 · 加權</b></div>
+              <div class="cloud cloud--after" aria-label="語意聚合後的文字雲：5 個加權詞彙">
+                <span class="w1">很棒<sub>47</sub></span>
+                <span class="w2">內容精彩<sub>31</sub></span>
+                <span class="w3">有收穫<sub>28</sub></span>
+                <span class="w4">實用<sub>19</sub></span>
+                <span class="w5">步調偏快<sub>8</sub></span>
+              </div>
+            </div>
+          </div>
+          <figcaption class="figure-cap">
+            <p>
+              同一份現場資料的兩種呈現。「字串比對」是目前的做法（<code>word.casefold()</code>），
+              「語意聚合」是加上語意理解後的結果。<strong>合併後仍可展開看原始 47 種寫法</strong>——不是黑箱。
+            </p>
+          </figcaption>
+        </figure>
+
+        <h4>為什麼這算創新，而不是「套 API」</h4>
+        <ul>
+          <li>要塞進<strong>即時聚合管線</strong>（現有的 250ms 節流窗）</li>
+          <li>要做<strong>增量分群</strong>——每 3 秒進來 20 個新詞，不能整批重算</li>
+          <li>要做 embedding 快取（同一個詞不重複呼叫）</li>
+          <li>保留原始資料可展開，人可以推翻機器的判斷</li>
+        </ul>
+
+        <div class="internal-note internal">
+          <span class="in-label">內部：實作狀態</span>
+          <p>
+            <strong>尚未實作。</strong>目前 <code>poll_service.py</code> 的
+            <code>_submit_word_cloud()</code> 是純 <code>word.casefold()</code> 後寫入 Redis 詞頻。
+          </p>
+          <p style="margin-bottom:0">
+            上面右側那張圖是<strong>設計目標的示意</strong>，不是系統輸出。
+            簡報時可以放，但不要說「這是我們跑出來的結果」；說「這是我們要達到的效果」。
+          </p>
+        </div>
+      </div>
+
+      <!-- 痛點 B -->
+      <div class="card card--beam">
+        <div class="card-head">
+          <span class="card-key">痛點 B</span>
+          <h3 class="card-title" style="margin:0">大型場次的熱門問題會被稀釋掉</h3>
+          <span class="tag tag--beam">痛點最真實</span>
+        </div>
+
+        <p>
+          500 人的企業 Town Hall，同一個問題會被 20 個人用不同講法問出來。
+          按讚數各自分散，結果是<strong>大家最想問的問題，因為講法太分散而消失了</strong>。
+        </p>
+
+        <figure class="figure">
+          <div class="figure-grid">
+            <div class="figure-pane">
+              <div class="pane-label"><span>按讚排序</span><b>Top 5</b></div>
+              <div class="table-wrap" style="border:none;margin:0">
+                <table>
+                  <tbody>
+                    <tr><td>公司餐廳何時整修？</td><td class="num">12</td></tr>
+                    <tr><td>今年會不會裁員？</td><td class="num">8</td></tr>
+                    <tr><td>停車位可以增加嗎</td><td class="num">7</td></tr>
+                    <tr><td>尾牙辦在哪裡</td><td class="num">6</td></tr>
+                    <tr><td>請問組織調整會影響人力配置嗎</td><td class="num">5</td></tr>
+                  </tbody>
+                </table>
+              </div>
+              <p style="font-size:.85rem;color:var(--mute);margin:.8rem 0 0;max-width:none">
+                另外 18 則同義問法各 2–3 票，全部落在 Top 20 之外。
+              </p>
+            </div>
+            <div class="figure-pane">
+              <div class="pane-label"><span>語意去重</span><b>Top 5</b></div>
+              <div class="table-wrap" style="border:none;margin:0">
+                <table>
+                  <tbody>
+                    <tr><td><strong>今年會不會裁員？</strong><br><span style="font-size:.82rem;color:var(--mute)">同類 20 則合併</span></td><td class="num" style="color:var(--beam);font-weight:700">63</td></tr>
+                    <tr><td>公司餐廳何時整修？</td><td class="num">12</td></tr>
+                    <tr><td>加薪幅度的依據是什麼<br><span style="font-size:.82rem;color:var(--mute)">同類 4 則合併</span></td><td class="num">11</td></tr>
+                    <tr><td>停車位可以增加嗎</td><td class="num">7</td></tr>
+                    <tr><td>尾牙辦在哪裡</td><td class="num">6</td></tr>
+                  </tbody>
+                </table>
+              </div>
+              <p style="font-size:.85rem;color:var(--mute);margin:.8rem 0 0;max-width:none">
+                主持人可一鍵展開，看見全部 20 種原始問法。
+              </p>
+            </div>
+          </div>
+          <figcaption class="figure-cap">
+            <p>
+              排序結果直接改變。只按讚數排序時，主持人會花時間回答餐廳整修；
+              語意去重之後，他會知道全場真正在擔心的是什麼。
+            </p>
+          </figcaption>
+        </figure>
+
+        <h4>架構上不用大改</h4>
+        <p style="margin-bottom:0">
+          現有的 <code>QuestionStatus</code> 狀態機（<code>pending → approved | dismissed</code>）
+          天然就是 AI 預審的落點。除了合併同義題，還可以做離題／重複／不當內容的分流，
+          把助理主持人從「掃過幾百則」的苦工中解放出來。
+        </p>
+
+        <div class="internal-note internal">
+          <span class="in-label">內部：實作狀態</span>
+          <p style="margin-bottom:0">
+            <strong>尚未實作。</strong>目前 <code>qa_service.vote_question</code> 是純按讚數排序，
+            <code>moderate_question</code> 是純人工審核。上面右側表格是設計目標示意。
+          </p>
+        </div>
+      </div>
+
+      <!-- 痛點 C -->
+      <div class="card card--data">
+        <div class="card-head">
+          <span class="card-key">痛點 C</span>
+          <h3 class="card-title" style="margin:0">Ideas 想法牆的自動分群</h3>
+          <span class="tag tag--data">地基已備</span>
+        </div>
+
+        <p>
+          Ideas 想法牆在腦力激盪場景會湧入上百則短想法。主持人要當場把它們歸類，
+          但現場沒有那個時間——結果是想法收集了，但沒有被整理成可以討論的東西。
+        </p>
+
+        <p>
+          這一項在 PRD 裡編號 <strong>AI-004</strong>，規格已經寫得很完整，而且
+          <strong>資料庫欄位早就預留好了</strong>：
+        </p>
+
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>已就位的地基</th><th>位置</th></tr></thead>
+            <tbody>
+              <tr><td><code>Idea.category</code> 欄位</td><td><code>models/sprint9.py:71</code></td></tr>
+              <tr><td><code>AiFeature.CATEGORIZE_IDEAS</code> 列舉值</td><td><code>models/enums.py:136</code></td></tr>
+              <tr><td>API schema 的 <code>category</code> 欄位</td><td><code>schemas/ideas.py:19,32</code></td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h4>PRD 要求的 human-in-the-loop 設計</h4>
+        <p>
+          規格明訂要「顯示 AI 信心分數」「標示 AI 產生分類」，而且主持人可以<strong>調整、合併、拆分</strong>類別。
+          這是教科書級的人機協作設計——在評審眼中是「負責任的 AI」加分項，而不是把判斷權完全交給模型。
+        </p>
+
+        <p style="margin-bottom:0">
+          <strong>投報率最高的一項：</strong>schema、enum、API 欄位都在了，缺的只是 service 層的實作。
+        </p>
+
+        <div class="internal-note internal">
+          <span class="in-label">內部：實作狀態</span>
+          <p style="margin-bottom:0">
+            <strong>尚未實作，但成本最低。</strong><code>category</code> 目前只能由參與者／主持人手動填。
+            <code>CATEGORIZE_IDEAS</code> 是宣告了但沒有任何程式引用的死 enum。
+            如果初賽後只來得及補一項，選這個。
+          </p>
+        </div>
+      </div>
+
+      <!-- 痛點 D -->
+      <div class="card card--data">
+        <div class="card-head">
+          <span class="card-key">痛點 D</span>
+          <h3 class="card-title" style="margin:0">活動後沒有人會讀那堆 CSV</h3>
+          <span class="tag tag--data">收尾故事</span>
+        </div>
+
+        <p>
+          主持人在活動後拿到 Q&amp;A、投票、問卷四份 CSV，然後<strong>永遠不會打開</strong>。
+          資料收集了，洞察沒有發生——這是整個產業共同的浪費。
+        </p>
+
+        <h4>AI 洞察報告要產出什麼</h4>
+        <ul>
+          <li>本場的<strong>三個共識</strong></li>
+          <li>兩個明顯的<strong>分歧點</strong></li>
+          <li>五個<strong>未被回答的關鍵問題</strong></li>
+          <li>建議下次追蹤的事項</li>
+        </ul>
+
+        <p style="margin-bottom:0">
+          <strong>架構上是天然落點：</strong>已經有 Celery worker 在跑非同步匯出
+          （<code>export.run_job</code>），加一個 <code>insight.generate_report</code> 任務即可。
+          不影響現場延遲，完全符合鐵律 6「AI 不阻塞核心流程」。
+          而 <code>overview_service._engagement_summary</code> 已經算出了完整的參與度指標可以餵進去。
+        </p>
+
+        <div class="internal-note internal">
+          <span class="in-label">內部：實作狀態</span>
+          <p style="margin-bottom:0">
+            <strong>尚未實作。</strong>但 <code>_engagement_summary</code> 與 <code>export_service</code>
+            都是真的，Celery 架構也是真的——講「架構已就緒」不算誇大。
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ───────────────────────────────────────── 時程 -->
+    <section id="roadmap">
+      <p class="sec-label">05 — 優先級與時程</p>
+      <h2>初賽通過後要補完的東西</h2>
+
+      <p class="lead">
+        今天是 8/27，初賽期限 10/31——大約<strong>九週</strong>。這個排序是依照「Demo 效果 ÷ 實作成本」排的。
+      </p>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr><th>優先</th><th>項目</th><th>為何是這個順序</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><span class="tag tag--alarm">必做</span></td>
+              <td>修 <code>_llm_call</code> 靜默降級</td>
+              <td>Demo 事故防護，且違反專案自己的鐵律 6</td>
+            </tr>
+            <tr>
+              <td><span class="tag tag--alarm">必做</span></td>
+              <td>前端串接至少一條 AI 流程</td>
+              <td>目前前端 0 處呼叫 AI 端點，沒有可 Demo 的東西</td>
+            </tr>
+            <tr>
+              <td><span class="tag tag--beam">高</span></td>
+              <td>痛點 A：文字雲語意聚合</td>
+              <td>Demo 效果最強、創新性最高</td>
+            </tr>
+            <tr>
+              <td><span class="tag tag--beam">高</span></td>
+              <td>痛點 B：Q&amp;A 語意去重</td>
+              <td>痛點最真實、可量化</td>
+            </tr>
+            <tr>
+              <td><span class="tag tag--data">中</span></td>
+              <td>痛點 C：Ideas 分群</td>
+              <td>地基已備，投報率最高</td>
+            </tr>
+            <tr>
+              <td><span class="tag tag--data">中</span></td>
+              <td>痛點 D：AI 洞察報告</td>
+              <td>收尾故事，架構天然支援</td>
+            </tr>
+            <tr>
+              <td><span class="tag">加分</span></td>
+              <td>補上 CI</td>
+              <td>目前無 <code>.github/workflows</code>；工程成熟度信號</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>九週的建議切法</h3>
+      <ul class="timeline">
+        <li class="is-alarm">
+          <span class="tl-when">第 1 週 · 8/27 – 9/2</span>
+          <span class="tl-what">修 bug + 打通第一條 AI 流程</span>
+          <span class="tl-note">
+            先把 <code>_llm_call</code> 的靜默降級改成正確回 503，加上測試。
+            接著把 Ideas 分群（痛點 C）從 service 到前端整條打通——它最短，用來驗證整個 AI 管線可行。
+          </span>
+        </li>
+        <li class="is-beam">
+          <span class="tl-when">第 2 – 4 週 · 9/3 – 9/23</span>
+          <span class="tl-what">痛點 A：文字雲語意聚合</span>
+          <span class="tl-note">
+            這是最花時間的一項：embedding 服務、增量分群、Redis 快取、
+            塞進 250ms 節流窗、前端的「展開原始詞」互動。留三週不算多。
+          </span>
+        </li>
+        <li class="is-beam">
+          <span class="tl-when">第 5 – 6 週 · 9/24 – 10/7</span>
+          <span class="tl-what">痛點 B：Q&amp;A 語意去重</span>
+          <span class="tl-note">
+            可以重用第 2–4 週建好的 embedding 基礎設施，所以只需要兩週。
+            重點在合併後的票數計算與主持人的展開／推翻介面。
+          </span>
+        </li>
+        <li class="is-data">
+          <span class="tl-when">第 7 週 · 10/8 – 10/14</span>
+          <span class="tl-what">痛點 D：AI 洞察報告 + CI</span>
+          <span class="tl-note">
+            洞察報告掛在既有的 Celery worker 上，工程量不大。
+            同週把 GitHub Actions 補上（lint / typecheck / pytest）。
+          </span>
+        </li>
+        <li class="is-data">
+          <span class="tl-when">第 8 – 9 週 · 10/15 – 10/31</span>
+          <span class="tl-what">Demo 腳本、量化數據、簡報收斂</span>
+          <span class="tl-note">
+            實作凍結，專心準備：跑一場真實的模擬活動蒐集前後對照數據、
+            錄製備援 Demo 影片（現場網路不可信）、打磨問答應對。
+          </span>
+        </li>
+      </ul>
+
+      <div class="internal-note internal">
+        <span class="in-label">內部：排程風險</span>
+        <p>
+          這個排程假設<strong>全職投入</strong>。如果是業餘時間做，砍掉痛點 B 和 D，
+          只保留 C（第 1 週）+ A（其餘全部時間），並把 Demo 準備留足兩週。
+        </p>
+        <p style="margin-bottom:0">
+          最危險的假設是「embedding 分群三週能做完」——中文短詞的語意分群調參很吃時間，
+          閾值設太鬆會把「很棒」和「很爛」合在一起，那在 Demo 現場是災難。
+          建議第 2 週結束就要有一個能跑的粗糙版本，剩下兩週純調參。
+        </p>
+      </div>
+    </section>
+
+    <!-- ───────────────────────────────────────── 技術速查 -->
+    <section id="spec">
+      <p class="sec-label">06 — 技術速查</p>
+      <h2>簡報附錄可能會用到的細節</h2>
+
+      <h3>技術棧</h3>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>層</th><th>選型</th></tr></thead>
+          <tbody>
+            <tr><td>後端</td><td>Python 3.14 · FastAPI · SQLAlchemy 2.0 (async) · Alembic · Celery</td></tr>
+            <tr><td>資料</td><td>PostgreSQL 16 (Neon) · Redis 7 (Upstash)</td></tr>
+            <tr><td>前端</td><td>React 19 · TypeScript strict · Vite · Tailwind · Zustand · TanStack Query</td></tr>
+            <tr><td>部署</td><td>Zeabur monorepo，六個獨立服務</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>十條鐵律</h3>
+      <p>
+        專案在 <code>AGENTS.md</code> 明文定義了十條「違反即為 bug」的架構契約。
+        這份清單本身就是簡報素材——它證明架構決策是<strong>被寫下來、可被檢驗的</strong>，
+        而不是口頭默契。
+      </p>
+      <ol>
+        <li>所有寫入走 REST API；<strong>WebSocket 只做廣播通知</strong></li>
+        <li>投票／計數一律後端聚合；事件 payload 帶<strong>絕對值非增量</strong></li>
+        <li>匿名遮蔽只在統一 serializer 層做（<code>mask_identity</code>）</li>
+        <li>所有寫入端點支援 <code>Idempotency-Key</code>（Redis SETNX，TTL 24h）</li>
+        <li>同一 Room 同時只能有一個 active Poll（Redis 鎖 + DB 樂觀鎖）</li>
+        <li><strong>AI 是旁路</strong>：timeout 10s、失敗回 503、絕不阻塞核心流程</li>
+        <li>時間一律 UTC 儲存；ID 用 UUID v7</li>
+        <li>權限在<strong>伺服端</strong>強制，前端只做 UI 隱藏</li>
+        <li>機密不得進 log；passcode 用 argon2id</li>
+        <li>審核／控場／匯出／設定／權限變更<strong>必寫 audit log</strong></li>
+      </ol>
+
+      <h3>狀態機</h3>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>物件</th><th>狀態轉移</th></tr></thead>
+          <tbody>
+            <tr><td>Session</td><td><code>draft → live → ended → archived</code></td></tr>
+            <tr><td>Poll</td><td><code>idle → active → locked ⇄ active → stopped</code></td></tr>
+            <tr><td>Question</td><td><code>pending → approved | dismissed</code>；<code>approved → answered | archived</code></td></tr>
+            <tr><td>Quiz 題</td><td><code>pending → active → revealed → closed</code></td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>權威規格</h3>
+      <p style="margin-bottom:0">
+        <code>references/</code> 底下有三份正式規格書：PRD（產品需求）、SRS（軟體需求與驗收條件）、
+        SDS（軟體設計規格）。PRD 第 7 章完整定義了 AI-001 到 AI-004 四項 AI 功能需求，
+        包含優先級、使用者、功能需求與治理要求（「不得把企業付費資料用於訓練模型，除非使用者明確同意」）。
+      </p>
+    </section>
+
+    <!-- ───────────────────────────────────────── 問答備戰 -->
+    <section id="qa">
+      <p class="sec-label">07 — 問答備戰</p>
+      <h2>評審可能會問的問題</h2>
+
+      <p class="lead">
+        這一節是給你自己準備用的。簡報不會放這些，但被問到時要答得出來。
+      </p>
+
+      <div class="card">
+        <h4 style="margin-top:0">「你們的語意分群用什麼模型？」</h4>
+        <p style="margin-bottom:0">
+          可以答：中文短詞的 embedding，候選是 OpenAI <code>text-embedding-3-small</code> 或
+          本地部署的 BGE-M3；選型的關鍵不是模型精度，而是<strong>延遲</strong>——
+          要塞進現有的 250ms 聚合節流窗，所以會搭配 Redis embedding 快取，同一個詞只算一次。
+          這個答案展現的是工程判斷，不是模型知識。
+        </p>
+      </div>
+
+      <div class="card">
+        <h4 style="margin-top:0">「AI 判斷錯了怎麼辦？」</h4>
+        <p style="margin-bottom:0">
+          這題其實是送分題，因為 PRD 早就要求了：顯示信心分數、標示 AI 產生、
+          主持人可調整／合併／拆分、保留原始資料可展開。
+          <strong>人永遠可以推翻機器</strong>——而且鐵律 6 規定 AI 失敗時系統照常運作。
+        </p>
+      </div>
+
+      <div class="card">
+        <h4 style="margin-top:0">「和 Slido 有什麼不同？」</h4>
+        <p style="margin-bottom:0">
+          Slido 的文字雲和 Q&amp;A 排序在中文場景是失效的——它按字串比對，
+          不理解「很棒」和「超讚」是同一件事。這不是它做不好，是它<strong>沒有為中文設計</strong>。
+          這是一個結構性的空缺，不是功能多寡的差距。
+        </p>
+      </div>
+
+      <div class="card card--alarm">
+        <h4 style="margin-top:0">「可以現場 Demo 嗎？」</h4>
+        <p>
+          <strong>這是最需要準備的一題。</strong>誠實但不自曝的答法：
+          說明現場 Demo 需要一定規模的真實參與者才有意義（文字雲的價值要 100 人以上才顯現），
+          所以準備了<strong>錄製好的模擬場次影片</strong>，並邀請評審用手機掃碼實際參與一個小型互動。
+        </p>
+        <p style="margin-bottom:0">
+          讓評審親手體驗「加入 → 作答 → 看見自己的答案出現在投影上」這條路徑——
+          這一段是真的、而且完成度很高，體感遠比任何投影片有說服力。
+        </p>
+      </div>
+
+      <div class="internal-note internal">
+        <span class="in-label">內部：最需要警戒的一件事</span>
+        <p>
+          <code>ai_service.py</code> 的 <code>_llm_call()</code> 目前會<strong>吞掉所有例外</strong>
+          並靜默回傳 stub 假資料——畫面會出現字面寫著「（AI stub）」的內容，而系統不會報錯。
+        </p>
+        <p style="margin-bottom:0">
+          如果簡報前有任何機會讓評審碰到 AI 功能，<strong>這一定要先修</strong>。
+          網路抖一下或 key 過期，「（AI stub）關於「數位轉型」的問題 1 / 選項 A 選項 B 選項 C」
+          就會出現在大螢幕上。這是唯一一個會把整場搞砸的技術風險。
+        </p>
+      </div>
+    </section>
+
+    <footer>
+      <p>
+        LiveEngage 參賽敘事手冊 · 依據 <code>master</code> 分支 <code>6a68d57</code> 的程式碼實況整理 ·
+        2026-08-27
+      </p>
+      <p style="margin-bottom:0">
+        本文件同時是簡報素材與內部作戰筆記。<strong>投影前請確認「內部模式」是關閉的。</strong>
+      </p>
+    </footer>
+
+  </main>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  /* 內部模式：切換後記住選擇，但預設一律關閉（避免誤投影） */
+  var toggle = document.getElementById("internalToggle");
+  toggle.addEventListener("change", function () {
+    document.body.classList.toggle("internal-on", toggle.checked);
+  });
+
+  /* 複製敘事段落 */
+  var btn = document.getElementById("copyPitch");
+  var pitchText = [
+    "即時互動工具收集了大量現場民意，卻因為語言的碎片化而讓資料失去意義。",
+    "300 個人說「很棒／超讚／不錯」，系統看到的是 300 個孤立字串；20 個人問同一件事，最重要的問題反而被稀釋到看不見。",
+    "我們用語意理解把碎片還原成民意——並且在放 AI 進來之前，先把稽核、開關、降級與匿名保護的軌道蓋好。"
+  ].join("\n\n");
+
+  btn.addEventListener("click", function () {
+    function done() {
+      btn.textContent = "已複製";
+      btn.setAttribute("data-done", "1");
+      window.setTimeout(function () {
+        btn.textContent = "複製這段敘事";
+        btn.removeAttribute("data-done");
+      }, 1800);
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(pitchText).then(done, fallback);
+    } else {
+      fallback();
+    }
+    function fallback() {
+      var ta = document.createElement("textarea");
+      ta.value = pitchText;
+      ta.setAttribute("readonly", "");
+      ta.style.position = "fixed";
+      ta.style.opacity = "0";
+      document.body.appendChild(ta);
+      ta.select();
+      try { document.execCommand("copy"); done(); } catch (e) { /* 忽略 */ }
+      document.body.removeChild(ta);
+    }
+  });
+
+  /* 目次 scroll-spy */
+  var links = Array.prototype.slice.call(
+    document.querySelectorAll("#railNav a")
+  );
+  var sections = links
+    .map(function (a) { return document.querySelector(a.getAttribute("href")); })
+    .filter(Boolean);
+
+  if ("IntersectionObserver" in window && sections.length) {
+    var visible = new Map();
+    var io = new IntersectionObserver(function (entries) {
+      entries.forEach(function (en) {
+        if (en.isIntersecting) { visible.set(en.target, en.intersectionRatio); }
+        else { visible.delete(en.target); }
+      });
+      var best = null, bestTop = Infinity;
+      visible.forEach(function (_ratio, el) {
+        var top = el.getBoundingClientRect().top;
+        if (top < bestTop) { bestTop = top; best = el; }
+      });
+      if (!best) { return; }
+      links.forEach(function (a) {
+        a.classList.toggle("on", a.getAttribute("href") === "#" + best.id);
+      });
+    }, { rootMargin: "-10% 0px -70% 0px", threshold: [0, 0.25, 0.5, 1] });
+    sections.forEach(function (s) { io.observe(s); });
+  }
+})();
+</script>

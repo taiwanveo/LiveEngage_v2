@@ -135,3 +135,6 @@ class AiFeature(StrEnum):
     QUESTION_ASSIST = "question_assist"
     CATEGORIZE_IDEAS = "categorize_ideas"
     GENERATE_QUIZ = "generate_quiz"
+    CLUSTER_WORDS = "cluster_words"
+    GENERATE_REPORT = "generate_report"
+    DEDUP_QUESTIONS = "dedup_questions"

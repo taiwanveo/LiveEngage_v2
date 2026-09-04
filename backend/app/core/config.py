@@ -77,9 +77,12 @@ class Settings(BaseSettings):
     celery_broker_url: str = ""
     celery_task_always_eager: bool = False
 
-    # AI 旁路（未設定時回 503 AI_UNAVAILABLE）
+    # AI 旁路（支援 OpenAI / Gemini / OpenRouter / 任意相容 API；未設定時回 503 或離線降級）
     ai_api_key: str = ""
     ai_enabled: bool = False
+    ai_provider: str = "auto"  # auto, openai, openrouter, gemini, custom
+    ai_model: str = "gpt-4o-mini"
+    ai_base_url: str = "https://api.openai.com/v1"
 
     # SSO / OIDC（Host / Admin 登入）
     sso_enabled: bool = False
@@ -96,10 +99,6 @@ class Settings(BaseSettings):
     sso_host_frontend_url: str = "http://localhost:5173"
     sso_admin_frontend_url: str = "http://localhost:5176"
     sso_join_frontend_url: str = "http://localhost:5174"
-
-    # AI（OpenAI-compatible）
-    ai_model: str = "gpt-4o-mini"
-    ai_base_url: str = "https://api.openai.com/v1"
 
     # JWT（骨架；完整簽發於任務 2）
     jwt_secret: str = "change-me-in-production"
@@ -121,6 +120,46 @@ class Settings(BaseSettings):
             self.database_url = sync_to_async_url(self.database_url_sync)
         if not self.celery_broker_url:
             self.celery_broker_url = self.redis_url
+
+        # AI 設定與 Provider 自動判斷
+        import os
+        if not self.ai_api_key:
+            for env_name in (
+                "LE_AI_API_KEY",
+                "AI_API_KEY",
+                "OPENROUTER_API_KEY",
+                "OPENAI_API_KEY",
+                "GEMINI_API_KEY",
+            ):
+                val = os.environ.get(env_name)
+                if val:
+                    self.ai_api_key = val
+                    break
+
+        if self.ai_api_key and not self.ai_enabled:
+            self.ai_enabled = True
+
+        provider = self.ai_provider.lower()
+        if provider == "auto":
+            if self.ai_api_key.startswith("sk-or-") or "openrouter.ai" in self.ai_base_url:
+                provider = "openrouter"
+            elif self.ai_api_key.startswith("AIza") or "googleapis.com" in self.ai_base_url:
+                provider = "gemini"
+            else:
+                provider = "openai"
+
+        if provider == "openrouter":
+            if self.ai_base_url == "https://api.openai.com/v1" or not self.ai_base_url:
+                self.ai_base_url = "https://openrouter.ai/api/v1"
+            if self.ai_model == "gpt-4o-mini":
+                self.ai_model = os.environ.get("AI_MODEL", "google/gemini-2.0-flash-001")
+        elif provider == "gemini":
+            if self.ai_base_url == "https://api.openai.com/v1" or not self.ai_base_url:
+                self.ai_base_url = "https://generativelanguage.googleapis.com/v1beta/openai"
+            if self.ai_model == "gpt-4o-mini":
+                self.ai_model = os.environ.get("AI_MODEL", "gemini-2.0-flash")
+
+        self.ai_provider = provider
         return self
 
 

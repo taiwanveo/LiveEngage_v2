@@ -6,7 +6,7 @@ import uuid
 from dataclasses import dataclass
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Header
+from fastapi import APIRouter, Depends, Header, Query
 from fastapi.security import HTTPAuthorizationCredentials
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -22,6 +22,7 @@ from app.core.tokens import (
 from app.services import screen_service
 from app.models.user import User
 from app.schemas.poll import (
+    AiClusterRequest,
     PollActionRequest,
     PollActionResponse,
     PollDetail,
@@ -133,14 +134,30 @@ async def get_poll_results(
     interaction_id: uuid.UUID,
     db: Annotated[AsyncSession, Depends(get_session)],
     viewer: Annotated[PollViewer, Depends(get_poll_viewer)],
+    ai_cluster: Annotated[bool | None, Query(alias="ai_cluster")] = None,
 ) -> PollResults:
-    """結果聚合（後端絕對值；participant 受 result_visible 控制）。"""
+    """結果聚合（後端絕對值；participant 受 result_visible 控制；支援 ai_cluster 參數）。"""
     return await poll_service.get_poll_results(
         db,
         interaction_id,
         is_host=viewer.is_host,
         screen_room_id=viewer.screen_room_id,
+        ai_cluster=ai_cluster,
     )
+
+
+@router.post("/polls/{interaction_id}/ai-cluster", response_model=PollResults)
+async def toggle_ai_cluster(
+    interaction_id: uuid.UUID,
+    payload: AiClusterRequest,
+    db: Annotated[AsyncSession, Depends(get_session)],
+    host: Annotated[User, Depends(get_current_user)],
+) -> PollResults:
+    """控場端切換或手動重整文字雲 AI 語意聚合。"""
+    return await poll_service.toggle_word_cloud_ai_cluster(
+        db, interaction_id, host, payload
+    )
+
 
 
 @router.post("/polls/{interaction_id}/actions", response_model=PollActionResponse)

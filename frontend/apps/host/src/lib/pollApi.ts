@@ -48,3 +48,15 @@ export async function submitPollResponse(
     idempotencyKey: newIdempotencyKey(),
   });
 }
+
+export async function toggleAiCluster(
+  pollId: string,
+  enabled: boolean,
+  forceRefresh = false
+): Promise<PollResults> {
+  return api<PollResults>(`/api/v1/polls/${pollId}/ai-cluster`, {
+    method: "POST",
+    body: { enabled, force_refresh: forceRefresh },
+  });
+}
+

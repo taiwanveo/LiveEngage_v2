@@ -7,8 +7,14 @@ export async function getPoll(pollId: string): Promise<PollDetail> {
   return api<PollDetail>(`/api/v1/polls/${pollId}`);
 }
 
-export async function getPollResults(pollId: string): Promise<PollResults> {
-  return api<PollResults>(`/api/v1/polls/${pollId}/results`);
+export async function getPollResults(
+  pollId: string,
+  aiCluster?: boolean
+): Promise<PollResults> {
+  const query =
+    typeof aiCluster === "boolean" ? `?ai_cluster=${aiCluster}` : "";
+  return api<PollResults>(`/api/v1/polls/${pollId}/results${query}`);
 }
+
 
 export const POLL_RESULTS_BACKUP_REFETCH_MS = 8_000;

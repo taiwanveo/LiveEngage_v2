@@ -1,0 +1,997 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LiveEngage 簡報腳本</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=Noto+Sans+TC:wght@400;500;700&family=Noto+Serif+TC:wght@700;900&display=swap">
+
+<style>
+/* ─────────────────────────────────────────────────────────────
+   投影廳 Projection Hall — LiveEngage 簡報腳本
+   與 COMPETITION_BRIEF.html 同一組 token，版面改為投影片序列。
+   ───────────────────────────────────────────────────────────── */
+
+:root {
+  --paper:      #F5F4EF;
+  --surface:    #FFFFFF;
+  --surface-2:  #EDEDE6;
+  --ink:        #16233A;
+  --ink-soft:   #3A4A66;
+  --mute:       #6B7A94;
+  --rule:       #D7D8CF;
+  --rule-soft:  #E5E5DD;
+
+  --beam:       #A8710F;
+  --beam-bg:    #F7EBD4;
+  --data:       #10645F;
+  --data-bg:    #DCEDEB;
+  --alarm:      #A32F22;
+  --alarm-bg:   #F7E2DE;
+
+  --screen-bg:  #16233A;
+  --screen-fg:  #F5F4EF;
+
+  --shadow:     0 1px 2px rgba(22,35,58,.06), 0 8px 24px -12px rgba(22,35,58,.18);
+
+  --f-display:  "Noto Serif TC", "Songti TC", serif;
+  --f-body:     "Noto Sans TC", system-ui, -apple-system, sans-serif;
+  --f-mono:     "IBM Plex Mono", "SFMono-Regular", Consolas, monospace;
+
+  --measure:    66ch;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper:     #101828;
+    --surface:   #16233A;
+    --surface-2: #1D2E4A;
+    --ink:       #E8EAF0;
+    --ink-soft:  #B9C2D4;
+    --mute:      #8494AE;
+    --rule:      #2A3D5C;
+    --rule-soft: #22334F;
+
+    --beam:      #E9B44C;
+    --beam-bg:   #33280F;
+    --data:      #48B3A8;
+    --data-bg:   #0E2E2C;
+    --alarm:     #E0705E;
+    --alarm-bg:  #3A1A16;
+
+    --screen-bg: #0A101C;
+    --screen-fg: #F5F4EF;
+
+    --shadow:    0 1px 2px rgba(0,0,0,.3), 0 10px 30px -14px rgba(0,0,0,.6);
+  }
+}
+
+:root[data-theme="dark"] {
+  --paper:     #101828;
+  --surface:   #16233A;
+  --surface-2: #1D2E4A;
+  --ink:       #E8EAF0;
+  --ink-soft:  #B9C2D4;
+  --mute:      #8494AE;
+  --rule:      #2A3D5C;
+  --rule-soft: #22334F;
+
+  --beam:      #E9B44C;
+  --beam-bg:   #33280F;
+  --data:      #48B3A8;
+  --data-bg:   #0E2E2C;
+  --alarm:     #E0705E;
+  --alarm-bg:  #3A1A16;
+
+  --screen-bg: #0A101C;
+  --screen-fg: #F5F4EF;
+
+  --shadow:    0 1px 2px rgba(0,0,0,.3), 0 10px 30px -14px rgba(0,0,0,.6);
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--f-body);
+  line-height: 1.72;
+  -webkit-font-smoothing: antialiased;
+}
+
+.wrap { max-width: 1080px; margin: 0 auto; padding: 0 clamp(1.25rem, 4vw, 2.5rem); }
+
+/* ── 控制列 ───────────────────────────────────────────────── */
+
+.bar {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  background: var(--surface);
+  border-bottom: 1px solid var(--rule);
+}
+
+.bar-in {
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: .55rem clamp(1.25rem, 4vw, 2.5rem);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: .6rem 1.25rem;
+}
+
+.clock {
+  font-family: var(--f-mono);
+  font-size: .78rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-soft);
+}
+
+.clock b { color: var(--beam); font-weight: 600; }
+
+.switch { display: inline-flex; align-items: center; gap: .55rem; cursor: pointer; user-select: none; }
+.switch input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+
+.switch-track {
+  width: 38px; height: 21px; border-radius: 11px; flex: none;
+  background: var(--surface-2); border: 1px solid var(--rule);
+  position: relative; transition: background .18s, border-color .18s;
+}
+
+.switch-track::after {
+  content: ""; position: absolute; top: 2px; left: 2px;
+  width: 15px; height: 15px; border-radius: 50%;
+  background: var(--mute); transition: transform .18s, background .18s;
+}
+
+.switch input:checked + .switch-track { background: var(--beam-bg); border-color: var(--beam); }
+.switch input:checked + .switch-track::after { transform: translateX(17px); background: var(--beam); }
+.switch input:focus-visible + .switch-track { outline: 2px solid var(--beam); outline-offset: 2px; }
+
+.switch-label {
+  font-family: var(--f-mono); font-size: .74rem; letter-spacing: .06em;
+  font-weight: 600; color: var(--ink-soft); white-space: nowrap;
+}
+
+a:focus-visible, button:focus-visible, summary:focus-visible {
+  outline: 2px solid var(--beam); outline-offset: 2px; border-radius: 2px;
+}
+
+/* ── 頁首 ─────────────────────────────────────────────────── */
+
+.masthead { padding: clamp(2.5rem, 7vw, 4.5rem) 0 2rem; border-bottom: 1px solid var(--rule); }
+
+.eyebrow {
+  font-family: var(--f-mono); font-size: .7rem; letter-spacing: .16em;
+  text-transform: uppercase; color: var(--beam); margin: 0 0 1rem;
+}
+
+h1 {
+  font-family: var(--f-display); font-weight: 900;
+  font-size: clamp(2.1rem, 5.5vw, 3.1rem); line-height: 1.14;
+  letter-spacing: -.015em; text-wrap: balance; margin: 0 0 1rem;
+}
+
+.standfirst { font-size: 1.14rem; color: var(--ink-soft); max-width: var(--measure); margin: 0; text-wrap: pretty; }
+
+h2 {
+  font-family: var(--f-display); font-weight: 700;
+  font-size: clamp(1.5rem, 3.4vw, 2rem); line-height: 1.24;
+  text-wrap: balance; margin: 0 0 .8rem;
+}
+
+h3 { font-family: var(--f-display); font-weight: 700; font-size: 1.3rem; margin: 2rem 0 .6rem; }
+
+p { margin: 0 0 1rem; max-width: var(--measure); text-wrap: pretty; }
+ul, ol { margin: 0 0 1rem; padding-left: 1.2rem; max-width: var(--measure); }
+li { margin-bottom: .35rem; }
+li::marker { color: var(--mute); }
+
+code {
+  font-family: var(--f-mono); font-size: .87em;
+  background: var(--surface-2); padding: .1em .36em; border-radius: 3px;
+}
+
+section { padding-top: clamp(2.5rem, 6vw, 3.5rem); scroll-margin-top: 4rem; }
+
+.sec-label {
+  font-family: var(--f-mono); font-size: .7rem; letter-spacing: .16em;
+  text-transform: uppercase; color: var(--mute); margin: 0 0 .5rem;
+}
+
+/* ── 幕表 ─────────────────────────────────────────────────── */
+
+.acts { display: grid; gap: .5rem; margin: 1.25rem 0 0; }
+
+.act {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: baseline;
+  gap: .5rem 1rem;
+  padding: .65rem .9rem;
+  border-left: 3px solid var(--accent, var(--rule));
+  background: var(--surface);
+  border-radius: 3px;
+}
+
+.act-n {
+  font-family: var(--f-mono); font-size: .72rem; font-weight: 600;
+  letter-spacing: .08em; color: var(--accent, var(--mute)); white-space: nowrap;
+}
+
+.act-t { font-weight: 700; }
+.act-d { font-family: var(--f-mono); font-size: .78rem; color: var(--mute); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.act-note { grid-column: 1 / -1; font-size: .9rem; color: var(--ink-soft); margin: 0; max-width: none; }
+
+.a-hook { --accent: var(--alarm); }
+.a-prob { --accent: var(--beam); }
+.a-sol  { --accent: var(--data); }
+.a-evid { --accent: var(--ink-soft); }
+.a-end  { --accent: var(--alarm); }
+
+/* ── 投影片卡 ─────────────────────────────────────────────── */
+
+.slide {
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-radius: 4px;
+  margin: 0 0 1.4rem;
+  overflow: hidden;
+  box-shadow: var(--shadow);
+  transition: opacity .2s;
+}
+
+.slide-head {
+  display: flex; flex-wrap: wrap; align-items: baseline; gap: .5rem .85rem;
+  padding: .85rem 1.25rem;
+  border-bottom: 1px solid var(--rule-soft);
+  background: var(--surface-2);
+}
+
+.slide-n {
+  font-family: var(--f-mono); font-weight: 600; font-size: .78rem;
+  letter-spacing: .1em; color: var(--beam); white-space: nowrap;
+}
+
+.slide-t { font-family: var(--f-display); font-weight: 700; font-size: 1.16rem; margin: 0; line-height: 1.35; }
+
+.slide-time {
+  margin-left: auto; font-family: var(--f-mono); font-size: .76rem;
+  color: var(--mute); font-variant-numeric: tabular-nums; white-space: nowrap;
+}
+
+.slide-body { display: grid; grid-template-columns: 1fr; }
+
+@media (min-width: 820px) {
+  .slide-body { grid-template-columns: minmax(0, 340px) minmax(0, 1fr); }
+  .slide-notes { border-left: 1px solid var(--rule-soft); border-top: none; }
+}
+
+.slide-visual { padding: 1.1rem 1.25rem; min-width: 0; }
+
+.screen {
+  aspect-ratio: 16 / 9;
+  background: var(--screen-bg);
+  color: var(--screen-fg);
+  border-radius: 3px;
+  padding: 1rem 1.1rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: .4rem;
+  overflow: hidden;
+}
+
+.screen-h {
+  font-family: var(--f-display); font-weight: 700;
+  font-size: 1.02rem; line-height: 1.3; margin: 0; text-wrap: balance;
+}
+
+.screen-s { font-size: .76rem; color: #A8B4C9; margin: 0; line-height: 1.45; }
+
+.screen-fig {
+  font-family: var(--f-mono); font-size: .66rem; letter-spacing: .08em;
+  text-transform: uppercase; color: #E9B44C; margin: 0;
+}
+
+.screen--big .screen-h { font-size: 1.3rem; }
+.screen--quiet { align-items: flex-start; }
+
+.visual-note {
+  margin: .7rem 0 0; font-size: .85rem; color: var(--ink-soft);
+  max-width: none; line-height: 1.6;
+}
+
+.visual-note b { color: var(--ink); }
+
+.slide-notes { padding: 1.1rem 1.35rem 1.25rem; border-top: 1px solid var(--rule-soft); min-width: 0; }
+
+.notes-label {
+  font-family: var(--f-mono); font-size: .66rem; letter-spacing: .12em;
+  text-transform: uppercase; color: var(--mute); margin: 0 0 .45rem;
+}
+
+.slide-notes p, .slide-notes ul { max-width: none; font-size: .95rem; }
+.slide-notes > :last-child { margin-bottom: 0; }
+
+.script {
+  border-left: 2px solid var(--beam);
+  padding-left: .9rem;
+  margin: 0 0 1rem;
+  font-family: var(--f-display);
+  font-weight: 700;
+  font-size: 1.02rem;
+  line-height: 1.7;
+  color: var(--ink);
+}
+
+.script p { margin-bottom: .6rem; font-size: inherit; }
+.script p:last-child { margin-bottom: 0; }
+
+.caution {
+  margin: .9rem 0 0;
+  padding: .7rem .9rem;
+  border: 1px dashed var(--alarm);
+  background: var(--alarm-bg);
+  border-radius: 3px;
+  font-size: .89rem;
+}
+
+.caution > :last-child { margin-bottom: 0; }
+.caution p { font-size: inherit; margin-bottom: .5rem; }
+
+.caution-label {
+  font-family: var(--f-mono); font-size: .64rem; letter-spacing: .12em;
+  text-transform: uppercase; font-weight: 600; color: var(--alarm);
+  display: block; margin-bottom: .3rem;
+}
+
+.tag {
+  display: inline-block; font-family: var(--f-mono); font-size: .66rem;
+  letter-spacing: .07em; padding: .13rem .45rem; border-radius: 2px;
+  background: var(--surface-2); color: var(--ink-soft); white-space: nowrap;
+}
+
+.tag--cut  { background: var(--alarm-bg); color: var(--alarm); }
+.tag--core { background: var(--beam-bg);  color: var(--beam); }
+
+/* 精簡模式：非核心投影片淡出並標示 */
+body.short-on .slide[data-core="0"] { opacity: .34; }
+body.short-on .slide[data-core="0"] .slide-head::after {
+  content: "精簡版刪除";
+  font-family: var(--f-mono); font-size: .66rem; letter-spacing: .08em;
+  color: var(--alarm); background: var(--alarm-bg);
+  padding: .13rem .45rem; border-radius: 2px; white-space: nowrap;
+}
+
+/* ── 表格 ─────────────────────────────────────────────────── */
+
+.table-wrap {
+  overflow-x: auto; margin: 0 0 1.2rem;
+  border: 1px solid var(--rule); border-radius: 3px; background: var(--surface);
+}
+
+table { border-collapse: collapse; width: 100%; font-size: .92rem; }
+
+th, td { text-align: left; padding: .62rem .85rem; border-bottom: 1px solid var(--rule-soft); vertical-align: top; }
+
+thead th {
+  font-family: var(--f-mono); font-size: .66rem; letter-spacing: .1em;
+  text-transform: uppercase; color: var(--mute); font-weight: 600;
+  background: var(--surface-2); border-bottom: 1px solid var(--rule); white-space: nowrap;
+}
+
+tbody tr:last-child td { border-bottom: none; }
+td.num { font-family: var(--f-mono); font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+/* ── 頁尾 ─────────────────────────────────────────────────── */
+
+footer {
+  margin-top: 4rem; padding: 1.6rem 0 5rem;
+  border-top: 1px solid var(--rule);
+  font-size: .87rem; color: var(--mute);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { transition: none !important; animation: none !important; scroll-behavior: auto !important; }
+}
+
+html { scroll-behavior: smooth; }
+</style>
+
+<div class="bar">
+  <div class="bar-in">
+    <span class="clock">完整版 <b>12 張 · 9 分 20 秒</b> ／ 精簡版 <b>8 張 · 6 分 10 秒</b></span>
+    <label class="switch">
+      <input type="checkbox" id="shortToggle">
+      <span class="switch-track"></span>
+      <span class="switch-label">標示精簡版</span>
+    </label>
+  </div>
+</div>
+
+<div class="wrap">
+
+  <header class="masthead">
+    <p class="eyebrow">AI 創新競賽 · 初賽簡報腳本</p>
+    <h1>LiveEngage 簡報腳本</h1>
+    <p class="standfirst">
+      每一張投影片：螢幕上放什麼、你要講什麼、花幾秒。
+      依 <code>COMPETITION_BRIEF.html</code> 的內容編排，設定為 10 分鐘簡報 + Q&amp;A。
+    </p>
+  </header>
+
+  <!-- ───────────────────────────────── 結構 -->
+  <section id="structure">
+    <p class="sec-label">00 — 整體結構</p>
+    <h2>五幕，九分二十秒</h2>
+
+    <p>
+      這個結構刻意<strong>不從產品開始</strong>。前三分鐘完全在講問題，等評審自己得出
+      「這確實是個沒被解決的問題」的結論之後，才讓產品登場。
+      先講產品的簡報，評審會用「又一個 Slido」的框架聽完整場。
+    </p>
+
+    <div class="acts">
+      <div class="act a-hook">
+        <span class="act-n">第一幕</span><span class="act-t">冷開場</span><span class="act-d">0:00 – 0:50</span>
+        <p class="act-note">不自我介紹、不講產品。直接讓評審看見那面壞掉的文字雲。</p>
+      </div>
+      <div class="act a-prob">
+        <span class="act-n">第二幕</span><span class="act-t">把問題釘死</span><span class="act-d">0:50 – 3:00</span>
+        <p class="act-note">兩個具體證據（文字雲、Q&amp;A 稀釋）+ 一句定性：這是結構性空缺。</p>
+      </div>
+      <div class="act a-sol">
+        <span class="act-n">第三幕</span><span class="act-t">解法登場</span><span class="act-d">3:00 – 6:20</span>
+        <p class="act-note">產品全貌 → 語意理解怎麼解 → AI 治理框架（王牌放這裡）。</p>
+      </div>
+      <div class="act a-evid">
+        <span class="act-n">第四幕</span><span class="act-t">拿出證據</span><span class="act-d">6:20 – 8:00</span>
+        <p class="act-note">不是「我們很努力」，是「這些數字與規則證明我們做得出來」。</p>
+      </div>
+      <div class="act a-end">
+        <span class="act-n">第五幕</span><span class="act-t">藍圖與收尾</span><span class="act-d">8:00 – 9:20</span>
+        <p class="act-note">誠實給時程，回到開場那句話收束。留 40 秒緩衝。</p>
+      </div>
+    </div>
+
+    <h3>時間分配原則</h3>
+    <ul>
+      <li><strong>問題佔 32%</strong>（3 分鐘）——這是多數參賽者做得最差的部分，也是最容易拉開差距的地方。</li>
+      <li><strong>治理框架佔 14%</strong>（80 秒）——單張最長，因為這是別人沒有的東西。</li>
+      <li><strong>不要留白給客套。</strong>感謝詞、團隊介紹全部砍掉，那些寫在報名表上就好。</li>
+    </ul>
+  </section>
+
+  <!-- ───────────────────────────────── 逐張 -->
+  <section id="slides">
+    <p class="sec-label">01 — 逐張腳本</p>
+    <h2>十二張投影片</h2>
+
+    <p>
+      打開右上角「標示精簡版」可以看見哪幾張在時間被壓縮時要刪掉。
+    </p>
+
+    <!-- S1 -->
+    <article class="slide" data-core="1">
+      <div class="slide-head">
+        <span class="slide-n">S1</span>
+        <h3 class="slide-t">封面</h3>
+        <span class="slide-time">0:00 – 0:20 · 20 秒</span>
+      </div>
+      <div class="slide-body">
+        <div class="slide-visual">
+          <div class="screen screen--big">
+            <p class="screen-h">把碎片化的現場民意，<br>還原成看得懂的答案</p>
+            <p class="screen-s">LiveEngage 即時互動通 · 隊名 · 日期</p>
+          </div>
+          <p class="visual-note"><b>視覺：</b>只有標題與隊名。深底、大字、留白。不要放產品截圖，不要放 logo 牆。</p>
+        </div>
+        <div class="slide-notes">
+          <p class="notes-label">講稿要點</p>
+          <p>
+            報出隊名與作品名，一句話帶過，<strong>不要把標題唸一遍</strong>——評審看得到。
+            然後立刻切下一張，不要停留。
+          </p>
+          <p style="margin-bottom:0">
+            這張的功能只是讓評審知道「開始了」，真正的開場在 S2。
+          </p>
+        </div>
+      </div>
+    </article>
+
+    <!-- S2 -->
+    <article class="slide" data-core="1">
+      <div class="slide-head">
+        <span class="slide-n">S2</span>
+        <h3 class="slide-t">冷開場：讓他們看見壞掉的畫面</h3>
+        <span class="slide-time">0:20 – 0:50 · 30 秒</span>
+        <span class="tag tag--core">最該練熟的一張</span>
+      </div>
+      <div class="slide-body">
+        <div class="slide-visual">
+          <div class="screen">
+            <p class="screen-fig">全螢幕 · 無標題</p>
+            <p class="screen-s" style="font-size:.82rem;line-height:1.9;color:var(--screen-fg)">
+              很棒　超讚　讚　不錯　很好　太棒了　棒　好棒<br>
+              精彩　很精彩　內容豐富　豐富　有料　很有料<br>
+              有收穫　收穫很多　受益良多　學到很多　實用
+            </p>
+          </div>
+          <p class="visual-note">
+            <b>視覺：</b>把 <code>COMPETITION_BRIEF.html</code> 痛點 A 左半邊那張圖<b>全螢幕</b>放上去。
+            一個字的標題都不要加。畫面本身就是論述。
+          </p>
+        </div>
+        <div class="slide-notes">
+          <p class="notes-label">逐字稿 — 這 30 秒建議背下來</p>
+          <div class="script">
+            <p>請各位想像一個畫面。</p>
+            <p>三百個人的演講廳，主持人問：「你對今天的內容有什麼感受？」三百支手機同時送出答案。</p>
+            <p>大螢幕上出現的，是這個。</p>
+            <p>三百個一樣大的字。沒有重點，沒有意義。</p>
+          </div>
+          <p style="margin-top:.9rem">
+            <strong>停頓兩秒</strong>再接下一句。讓畫面自己說話——這是全場唯一一次值得刻意留白的地方。
+          </p>
+        </div>
+      </div>
+    </article>
+
+    <!-- S3 -->
+    <article class="slide" data-core="1">
+      <div class="slide-head">
+        <span class="slide-n">S3</span>
+        <h3 class="slide-t">問題命名：語言的碎片化</h3>
+        <span class="slide-time">0:50 – 1:40 · 50 秒</span>
+      </div>
+      <div class="slide-body">
+        <div class="slide-visual">
+          <div class="screen">
+            <p class="screen-fig">左右對照</p>
+            <p class="screen-h" style="font-size:.9rem">字串比對 24 個詞　→　語意聚合 5 個群</p>
+            <p class="screen-s">很棒 47　內容精彩 31　有收穫 28　實用 19　步調偏快 8</p>
+          </div>
+          <p class="visual-note">
+            <b>視覺：</b>痛點 A 的完整左右對照圖。右半邊要有加權後的字級差異，
+            「很棒 47」用強調色。<b>這是全場最重要的一張圖。</b>
+          </p>
+        </div>
+        <div class="slide-notes">
+          <p class="notes-label">講稿要點</p>
+          <ul>
+            <li>系統看到的不是三百個意見，是<strong>三百個孤立的字串</strong>。</li>
+            <li>中文沒有空白斷詞，而且同義表達極多——「很棒／超讚／讚／不錯」是同一件事，但字串比對不知道。</li>
+            <li>加上語意理解之後，同一份資料變成右邊這樣。<strong>而且點下去可以展開看原始 47 種寫法</strong>——人永遠可以推翻機器。</li>
+          </ul>
+          <div class="caution">
+            <span class="caution-label">措辭注意</span>
+            <p style="margin-bottom:0">
+              說「<strong>加上語意理解之後會變成這樣</strong>」，不要說「這是我們系統跑出來的結果」。
+              前者是在描述解法，後者是在陳述一個還不成立的事實。
+            </p>
+          </div>
+        </div>
+      </div>
+    </article>
+
+    <!-- S4 -->
+    <article class="slide" data-core="0">
+      <div class="slide-head">
+        <span class="slide-n">S4</span>
+        <h3 class="slide-t">第二個證據：熱門問題被稀釋</h3>
+        <span class="slide-time">1:40 – 2:30 · 50 秒</span>
+      </div>
+      <div class="slide-body">
+        <div class="slide-visual">
+          <div class="screen">
+            <p class="screen-fig">Top 5 對照</p>
+            <p class="screen-s" style="color:var(--screen-fg);font-size:.8rem;line-height:1.8">
+              公司餐廳何時整修？　12<br>
+              今年會不會裁員？　　8<br>
+              <span style="color:#E9B44C">→ 語意去重後：今年會不會裁員？　63</span>
+            </p>
+          </div>
+          <p class="visual-note">
+            <b>視覺：</b>痛點 B 的兩份 Top 5 並排。右邊第一名的「63」要跳出來。
+          </p>
+        </div>
+        <div class="slide-notes">
+          <p class="notes-label">講稿要點</p>
+          <ul>
+            <li>五百人的企業 Town Hall，同一個問題會被二十個人用不同講法問出來。</li>
+            <li>按讚數各自分散，結果是<strong>大家最想問的問題，因為講法太分散而消失了</strong>。</li>
+            <li>主持人會花時間回答餐廳整修，而全場真正在擔心的事沒有被提起。</li>
+          </ul>
+          <p style="margin-bottom:0">
+            這張的作用是<strong>證明碎片化不是文字雲的特例</strong>，而是這類產品的通病。
+            兩個獨立場景指向同一個結構問題，說服力遠大於只講一個。
+          </p>
+        </div>
+      </div>
+    </article>
+
+    <!-- S5 -->
+    <article class="slide" data-core="0">
+      <div class="slide-head">
+        <span class="slide-n">S5</span>
+        <h3 class="slide-t">定性：這是結構性空缺</h3>
+        <span class="slide-time">2:30 – 3:00 · 30 秒</span>
+      </div>
+      <div class="slide-body">
+        <div class="slide-visual">
+          <div class="screen screen--big">
+            <p class="screen-h">這不是功能多寡的差距，<br>是<span style="color:#E9B44C">沒有為中文設計</span></p>
+          </div>
+          <p class="visual-note">
+            <b>視覺：</b>一句話，滿版。不要放競品 logo（授權風險，也顯得挑釁）。
+          </p>
+        </div>
+        <div class="slide-notes">
+          <p class="notes-label">講稿要點</p>
+          <p>
+            現有工具的文字雲與 Q&amp;A 排序在中文場景是失效的。
+            這不是它們做得不好——是它們<strong>按英文的斷詞假設設計</strong>，
+            而中文沒有空白，同義表達又特別多。
+          </p>
+          <p style="margin-bottom:0">
+            收束成一句：<strong>「這是一個結構性的空缺，不是功能清單上的一格。」</strong>
+            講完立刻進第三幕。
+          </p>
+        </div>
+      </div>
+    </article>
+
+    <!-- S6 -->
+    <article class="slide" data-core="1">
+      <div class="slide-head">
+        <span class="slide-n">S6</span>
+        <h3 class="slide-t">產品登場：LiveEngage 是什麼</h3>
+        <span class="slide-time">3:00 – 4:00 · 60 秒</span>
+      </div>
+      <div class="slide-body">
+        <div class="slide-visual">
+          <div class="screen">
+            <p class="screen-fig">架構圖</p>
+            <p class="screen-h" style="font-size:.88rem">host · join · screen · admin<br>→ api → worker</p>
+            <p class="screen-s">9 種互動 · 6 個獨立部署服務</p>
+          </div>
+          <p class="visual-note">
+            <b>視覺：</b>六服務架構圖（<code>docs/服務架構.md</code> 已有 mermaid 圖可直接轉）。
+            加一條九種互動的橫列。
+          </p>
+        </div>
+        <div class="slide-notes">
+          <p class="notes-label">講稿要點</p>
+          <ul>
+            <li>一句話定位：低門檻、即時同步、支援匿名、可控場、可投影、可匯出的會議互動平台。</li>
+            <li>使用流程一條直線：<strong>建活動 → 掃 QR 免登入加入 → 即時互動 → 大螢幕投影 → 活動後匯出</strong>。</li>
+            <li>九種互動型態、六個獨立部署的服務。<strong>投影端是獨立服務</strong>，可以直接餵進 OBS 做直播。</li>
+          </ul>
+          <p style="margin-bottom:0">
+            <strong>速度要快。</strong>這張是必要的背景交代，不是重點。不要逐一介紹九種互動。
+          </p>
+        </div>
+      </div>
+    </article>
+
+    <!-- S7 -->
+    <article class="slide" data-core="0">
+      <div class="slide-head">
+        <span class="slide-n">S7</span>
+        <h3 class="slide-t">我們怎麼解：為什麼不是「套一個 API」</h3>
+        <span class="slide-time">4:00 – 5:00 · 60 秒</span>
+      </div>
+      <div class="slide-body">
+        <div class="slide-visual">
+          <div class="screen screen--quiet">
+            <p class="screen-fig">技術路徑</p>
+            <p class="screen-s" style="color:var(--screen-fg);font-size:.82rem;line-height:1.9">
+              ① 即時聚合管線　250ms 節流窗<br>
+              ② 增量分群　　　不整批重算<br>
+              ③ Embedding 快取　同詞只算一次<br>
+              ④ 可展開原始詞　人可推翻機器
+            </p>
+          </div>
+          <p class="visual-note"><b>視覺：</b>四個編號步驟，一行一個。不要畫複雜的系統流程圖。</p>
+        </div>
+        <div class="slide-notes">
+          <p class="notes-label">講稿要點</p>
+          <p>
+            這一張是<strong>回答「你們跟叫 ChatGPT 有什麼不一樣」</strong>——與其等評審問，不如主動講。
+          </p>
+          <ul>
+            <li>難的不是分群，是<strong>要塞進即時管線</strong>：現場投票每 250 毫秒就要更新一次畫面。</li>
+            <li>每三秒進來二十個新詞，<strong>不能整批重算</strong>，必須增量。</li>
+            <li>同一個詞不重複呼叫，所以要做 embedding 快取——這是延遲與成本的關鍵。</li>
+            <li>而且<strong>永遠保留原始資料可展開</strong>，這不是黑箱。</li>
+          </ul>
+        </div>
+      </div>
+    </article>
+
+    <!-- S8 -->
+    <article class="slide" data-core="1">
+      <div class="slide-head">
+        <span class="slide-n">S8</span>
+        <h3 class="slide-t">王牌：AI 治理框架先於 AI 而存在</h3>
+        <span class="slide-time">5:00 – 6:20 · 80 秒</span>
+        <span class="tag tag--core">差異化核心</span>
+      </div>
+      <div class="slide-body">
+        <div class="slide-visual">
+          <div class="screen screen--quiet">
+            <p class="screen-fig">治理能力</p>
+            <p class="screen-s" style="color:var(--screen-fg);font-size:.79rem;line-height:1.85">
+              AI 呼叫全量稽核　　prompt／輸出／延遲<br>
+              AI 產物標記　　　　is_ai_generated<br>
+              組織級開關　　　　Admin 可停用<br>
+              旁路設計　　　　　10s timeout 不阻塞<br>
+              匿名統一遮蔽　　　AI 也拿不到真名<br>
+              全操作 audit log
+            </p>
+          </div>
+          <p class="visual-note">
+            <b>視覺：</b>六條治理能力，每條配一個實作位置。
+            <b>可以加一欄「多數作品有嗎 ✗」</b>——但要有把握評審不會覺得傲慢，斟酌。
+          </p>
+        </div>
+        <div class="slide-notes">
+          <p class="notes-label">講稿要點 — 全場最長的一張，值得慢慢講</p>
+          <div class="script">
+            <p>企業採購 AI 工具最大的阻力不是效果，是治理。</p>
+            <p>所以我們的順序是反過來的：先蓋好可稽核、可關閉、可降級的軌道，AI 才上車。</p>
+          </div>
+          <ul style="margin-top:.9rem">
+            <li>每一次 AI 呼叫的 prompt、輸出、延遲、狀態<strong>全部寫進稽核表</strong>。</li>
+            <li>AI 產生的內容一律標記，使用者看得出來哪些是機器寫的。</li>
+            <li>組織管理員可以<strong>一鍵關掉整個 AI 功能</strong>，核心互動照常運作。</li>
+            <li>AI 是旁路：十秒逾時就降級，<strong>絕不阻塞現場</strong>。</li>
+            <li>匿名遮蔽在統一的序列化層做，<strong>連 AI 都拿不到真實身分</strong>。</li>
+          </ul>
+          <p style="margin-bottom:0">
+            這段的目的是把作品從「hackathon 專案」拉到「可以進企業的產品」。
+            多數競爭者不會講治理，這是你最容易勝出的地方。
+          </p>
+        </div>
+      </div>
+    </article>
+
+    <!-- S9 -->
+    <article class="slide" data-core="1">
+      <div class="slide-head">
+        <span class="slide-n">S9</span>
+        <h3 class="slide-t">證據一：規格驅動的完成度</h3>
+        <span class="slide-time">6:20 – 7:10 · 50 秒</span>
+      </div>
+      <div class="slide-body">
+        <div class="slide-visual">
+          <div class="screen">
+            <p class="screen-fig">數字</p>
+            <p class="screen-h" style="font-size:1.1rem">後端 15,047 行　前端 22,208 行<br>測試 3,334 行　186 commits</p>
+            <p class="screen-s">PRD / SRS / SDS 三份正式規格書</p>
+          </div>
+          <p class="visual-note"><b>視覺：</b>大字數字，不要表格。數字要能從最後一排看見。</p>
+        </div>
+        <div class="slide-notes">
+          <p class="notes-label">講稿要點</p>
+          <p>
+            數字快速帶過，<strong>重點放在紀律</strong>——這才是評審會記住的：
+          </p>
+          <ul>
+            <li>測試檔名必須含 SRS 驗收條件編號，例如 <code>test_fe004_ac1_realtime_receive</code>。</li>
+            <li>衝突時的優先序被明文寫死：<strong>SRS 驗收 &gt; SDS 設計 &gt; 實作指引 &gt; 自行判斷</strong>。</li>
+          </ul>
+          <p style="margin-bottom:0">
+            一句話收：「<strong>這不是寫得快，是寫得有規矩。</strong>」
+          </p>
+        </div>
+      </div>
+    </article>
+
+    <!-- S10 -->
+    <article class="slide" data-core="0">
+      <div class="slide-head">
+        <span class="slide-n">S10</span>
+        <h3 class="slide-t">證據二：現場只有一次機會</h3>
+        <span class="slide-time">7:10 – 8:00 · 50 秒</span>
+      </div>
+      <div class="slide-body">
+        <div class="slide-visual">
+          <div class="screen screen--quiet">
+            <p class="screen-fig">即時工程</p>
+            <p class="screen-s" style="color:var(--screen-fg);font-size:.82rem;line-height:1.9">
+              重送不會重複計票　Idempotency-Key<br>
+              斷線不會算錯票數　payload 帶絕對值<br>
+              WS 掛掉仍能恢復　　快照 + 30s 輪詢<br>
+              同房只有一個投票　Redis 鎖 + 樂觀鎖
+            </p>
+          </div>
+          <p class="visual-note"><b>視覺：</b>四組「問題 → 對策」。左邊白話，右邊技術名詞。</p>
+        </div>
+        <div class="slide-notes">
+          <p class="notes-label">講稿要點</p>
+          <p>
+            開場先給框架：<strong>「現場活動不能重來。所以我們的工程重點不是效能，是不出錯。」</strong>
+          </p>
+          <ul>
+            <li>手機網路不穩重送——所有寫入端點支援 <code>Idempotency-Key</code>，不會重複計票。</li>
+            <li>事件帶絕對值不是增量，<strong>斷線重連後票數不會算錯</strong>。</li>
+            <li>WebSocket 掛掉還有快照加輪詢的備援，現場不會黑畫面。</li>
+          </ul>
+          <p style="margin-bottom:0">
+            這張證明的是<strong>「這個團隊有能力承載 AI」</strong>——地基穩，上面才敢加東西。
+          </p>
+        </div>
+      </div>
+    </article>
+
+    <!-- S11 -->
+    <article class="slide" data-core="1">
+      <div class="slide-head">
+        <span class="slide-n">S11</span>
+        <h3 class="slide-t">藍圖：接下來九週</h3>
+        <span class="slide-time">8:00 – 8:50 · 50 秒</span>
+      </div>
+      <div class="slide-body">
+        <div class="slide-visual">
+          <div class="screen screen--quiet">
+            <p class="screen-fig">Roadmap</p>
+            <p class="screen-s" style="color:var(--screen-fg);font-size:.8rem;line-height:1.85">
+              W1　　　Ideas 語意分群<br>
+              W2–4　　文字雲語意聚合<br>
+              W5–6　　Q&amp;A 語意去重<br>
+              W7　　　活動後 AI 洞察報告<br>
+              W8–9　　實測與數據驗證
+            </p>
+          </div>
+          <p class="visual-note"><b>視覺：</b>橫向時間軸，五個節點。標上實際日期會更有說服力。</p>
+        </div>
+        <div class="slide-notes">
+          <p class="notes-label">講稿要點</p>
+          <p>
+            用<strong>「依序上線」</strong>的語氣講，不要用「我們打算」——前者是計畫，後者聽起來像空想。
+          </p>
+          <ul>
+            <li>強調<strong>排序的理由</strong>：先做 Ideas 分群是因為資料庫欄位已經預留好了，可以最快驗證整條管線。</li>
+            <li>文字雲留最多時間，因為<strong>中文短詞分群的調參最吃時間</strong>——講出這一點會顯得你真的評估過。</li>
+            <li>最後兩週不寫新功能，專門做實測與數據驗證。</li>
+          </ul>
+          <div class="caution">
+            <span class="caution-label">措辭注意</span>
+            <p style="margin-bottom:0">
+              這張是全場<strong>唯一適合談時程的地方</strong>。把藍圖講清楚，
+              反而讓前面的能力陳述更可信——一個說得出時程的人，比一個宣稱全部做完的人更像工程師。
+            </p>
+          </div>
+        </div>
+      </div>
+    </article>
+
+    <!-- S12 -->
+    <article class="slide" data-core="1">
+      <div class="slide-head">
+        <span class="slide-n">S12</span>
+        <h3 class="slide-t">收尾：回到開場那句話</h3>
+        <span class="slide-time">8:50 – 9:20 · 30 秒</span>
+      </div>
+      <div class="slide-body">
+        <div class="slide-visual">
+          <div class="screen screen--big">
+            <p class="screen-h">用語意理解，<br>把碎片還原成民意</p>
+            <p class="screen-s">LiveEngage 即時互動通</p>
+          </div>
+          <p class="visual-note"><b>視覺：</b>與 S1 呼應。可以在背後淡淡放那張聚合後的文字雲。</p>
+        </div>
+        <div class="slide-notes">
+          <p class="notes-label">逐字稿</p>
+          <div class="script">
+            <p>即時互動工具收集了大量現場民意，卻因為語言的碎片化而讓資料失去意義。</p>
+            <p>我們用語意理解把碎片還原成民意——並且在放 AI 進來之前，先把稽核、開關、降級與匿名保護的軌道蓋好。</p>
+            <p>謝謝。</p>
+          </div>
+          <p style="margin-top:.9rem;margin-bottom:0">
+            講完停住，<strong>不要再補充任何東西</strong>。最後一句話的餘韻比多講三十秒有價值。
+          </p>
+        </div>
+      </div>
+    </article>
+  </section>
+
+  <!-- ───────────────────────────────── 附錄 -->
+  <section id="appendix">
+    <p class="sec-label">02 — 附錄投影片</p>
+    <h2>Q&amp;A 時用的備用張數</h2>
+
+    <p>
+      放在最後一張之後，簡報時不播。被問到時直接跳過去，比空口回答有力得多。
+    </p>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>編號</th><th>內容</th><th>準備給哪一題</th></tr>
+        </thead>
+        <tbody>
+          <tr><td class="num">A1</td><td>六服務架構詳圖 + 技術棧</td><td>「你們的架構怎麼設計的？」</td></tr>
+          <tr><td class="num">A2</td><td>十條鐵律完整清單</td><td>「怎麼確保多人開發不走樣？」</td></tr>
+          <tr><td class="num">A3</td><td>Embedding 選型與延遲預算</td><td>「語意分群用什麼模型？」</td></tr>
+          <tr><td class="num">A4</td><td>PRD AI-001～004 規格頁截圖</td><td>「AI 功能有規劃到什麼程度？」</td></tr>
+          <tr><td class="num">A5</td><td>四個狀態機圖</td><td>「控場流程怎麼設計的？」</td></tr>
+          <tr><td class="num">A6</td><td>模擬場次 Demo 影片（60 秒）</td><td>「可以現場 Demo 嗎？」</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>A3 的答法（最可能被問）</h3>
+    <p>
+      候選是 OpenAI <code>text-embedding-3-small</code> 或本地部署的 BGE-M3。
+      <strong>選型的關鍵不是模型精度，而是延遲</strong>——要塞進現有的 250ms 聚合節流窗，
+      所以會搭配 Redis embedding 快取，同一個詞只算一次。
+      這個答案展現的是工程判斷，不是模型知識。
+    </p>
+
+    <h3>A6 的答法（最需要準備）</h3>
+    <p style="margin-bottom:0">
+      誠實但不自曝：說明文字雲的價值要 100 人以上才顯現，所以準備了錄製好的模擬場次影片，
+      同時<strong>邀請評審用手機掃碼實際參與一個小型互動</strong>。
+      讓他們親手走過「加入 → 作答 → 看見自己的答案出現在投影上」——
+      這一段是真的、完成度很高，體感遠比任何投影片有說服力。
+    </p>
+  </section>
+
+  <!-- ───────────────────────────────── 製作備忘 -->
+  <section id="notes">
+    <p class="sec-label">03 — 製作備忘</p>
+    <h2>做投影片時容易踩的坑</h2>
+
+    <h3>版面</h3>
+    <ul>
+      <li><strong>一張投影片一個訊息。</strong>S8 是唯一例外（六條治理能力），因為那是清單本身在說話。</li>
+      <li><strong>字級下限 24pt。</strong>評審席通常比你想的遠。S9 的數字要能從最後一排看見。</li>
+      <li><strong>不要放你會唸出來的句子。</strong>螢幕放關鍵字，完整句子留在嘴巴裡。</li>
+      <li><strong>深底淺字。</strong>比賽場地投影機通常偏暗，深底比白底穩。</li>
+    </ul>
+
+    <h3>時間</h3>
+    <ul>
+      <li>寫好後<strong>計時走一次</strong>。九分二十秒的稿實際講通常會超到十一分——講稿要再砍。</li>
+      <li>最容易超時的是 S6（產品全貌），因為會忍不住逐一介紹九種互動。<strong>不要。</strong></li>
+      <li>留 40 秒緩衝給臨場停頓與設備問題。</li>
+    </ul>
+
+    <h3>壓縮到 6 分鐘的版本</h3>
+    <p>
+      刪掉 S4、S5、S7、S10（打開右上角開關可以看見標示），保留八張：
+      <strong>S1 → S2 → S3 → S6 → S8 → S9 → S11 → S12</strong>，合計 6 分 10 秒。
+      若必須壓到 5 分鐘以內，再把 S9 的數字併進 S8 結尾當一句話帶過。
+    </p>
+    <p style="margin-bottom:0">
+      刪 S4 時要把「這不是文字雲的特例」這句話併進 S3，
+      否則問題會顯得太單薄。刪 S7 時把「不是套 API」那句併進 S8 開頭。
+    </p>
+  </section>
+
+  <footer>
+    <p style="margin-bottom:.5rem">
+      LiveEngage 簡報腳本 · 依 <code>COMPETITION_BRIEF.html</code> 編排 · 2026-08-27
+    </p>
+    <p style="margin-bottom:0">
+      措辭注意事項共 3 處，都與尚未實作的功能有關。
+      正式簡報前請對照 <code>COMPETITION_BRIEF.html</code> 的內部模式再確認一次。
+    </p>
+  </footer>
+
+</div>
+
+<script>
+(function () {
+  "use strict";
+  var t = document.getElementById("shortToggle");
+  t.addEventListener("change", function () {
+    document.body.classList.toggle("short-on", t.checked);
+  });
+})();
+</script>
