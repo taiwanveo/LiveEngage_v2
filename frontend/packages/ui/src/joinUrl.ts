@@ -14,8 +14,13 @@ function resolveJoinBase(): string {
   const path = loc.pathname.replace(/\/$/, "");
 
   // Join App 自身分享：同源即可
-  if (loc.port === "5174" || loc.hostname.includes("le-join")) {
+  if (loc.port === "5174" || loc.hostname.includes("le-join") || loc.hostname.includes("liveengage-join")) {
     return `${loc.origin}${path}`;
+  }
+
+  // Cloudflare Pages 自動適配
+  if (loc.hostname.endsWith(".pages.dev")) {
+    return `${loc.protocol}//liveengage-join.pages.dev`;
   }
 
   // 舊網域仍指向 join（過渡期）

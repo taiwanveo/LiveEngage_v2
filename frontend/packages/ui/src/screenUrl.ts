@@ -24,8 +24,13 @@ function resolveScreenBase(): string {
   const loc = window.location;
   const path = loc.pathname.replace(/\/$/, "");
 
-  if (loc.port === "5175" || loc.hostname.includes("le-screen")) {
+  if (loc.port === "5175" || loc.hostname.includes("le-screen") || loc.hostname.includes("liveengage-screen")) {
     return `${loc.origin}${path}`;
+  }
+
+  // Cloudflare Pages 自動適配
+  if (loc.hostname.endsWith(".pages.dev")) {
+    return `${loc.protocol}//liveengage-screen.pages.dev`;
   }
 
   const isLocal =
