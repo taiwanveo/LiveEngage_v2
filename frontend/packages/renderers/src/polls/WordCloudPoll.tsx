@@ -55,7 +55,7 @@ export function WordCloudPoll({
       <button
         type="button"
         onClick={clearWords}
-        className="rounded px-2 py-1 text-xs font-medium text-rose-600 hover:bg-rose-50 hover:text-rose-700 dark:text-rose-400 dark:hover:bg-rose-950/40 transition-colors"
+        className="inline-flex items-center rounded-lg border border-slate-300 bg-slate-50 px-2.5 py-1 text-xs font-medium text-rose-600 shadow-sm transition-colors hover:bg-slate-100 hover:border-slate-400 active:scale-95 dark:border-slate-700 dark:bg-slate-800 dark:text-rose-400 dark:hover:bg-slate-700 dark:hover:border-slate-600"
       >
         清除已加入詞彙
       </button>
