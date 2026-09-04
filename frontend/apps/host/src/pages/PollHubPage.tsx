@@ -153,7 +153,7 @@ export function PollHubPage({ roomId, onLogout }: Props): React.JSX.Element {
           <button
             type="button"
             onClick={() => setAiModalOpen(true)}
-            className="flex items-center gap-1.5 rounded-lg border border-purple-500/40 bg-purple-500/10 px-3 py-2 text-xs font-semibold text-purple-600 dark:text-purple-300 hover:bg-purple-500/20 transition shadow-sm"
+            className="flex items-center gap-1.5 rounded-lg bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 active:scale-95 px-3 py-2 text-xs font-bold text-white shadow-sm transition"
             title="由 AI 針對主題智慧設計互動題庫並一鍵批次建立"
           >
             <span>✨ AI 靈感出題</span>

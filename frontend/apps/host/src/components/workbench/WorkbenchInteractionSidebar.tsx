@@ -220,7 +220,7 @@ export function WorkbenchInteractionSidebar(props: Props): React.JSX.Element {
               <button
                 type="button"
                 onClick={props.onOpenAiModal}
-                className="flex items-center justify-center gap-1 rounded-lg border border-purple-500/40 bg-purple-500/10 px-2.5 py-1.5 text-[11px] font-semibold text-purple-600 dark:text-purple-300 hover:bg-purple-500/20 transition shadow-sm"
+                className="flex items-center justify-center gap-1 rounded-lg bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 active:scale-95 px-2.5 py-1.5 text-[11px] font-bold text-white shadow-sm transition shrink-0"
                 title="AI 一鍵靈感出題"
               >
                 <span>✨ AI 出題</span>
