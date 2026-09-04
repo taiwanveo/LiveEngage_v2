@@ -4,23 +4,27 @@
 @tailwind components;
 @tailwind utilities;
 
-/* 投影主題色：覆寫常見 slate 投影底色／文字色 */
+/* 投影主題色：覆寫常見 slate 投影底色 */
 html[data-screen-theme-bg] .bg-slate-950 {
   background-color: var(--le-screen-bg) !important;
 }
 
-html[data-screen-theme-fg] .text-slate-100,
-html[data-screen-theme-fg] .text-slate-200,
-html[data-screen-theme-fg] .text-slate-300,
-html[data-screen-theme-fg] .text-slate-400,
-html[data-screen-theme-fg] .text-slate-500,
-html[data-screen-theme-fg] .text-slate-50,
-html[data-screen-theme-fg] .text-white {
+/* 僅當 URL 明確指定自訂前景文字色 (&fg=...) 時才強制覆寫一般文字色 */
+html[data-screen-custom-fg] .text-slate-100,
+html[data-screen-custom-fg] .text-slate-200,
+html[data-screen-custom-fg] .text-slate-300,
+html[data-screen-custom-fg] .text-slate-400,
+html[data-screen-custom-fg] .text-slate-500,
+html[data-screen-custom-fg] .text-slate-50,
+html[data-screen-custom-fg] .text-white {
   color: var(--le-screen-fg) !important;
 }
 
-/* 淺色主題（全域重構）：統一 Screen 文字、背景、邊框、狀態色與圖表可讀性 */
-html[data-theme="light"][data-screen-theme-bg] {
+/* 淺色主題通用變數（全域支援：slido / light / claude 或任何帶有 data-screen-light 的淺色底） */
+html[data-screen-light],
+html[data-theme="light"],
+html[data-theme="slido"],
+html[data-theme="claude"] {
   --le-screen-light-bg: #f8fafc;
   --le-screen-light-surface: #ffffff;
   --le-screen-light-surface-soft: #f1f5f9;
@@ -31,98 +35,150 @@ html[data-theme="light"][data-screen-theme-bg] {
   --le-screen-light-text-soft: #94a3b8;
 }
 
-html[data-theme="light"][data-screen-theme-bg] .bg-slate-950,
-html[data-theme="light"][data-screen-theme-bg] .bg-slate-900,
-html[data-theme="light"][data-screen-theme-bg] .bg-slate-900\/80,
-html[data-theme="light"][data-screen-theme-bg] .bg-slate-900\/70,
-html[data-theme="light"][data-screen-theme-bg] .bg-slate-900\/60,
-html[data-theme="light"][data-screen-theme-bg] .bg-slate-800 {
-  background-color: var(--le-screen-light-surface) !important;
+/* Slido 主題微調：白卡片 + 輕邊框 + 綠色徽章與強調 */
+html[data-theme="slido"] {
+  --le-screen-light-bg: #f5f5f5;
+  --le-screen-light-surface: #ffffff;
+  --le-screen-light-surface-soft: #f9fafb;
+  --le-screen-light-border: #e5e7eb;
+  --le-screen-light-text-strong: #171717;
+  --le-screen-light-text: #262626;
+  --le-screen-light-text-muted: #737373;
+  --le-screen-light-text-soft: #a3a3a3;
 }
 
-html[data-theme="light"][data-screen-theme-bg] .bg-emerald-950\/40 {
+/* Claude 主題微調：暖奶油色底 + 白卡片 + 赤陶強調 */
+html[data-theme="claude"] {
+  --le-screen-light-bg: #faf9f5;
+  --le-screen-light-surface: #ffffff;
+  --le-screen-light-surface-soft: #f7f6f0;
+  --le-screen-light-border: #e7e5e4;
+  --le-screen-light-text-strong: #1c1917;
+  --le-screen-light-text: #292524;
+  --le-screen-light-text-muted: #78716c;
+  --le-screen-light-text-soft: #a8a29e;
+}
+
+/* 淺色投影底色覆寫 */
+html:where([data-screen-light], [data-theme="light"], [data-theme="slido"], [data-theme="claude"]) .bg-slate-950 {
+  background-color: var(--le-screen-bg, var(--le-screen-light-bg)) !important;
+}
+
+/* 淺色投影卡片底色覆寫（白底 + 浮立陰影） */
+html:where([data-screen-light], [data-theme="light"], [data-theme="slido"], [data-theme="claude"]) .bg-slate-900,
+html:where([data-screen-light], [data-theme="light"], [data-theme="slido"], [data-theme="claude"]) .bg-slate-900\/90,
+html:where([data-screen-light], [data-theme="light"], [data-theme="slido"], [data-theme="claude"]) .bg-slate-900\/80,
+html:where([data-screen-light], [data-theme="light"], [data-theme="slido"], [data-theme="claude"]) .bg-slate-900\/70,
+html:where([data-screen-light], [data-theme="light"], [data-theme="slido"], [data-theme="claude"]) .bg-slate-900\/60,
+html:where([data-screen-light], [data-theme="light"], [data-theme="slido"], [data-theme="claude"]) .bg-slate-800 {
+  background-color: var(--le-screen-light-surface) !important;
+  box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.05), 0 1px 2px -1px rgb(0 0 0 / 0.05) !important;
+}
+
+html:where([data-screen-light], [data-theme="light"], [data-theme="slido"], [data-theme="claude"]) .bg-emerald-950\/40 {
   background-color: #ecfdf5 !important;
 }
 
-html[data-theme="light"][data-screen-theme-bg] .bg-slate-800\/80,
-html[data-theme="light"][data-screen-theme-bg] .bg-slate-800\/60,
-html[data-theme="light"][data-screen-theme-bg] .bg-slate-800\/40 {
+html:where([data-screen-light], [data-theme="light"], [data-theme="slido"], [data-theme="claude"]) .bg-slate-800\/80,
+html:where([data-screen-light], [data-theme="light"], [data-theme="slido"], [data-theme="claude"]) .bg-slate-800\/60,
+html:where([data-screen-light], [data-theme="light"], [data-theme="slido"], [data-theme="claude"]) .bg-slate-800\/40 {
   background-color: var(--le-screen-light-surface-soft) !important;
 }
 
-html[data-theme="light"][data-screen-theme-bg] .border-slate-800,
-html[data-theme="light"][data-screen-theme-bg] .border-slate-700,
-html[data-theme="light"][data-screen-theme-bg] .border-slate-600,
-html[data-theme="light"][data-screen-theme-bg] .border-slate-500 {
+html:where([data-screen-light], [data-theme="light"], [data-theme="slido"], [data-theme="claude"]) .border-slate-800,
+html:where([data-screen-light], [data-theme="light"], [data-theme="slido"], [data-theme="claude"]) .border-slate-700,
+html:where([data-screen-light], [data-theme="light"], [data-theme="slido"], [data-theme="claude"]) .border-slate-600,
+html:where([data-screen-light], [data-theme="light"], [data-theme="slido"], [data-theme="claude"]) .border-slate-500 {
   border-color: var(--le-screen-light-border) !important;
 }
 
-html[data-theme="light"][data-screen-theme-bg] .text-white,
-html[data-theme="light"][data-screen-theme-bg] .text-slate-50,
-html[data-theme="light"][data-screen-theme-bg] .text-slate-100 {
+/* 淺色文字覆寫（深色字、高對比易閱讀） */
+html:where([data-screen-light], [data-theme="light"], [data-theme="slido"], [data-theme="claude"]) .text-white,
+html:where([data-screen-light], [data-theme="light"], [data-theme="slido"], [data-theme="claude"]) .text-slate-50,
+html:where([data-screen-light], [data-theme="light"], [data-theme="slido"], [data-theme="claude"]) .text-slate-100 {
   color: var(--le-screen-light-text-strong) !important;
 }
 
-html[data-theme="light"][data-screen-theme-bg] .text-slate-200,
-html[data-theme="light"][data-screen-theme-bg] .text-slate-300 {
+html:where([data-screen-light], [data-theme="light"], [data-theme="slido"], [data-theme="claude"]) .text-slate-200,
+html:where([data-screen-light], [data-theme="light"], [data-theme="slido"], [data-theme="claude"]) .text-slate-300 {
   color: var(--le-screen-light-text) !important;
 }
 
-html[data-theme="light"][data-screen-theme-bg] .text-slate-400 {
+html:where([data-screen-light], [data-theme="light"], [data-theme="slido"], [data-theme="claude"]) .text-slate-400 {
   color: var(--le-screen-light-text-muted) !important;
 }
 
-html[data-theme="light"][data-screen-theme-bg] .text-slate-500 {
+html:where([data-screen-light], [data-theme="light"], [data-theme="slido"], [data-theme="claude"]) .text-slate-500 {
   color: var(--le-screen-light-text-soft) !important;
 }
 
-html[data-theme="light"][data-screen-theme-bg] .text-emerald-100,
-html[data-theme="light"][data-screen-theme-bg] .text-emerald-200,
-html[data-theme="light"][data-screen-theme-bg] .text-emerald-300,
-html[data-theme="light"][data-screen-theme-bg] .text-emerald-400,
-html[data-theme="light"][data-screen-theme-bg] .text-emerald-500 {
+html:where([data-screen-light], [data-theme="light"], [data-theme="slido"], [data-theme="claude"]) .text-emerald-100,
+html:where([data-screen-light], [data-theme="light"], [data-theme="slido"], [data-theme="claude"]) .text-emerald-200,
+html:where([data-screen-light], [data-theme="light"], [data-theme="slido"], [data-theme="claude"]) .text-emerald-300,
+html:where([data-screen-light], [data-theme="light"], [data-theme="slido"], [data-theme="claude"]) .text-emerald-400,
+html:where([data-screen-light], [data-theme="light"], [data-theme="slido"], [data-theme="claude"]) .text-emerald-500 {
   color: #065f46 !important;
 }
 
 /* 待機畫面淺色主題 */
-html[data-theme="light"][data-screen-theme-bg] .border-emerald-500\/30 {
+html:where([data-screen-light], [data-theme="light"], [data-theme="slido"], [data-theme="claude"]) .border-emerald-500\/30 {
   border-color: #6ee7b7 !important;
 }
 
-html[data-theme="light"][data-screen-theme-bg] .text-slate-500 {
-  color: #475569 !important;
-}
-
-html[data-theme="light"][data-screen-theme-bg] .text-amber-300,
-html[data-theme="light"][data-screen-theme-bg] .text-amber-400 {
+html:where([data-screen-light], [data-theme="light"], [data-theme="slido"], [data-theme="claude"]) .text-amber-300,
+html:where([data-screen-light], [data-theme="light"], [data-theme="slido"], [data-theme="claude"]) .text-amber-400 {
   color: #92400e !important;
 }
 
-html[data-theme="light"][data-screen-theme-bg] .text-sky-300,
-html[data-theme="light"][data-screen-theme-bg] .text-sky-400 {
+html:where([data-screen-light], [data-theme="light"]) .text-sky-300,
+html:where([data-screen-light], [data-theme="light"]) .text-sky-400 {
   color: #1d4ed8 !important;
 }
 
-html[data-theme="light"][data-screen-theme-bg] .bg-sky-500\/20 {
+html:where([data-screen-light], [data-theme="light"]) .bg-sky-500\/20 {
   background-color: #dbeafe !important;
 }
 
-html[data-theme="light"][data-screen-theme-bg] .border-sky-500\/40,
-html[data-theme="light"][data-screen-theme-bg] .border-emerald-400\/60 {
+html:where([data-screen-light], [data-theme="light"]) .border-sky-500\/40,
+html:where([data-screen-light], [data-theme="light"]) .border-emerald-400\/60 {
   border-color: #93c5fd !important;
 }
 
-html[data-theme="light"][data-screen-theme-bg] .bg-emerald-500\/15 {
+/* Slido 專屬標籤與徽章色彩 */
+html[data-theme="slido"] .bg-sky-500\/20 {
+  background-color: #e8f5e9 !important;
+}
+html[data-theme="slido"] .text-sky-300,
+html[data-theme="slido"] .text-sky-400 {
+  color: #0b6623 !important;
+}
+html[data-theme="slido"] .border-sky-500\/40 {
+  border-color: #a7f3d0 !important;
+}
+
+/* Claude 專屬標籤與徽章色彩 */
+html[data-theme="claude"] .bg-sky-500\/20 {
+  background-color: #ffedd5 !important;
+}
+html[data-theme="claude"] .text-sky-300,
+html[data-theme="claude"] .text-sky-400 {
+  color: #c2410c !important;
+}
+html[data-theme="claude"] .border-sky-500\/40 {
+  border-color: #fdba74 !important;
+}
+
+html:where([data-screen-light], [data-theme="light"], [data-theme="slido"], [data-theme="claude"]) .bg-emerald-500\/15 {
   background-color: #d1fae5 !important;
 }
 
-html[data-theme="light"][data-screen-theme-bg] .bg-white\/10 {
+html:where([data-screen-light], [data-theme="light"], [data-theme="slido"], [data-theme="claude"]) .bg-white\/10 {
   background-color: #e2e8f0 !important;
 }
 
-html[data-theme="light"][data-screen-theme-bg] .recharts-cartesian-axis-tick-value,
-html[data-theme="light"][data-screen-theme-bg] .recharts-text,
-html[data-theme="light"][data-screen-theme-bg] .recharts-label {
+html:where([data-screen-light], [data-theme="light"], [data-theme="slido"], [data-theme="claude"]) .recharts-cartesian-axis-tick-value,
+html:where([data-screen-light], [data-theme="light"], [data-theme="slido"], [data-theme="claude"]) .recharts-text,
+html:where([data-screen-light], [data-theme="light"], [data-theme="slido"], [data-theme="claude"]) .recharts-label {
   fill: var(--le-screen-light-text) !important;
 }
 
