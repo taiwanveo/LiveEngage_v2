@@ -1640,6 +1640,7 @@ async def toggle_word_cloud_ai_cluster(
     interaction_id: uuid.UUID,
     host: User,
     payload: AiClusterRequest,
+    ai_override: Any = None,
 ) -> PollResults:
     """控場端切換或手動重整文字雲 AI 語意聚合。"""
     result = await db.execute(
@@ -1682,7 +1683,7 @@ async def toggle_word_cloud_ai_cluster(
 
     # 啟用 AI 語意聚合或強制刷新
     clustered = await ai_service.cluster_word_cloud(
-        db, user=host, org_id=interaction.org_id, words=raw_words
+        db, user=host, org_id=interaction.org_id, words=raw_words, ai_override=ai_override
     )
     settings["ai_cluster"] = True
     settings["ai_cluster_cache"] = [c.model_dump() for c in clustered]

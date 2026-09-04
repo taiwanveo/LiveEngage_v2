@@ -55,3 +55,13 @@ export {
 export type { WsEvent, WsMode } from "./types";
 export { applyPollResponseSubmitted } from "./pollResultsCache";
 export type { PollResultsQueryClient } from "./pollResultsCache";
+export {
+  getAiConfig,
+  setAiConfig,
+  clearAiConfig,
+  getAiHeaders,
+  testAiConnection,
+  DEFAULT_AI_CONFIGS,
+  STORAGE_KEY_AI_CONFIG,
+} from "./aiSettings";
+export type { AiConfig, AiProvider, TestAiConnectionResult } from "./aiSettings";

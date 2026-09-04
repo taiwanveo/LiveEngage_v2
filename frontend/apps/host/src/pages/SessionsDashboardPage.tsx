@@ -11,7 +11,7 @@ import {
   type SessionStatus,
 } from "../lib/sessionApi";
 import { formatUserFacingError } from "@liveengage/realtime";
-import { AppHeader, JoinShareCard, Modal, joinUrl, useSystemNotice } from "@liveengage/ui";
+import { AppHeader, AiConfigTrigger, JoinShareCard, Modal, joinUrl, useSystemNotice } from "@liveengage/ui";
 import { HOST_DASHBOARD_HASH } from "../components/HostShell";
 
 interface Props {
@@ -100,6 +100,7 @@ export function SessionsDashboardPage({ onLogout }: Props): React.JSX.Element {
         brandHref={HOST_DASHBOARD_HASH}
         maxWidth="6xl"
         onLogout={onLogout}
+        actions={<AiConfigTrigger />}
       />
 
       <Modal open={createOpen} onClose={closeCreateModal} title="建立新活動" size="sm">

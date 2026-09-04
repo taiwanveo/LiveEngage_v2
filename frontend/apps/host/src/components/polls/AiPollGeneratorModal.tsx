@@ -4,6 +4,7 @@ import * as React from "react";
 import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { formatUserFacingError } from "@liveengage/realtime";
+import { AiConfigTrigger } from "@liveengage/ui";
 import {
   generateAiPolls,
   batchCreateInteractions,
@@ -196,14 +197,17 @@ export function AiPollGeneratorModal({
               </p>
             </div>
           </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="flex h-8 w-8 items-center justify-center rounded-lg border border-border/80 text-muted transition hover:border-accent hover:text-foreground"
-            aria-label="關閉"
-          >
-            ✕
-          </button>
+          <div className="flex items-center gap-2">
+            <AiConfigTrigger />
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex h-8 w-8 items-center justify-center rounded-lg border border-border/80 text-muted transition hover:border-accent hover:text-foreground"
+              aria-label="關閉"
+            >
+              ✕
+            </button>
+          </div>
         </div>
 
         {/* Modal Content */}

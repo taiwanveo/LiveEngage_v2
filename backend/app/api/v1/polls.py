@@ -6,7 +6,7 @@ import uuid
 from dataclasses import dataclass
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Header, Query
+from fastapi import APIRouter, Depends, Header, Query, Request
 from fastapi.security import HTTPAuthorizationCredentials
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -152,10 +152,14 @@ async def toggle_ai_cluster(
     payload: AiClusterRequest,
     db: Annotated[AsyncSession, Depends(get_session)],
     host: Annotated[User, Depends(get_current_user)],
+    request: Request,
 ) -> PollResults:
     """控場端切換或手動重整文字雲 AI 語意聚合。"""
+    from app.api.v1.ai import get_ai_override
+
+    ai_override = get_ai_override(request)
     return await poll_service.toggle_word_cloud_ai_cluster(
-        db, interaction_id, host, payload
+        db, interaction_id, host, payload, ai_override=ai_override
     )
 
 

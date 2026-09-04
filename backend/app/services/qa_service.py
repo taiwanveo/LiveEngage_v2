@@ -43,6 +43,7 @@ from app.schemas.question import (
 )
 from app.serializers.mask_identity import mask_identity
 from app.schemas.ai import (
+    AiConfigOverride,
     AiDedupQuestionsResponse,
     MergeQuestionsRequest,
     MergeQuestionsResponse,
@@ -676,6 +677,7 @@ async def dedup_room_questions(
     *,
     room_id: uuid.UUID,
     host: User,
+    ai_override: AiConfigOverride | None = None,
 ) -> AiDedupQuestionsResponse:
     """以 AI 掃描房間內進行中與待審提問，進行語意去重與同義推薦（AI-002）。"""
     await interaction_service.ensure_room_access(db, room_id, host)
@@ -705,7 +707,9 @@ async def dedup_room_questions(
             "created_at": q.created_at.isoformat() if q.created_at else None,
         })
 
-    return await ai_service.dedup_questions(db, user=host, questions=questions_payload)
+    return await ai_service.dedup_questions(
+        db, user=host, questions=questions_payload, ai_override=ai_override
+    )
 
 
 async def merge_duplicate_questions(

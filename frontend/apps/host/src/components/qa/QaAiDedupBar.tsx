@@ -4,6 +4,7 @@ import * as React from "react";
 import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { formatUserFacingError } from "@liveengage/realtime";
+import { AiConfigTrigger } from "@liveengage/ui";
 import {
   dedupRoomQuestions,
   mergeDuplicateQuestions,
@@ -110,6 +111,7 @@ export function QaAiDedupBar({ roomId, onMerged }: Props): React.JSX.Element {
               {isExpanded ? "收起推薦" : "展開推薦"}
             </button>
           )}
+          <AiConfigTrigger />
           <button
             type="button"
             disabled={scanning}

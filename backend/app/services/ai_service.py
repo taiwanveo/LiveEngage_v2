@@ -17,6 +17,7 @@ from app.models.sprint9 import AiRequestLog
 from app.models.user import User
 from app.schemas.ai import (
     ActionRecommendation,
+    AiConfigOverride,
     AiDecisionReport,
     AiDedupQuestionsResponse,
     AiGeneratedPollItem,
@@ -939,12 +940,120 @@ async def _stub_llm_call(feature: AiFeature, payload: dict[str, Any]) -> dict[st
     return await _run_with_timeout(_inner())
 
 
-async def _real_llm_call(feature: AiFeature, payload: dict[str, Any]) -> dict[str, Any]:
+def _resolve_ai_config(ai_override: AiConfigOverride | None = None) -> tuple[str, str, str, str]:
+    """解析 (api_key, provider, model, base_url)，優先使用 override，次之使用 settings。"""
+    settings = get_settings()
+    api_key = (ai_override.api_key if ai_override and ai_override.api_key else settings.ai_api_key).strip()
+    provider = (ai_override.provider if ai_override and ai_override.provider else settings.ai_provider).lower().strip()
+    base_url = (ai_override.base_url if ai_override and ai_override.base_url else settings.ai_base_url).strip()
+    model = (ai_override.model if ai_override and ai_override.model else settings.ai_model).strip()
+
+    if provider == "auto":
+        if api_key.startswith("sk-or-") or "openrouter.ai" in base_url:
+            provider = "openrouter"
+        elif api_key.startswith("AIza") or "googleapis.com" in base_url:
+            provider = "gemini"
+        else:
+            provider = "openai"
+
+    if provider == "openrouter":
+        if not base_url or base_url == "https://api.openai.com/v1":
+            base_url = "https://openrouter.ai/api/v1"
+        if not model or model == "gpt-4o-mini":
+            model = "google/gemini-2.0-flash-001"
+    elif provider == "gemini":
+        if not base_url or base_url == "https://api.openai.com/v1":
+            base_url = "https://generativelanguage.googleapis.com/v1beta/openai"
+        if not model or model == "gpt-4o-mini":
+            model = "gemini-2.0-flash"
+    elif provider == "openai":
+        if not base_url:
+            base_url = "https://api.openai.com/v1"
+        if not model:
+            model = "gpt-4o-mini"
+
+    return api_key, provider, model, base_url
+
+
+async def test_ai_connection(
+    ai_override: AiConfigOverride | None = None,
+) -> dict[str, Any]:
+    """驗證 LLM 連線與 API Key 有效性。"""
+    import time
+    import httpx
+
+    api_key, provider, model, base_url = _resolve_ai_config(ai_override)
+    if not api_key:
+        return {
+            "status": "warning",
+            "message": "未設定 API Key，系統目前使用離線雙軌降級模式（無須 Key 即可正常操作）。",
+            "provider": provider,
+            "model": model,
+            "latency_ms": 0,
+        }
+
+    headers = {
+        "Authorization": f"Bearer {api_key}",
+        "Content-Type": "application/json",
+    }
+    if provider == "openrouter" or "openrouter.ai" in base_url:
+        headers["HTTP-Referer"] = "https://liveengage.pages.dev"
+        headers["X-Title"] = "LiveEngage v2"
+
+    started = time.perf_counter()
+    try:
+        async with httpx.AsyncClient(timeout=8.0) as client:
+            resp = await client.post(
+                f"{base_url.rstrip('/')}/chat/completions",
+                headers=headers,
+                json={
+                    "model": model,
+                    "messages": [
+                        {"role": "user", "content": "Ping. Reply with JSON: {\"ok\": true}"}
+                    ],
+                    "max_tokens": 15,
+                },
+            )
+            latency_ms = int((time.perf_counter() - started) * 1000)
+            if resp.is_success:
+                return {
+                    "status": "ok",
+                    "message": f"連線成功！LLM 模型 [{model}] 回應正常（耗時 {latency_ms}ms）",
+                    "provider": provider,
+                    "model": model,
+                    "latency_ms": latency_ms,
+                }
+            else:
+                body_snippet = resp.text[:120].replace("\n", " ")
+                return {
+                    "status": "error",
+                    "message": f"API 回應錯誤 (HTTP {resp.status_code}): {body_snippet}",
+                    "provider": provider,
+                    "model": model,
+                    "latency_ms": latency_ms,
+                }
+    except Exception as exc:
+        latency_ms = int((time.perf_counter() - started) * 1000)
+        return {
+            "status": "error",
+            "message": f"連線異常 ({type(exc).__name__}): {str(exc)[:120]}",
+            "provider": provider,
+            "model": model,
+            "latency_ms": latency_ms,
+        }
+
+
+async def _real_llm_call(
+    feature: AiFeature,
+    payload: dict[str, Any],
+    *,
+    ai_override: AiConfigOverride | None = None,
+) -> dict[str, Any]:
     """支援 OpenAI / OpenRouter / Gemini / 任意相容 API 的 Chat Completions。"""
     import json
     import httpx
 
-    settings = get_settings()
+    api_key, provider, model, base_url = _resolve_ai_config(ai_override)
     if feature == AiFeature.GENERATE_POLLS:
         topic = payload.get("topic", "")
         count = int(payload.get("count", 3))
@@ -1045,19 +1154,19 @@ async def _real_llm_call(feature: AiFeature, payload: dict[str, Any]) -> dict[st
         )
 
     headers = {
-        "Authorization": f"Bearer {settings.ai_api_key}",
+        "Authorization": f"Bearer {api_key}",
         "Content-Type": "application/json",
     }
-    if settings.ai_provider == "openrouter" or "openrouter.ai" in settings.ai_base_url:
+    if provider == "openrouter" or "openrouter.ai" in base_url:
         headers["HTTP-Referer"] = "https://liveengage.pages.dev"
         headers["X-Title"] = "LiveEngage v2"
 
     async with httpx.AsyncClient(timeout=9.0) as client:
         resp = await client.post(
-            f"{settings.ai_base_url.rstrip('/')}/chat/completions",
+            f"{base_url.rstrip('/')}/chat/completions",
             headers=headers,
             json={
-                "model": settings.ai_model,
+                "model": model,
                 "messages": [
                     {
                         "role": "system",
@@ -1073,11 +1182,16 @@ async def _real_llm_call(feature: AiFeature, payload: dict[str, Any]) -> dict[st
         return _extract_json(content)
 
 
-async def _llm_call(feature: AiFeature, payload: dict[str, Any]) -> dict[str, Any]:
-    settings = get_settings()
-    if settings.ai_enabled and settings.ai_api_key:
+async def _llm_call(
+    feature: AiFeature,
+    payload: dict[str, Any],
+    *,
+    ai_override: AiConfigOverride | None = None,
+) -> dict[str, Any]:
+    api_key, _, _, _ = _resolve_ai_config(ai_override)
+    if api_key:
         try:
-            return await _run_with_timeout(_real_llm_call(feature, payload))
+            return await _run_with_timeout(_real_llm_call(feature, payload, ai_override=ai_override))
         except Exception:
             pass
     return await _stub_llm_call(feature, payload)
@@ -1088,8 +1202,16 @@ async def generate_polls(
     *,
     user: User,
     payload: AiGeneratePollsRequest,
+    ai_override: AiConfigOverride | None = None,
 ) -> AiGeneratePollsResponse:
     """AI-001：依主題智慧產生 Poll 題目草稿（離線降級 + 雙軌保證）。"""
+    api_key, _, _, _ = _resolve_ai_config(ai_override)
+    if not api_key:
+        raise AppError(
+            ErrorCode.AI_UNAVAILABLE,
+            "AI 服務未設定（缺少 ai_api_key，請至 ⚙️ AI 設定填入 API Key）",
+        )
+
     started = time.perf_counter()
     status = "ok"
     polls_list: list[dict[str, Any]] = []
@@ -1103,6 +1225,7 @@ async def generate_polls(
                 "context": payload.context,
                 "poll_type": payload.poll_type,
             },
+            ai_override=ai_override,
         )
         if isinstance(res, dict) and "polls" in res and isinstance(res["polls"], list):
             polls_list = res["polls"]
@@ -1157,6 +1280,7 @@ async def dedup_questions(
     *,
     user: User,
     questions: list[dict[str, Any]],
+    ai_override: AiConfigOverride | None = None,
 ) -> AiDedupQuestionsResponse:
     """AI-002：Q&A 語意去重與同義題分群（雙軌保證，離線降級支援）。"""
     started = time.perf_counter()
@@ -1175,6 +1299,7 @@ async def dedup_questions(
         res = await _llm_call(
             AiFeature.DEDUP_QUESTIONS,
             {"questions": questions},
+            ai_override=ai_override,
         )
         if isinstance(res, dict) and "clusters" in res and isinstance(res["clusters"], list):
             raw_clusters = res["clusters"]
@@ -1330,6 +1455,7 @@ async def cluster_word_cloud(
     user: User | None = None,
     org_id: Any = None,
     words: list[WordCount],
+    ai_override: AiConfigOverride | None = None,
 ) -> list[WordCount]:
     """AI 語意聚合：將文字雲同義、相似或碎片化的詞彙聚合成主題詞群。"""
     if not words:
@@ -1344,6 +1470,7 @@ async def cluster_word_cloud(
         res = await _llm_call(
             AiFeature.CLUSTER_WORDS,
             {"words": raw_payload},
+            ai_override=ai_override,
         )
         if isinstance(res, dict) and "clusters" in res and isinstance(res["clusters"], list):
             clusters_data = res["clusters"]
@@ -1824,6 +1951,7 @@ async def generate_session_decision_report(
     user: User,
     session_id: uuid.UUID,
     force_refresh: bool = False,
+    ai_override: AiConfigOverride | None = None,
 ) -> AiDecisionReport:
     """會後一鍵生成 AI 決策報告（支援快取與 force_refresh）。"""
     from sqlalchemy import select
@@ -1858,6 +1986,7 @@ async def generate_session_decision_report(
         res_data = await _llm_call(
             AiFeature.GENERATE_REPORT,
             {"data": analytics_data},
+            ai_override=ai_override,
         )
         if isinstance(res_data, dict) and "executive_summary" in res_data:
             report_dict = res_data

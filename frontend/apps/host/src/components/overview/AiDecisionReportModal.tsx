@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { useState, useEffect } from "react";
+import { AiConfigTrigger } from "@liveengage/ui";
 import {
   generateAiDecisionReport,
   getAiDecisionReport,
@@ -116,14 +117,17 @@ export function AiDecisionReportModal({
               {sessionTitle} ｜ {report?.generated_at ? `分析時間：${report.generated_at}` : "由 LiveEngage v2 決策引擎生成"}
             </p>
           </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="rounded-lg p-1.5 text-slate-400 transition hover:bg-slate-200 hover:text-slate-700 dark:hover:bg-slate-800 dark:hover:text-slate-200"
-            title="關閉"
-          >
-            ✕
-          </button>
+          <div className="flex items-center gap-2">
+            <AiConfigTrigger />
+            <button
+              type="button"
+              onClick={onClose}
+              className="rounded-lg p-1.5 text-slate-400 transition hover:bg-slate-200 hover:text-slate-700 dark:hover:bg-slate-800 dark:hover:text-slate-200"
+              title="關閉"
+            >
+              ✕
+            </button>
+          </div>
         </div>
 
         {/* Action Toolbar */}

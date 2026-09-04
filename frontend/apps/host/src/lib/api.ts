@@ -1,6 +1,6 @@
 /** API client：JWT bearer + 401 自動 refresh + 統一錯誤信封解析。 */
 
-import { apiUrl, messageForFetchFailure, messageForHttpStatus } from "@liveengage/realtime";
+import { apiUrl, getAiHeaders, messageForFetchFailure, messageForHttpStatus } from "@liveengage/realtime";
 import {
   getAccessToken,
   getRefreshToken,
@@ -99,6 +99,7 @@ export async function api<T>(
   const token = await resolveAccessToken(path);
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
+    ...getAiHeaders(),
   };
   if (token) headers["Authorization"] = `Bearer ${token}`;
   if (options.idempotencyKey) headers["Idempotency-Key"] = options.idempotencyKey;

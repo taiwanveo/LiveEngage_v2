@@ -5,7 +5,7 @@ from __future__ import annotations
 import uuid
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.db import get_session
@@ -142,9 +142,15 @@ async def dedup_room_questions(
     room_id: uuid.UUID,
     db: Annotated[AsyncSession, Depends(get_session)],
     host: Annotated[User, Depends(get_current_user)],
+    request: Request,
 ) -> AiDedupQuestionsResponse:
     """AI-002：掃描房間提問，進行語意去重與同義題目分群。"""
-    return await qa_service.dedup_room_questions(db, room_id=room_id, host=host)
+    from app.api.v1.ai import get_ai_override
+
+    ai_override = get_ai_override(request)
+    return await qa_service.dedup_room_questions(
+        db, room_id=room_id, host=host, ai_override=ai_override
+    )
 
 
 @router.post(

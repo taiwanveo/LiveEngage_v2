@@ -152,3 +152,27 @@ class MergeQuestionsResponse(BaseModel):
     message: str
 
 
+class AiConfigOverride(BaseModel):
+    """自訂 AI 金鑰與模型設定（支援由 Header 或 Payload 注入）。"""
+
+    api_key: str = ""
+    provider: str = "auto"
+    model: str = ""
+    base_url: str = ""
+
+
+class AiTestConnectionRequest(BaseModel):
+    api_key: str = ""
+    provider: str = "auto"
+    model: str = ""
+    base_url: str = ""
+
+
+class AiTestConnectionResponse(BaseModel):
+    status: str  # "ok", "error", "warning"
+    message: str
+    provider: str = ""
+    model: str = ""
+    latency_ms: int = 0
+
+

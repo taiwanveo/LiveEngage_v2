@@ -186,13 +186,18 @@ async def generate_ai_decision_report(
     payload: GenerateAiReportRequest,
     db: Annotated[AsyncSession, Depends(get_session)],
     host: Annotated[User, Depends(get_current_user)],
+    request: Request,
 ) -> AiDecisionReport:
     """會後一鍵生成或重新整理 AI 決策報告。"""
+    from app.api.v1.ai import get_ai_override
+
+    ai_override = get_ai_override(request)
     return await ai_service.generate_session_decision_report(
         db,
         user=host,
         session_id=session_id,
         force_refresh=payload.force_refresh,
+        ai_override=ai_override,
     )
 
 
