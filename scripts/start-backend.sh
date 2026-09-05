@@ -21,7 +21,7 @@ if pgrep -f "uvicorn app.main:app" > /dev/null; then
 else
     echo "🔄 [1/2] 正在啟動 FastAPI 後端..."
     cd "$PROJECT_ROOT/backend"
-    nohup .venv/bin/uvicorn app.main:app --port 8000 --host 0.0.0.0 --reload > "$UVICORN_LOG" 2>&1 &
+    nohup setsid .venv/bin/uvicorn app.main:app --port 8000 --host 0.0.0.0 --reload > "$UVICORN_LOG" 2>&1 &
     cd "$PROJECT_ROOT"
     
     # 等待 FastAPI 啟動
@@ -51,7 +51,7 @@ if pgrep -f "cloudflared tunnel --url http://localhost:8000" > /dev/null; then
 else
     echo "🔄 [2/2] 正在建立 Cloudflare 穿透通道 (trycloudflare.com)..."
     rm -f "$TUNNEL_LOG"
-    nohup "$CLOUDFLARED_BIN" tunnel --url http://localhost:8000 > "$TUNNEL_LOG" 2>&1 &
+    nohup setsid "$CLOUDFLARED_BIN" tunnel --url http://localhost:8000 > "$TUNNEL_LOG" 2>&1 &
 fi
 
 # 若尚未取得 Tunnel URL，等待抓取
