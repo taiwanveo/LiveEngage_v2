@@ -75,6 +75,16 @@ class Question(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     answered_at: Mapped[dt.datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True
     )
+    # AI-002: 被合併之主問題 ID（NULL 表示獨立問題；有值表示被歸併進該主問題，保留於 DB 不刪除）
+    merged_into_id: Mapped[uuid.UUID | None] = mapped_column(
+        PgUUID(as_uuid=True),
+        ForeignKey("questions.id", ondelete="SET NULL"),
+        nullable=True,
+    )
+    # AI-002: 是否為主持人手動滑鼠拖曳合併（True: 手動, False: AI 語意聚合）
+    is_manual_merge: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, server_default="false", default=False
+    )
     # 排序熱點索引 idx_questions_room_status_score（room_id, status, score DESC,
     # created_at DESC）為運算式索引，於 migration 以原生 DDL 建立。
 

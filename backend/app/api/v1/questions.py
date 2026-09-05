@@ -21,6 +21,7 @@ from app.schemas.ai import (
     AiDedupQuestionsResponse,
     MergeQuestionsRequest,
     MergeQuestionsResponse,
+    UnmergeQuestionResponse,
 )
 from app.schemas.question import (
     ModerateRequest,
@@ -166,5 +167,21 @@ async def merge_duplicate_questions(
     """AI-002：將同義題目合併至主提問，並聚合累積所有重複提問之讚數。"""
     return await qa_service.merge_duplicate_questions(
         db, room_id=room_id, host=host, payload=payload
+    )
+
+
+@router.post(
+    "/rooms/{room_id}/questions/{question_id}/unmerge",
+    response_model=UnmergeQuestionResponse,
+)
+async def unmerge_question(
+    room_id: uuid.UUID,
+    question_id: uuid.UUID,
+    db: Annotated[AsyncSession, Depends(get_session)],
+    host: Annotated[User, Depends(get_current_user)],
+) -> UnmergeQuestionResponse:
+    """AI-002：將被合併的題目解除合併（還原為獨立題目）。"""
+    return await qa_service.unmerge_question(
+        db, room_id=room_id, host=host, question_id=question_id
     )
 

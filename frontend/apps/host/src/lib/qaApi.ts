@@ -80,6 +80,13 @@ export interface MergeQuestionsResponse {
   message: string;
 }
 
+export interface UnmergeQuestionResponse {
+  unmerged_question_id: string;
+  primary_question_id: string;
+  primary_new_upvote_count: number;
+  message: string;
+}
+
 export async function dedupRoomQuestions(
   roomId: string
 ): Promise<AiDedupQuestionsResponse> {
@@ -96,6 +103,7 @@ export async function mergeDuplicateQuestions(
   payload: {
     primary_question_id: string;
     duplicate_question_ids: string[];
+    is_manual?: boolean;
   }
 ): Promise<MergeQuestionsResponse> {
   return api<MergeQuestionsResponse>(
@@ -103,6 +111,18 @@ export async function mergeDuplicateQuestions(
     {
       method: "POST",
       body: payload,
+    }
+  );
+}
+
+export async function unmergeQuestion(
+  roomId: string,
+  questionId: string
+): Promise<UnmergeQuestionResponse> {
+  return api<UnmergeQuestionResponse>(
+    `/api/v1/rooms/${roomId}/questions/${questionId}/unmerge`,
+    {
+      method: "POST",
     }
   );
 }

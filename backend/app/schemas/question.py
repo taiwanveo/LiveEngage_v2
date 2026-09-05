@@ -46,6 +46,18 @@ class QuestionCreateRequest(BaseModel):
     is_anonymous: bool = False
 
 
+class MergedQuestionItem(BaseModel):
+    """被合併之原始提問（AI-002 保留原始資訊供展開與檢視）。"""
+
+    id: uuid.UUID
+    content: str
+    author_display: str | None = None
+    is_anonymous: bool = False
+    upvote_count: int = 0
+    is_manual: bool = False
+    created_at: dt.datetime | None = None
+
+
 class QuestionPublic(BaseModel):
     """公開／廣播用問題物件（已過 mask_identity）。"""
 
@@ -64,6 +76,10 @@ class QuestionPublic(BaseModel):
     created_at: dt.datetime
     my_vote: VoteDirection | None = None
     replies: list["ReplyResponse"] = Field(default_factory=list)
+    # AI-002: 合併歸屬與子題目清單
+    merged_into_id: uuid.UUID | None = None
+    is_manual_merge: bool = False
+    merged_questions: list[MergedQuestionItem] = Field(default_factory=list)
 
 
 class QuestionListResponse(BaseModel):

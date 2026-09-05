@@ -32,6 +32,7 @@ from app.models.user import User
 from app.realtime import events
 from app.schemas.interaction import QaSettings
 from app.schemas.question import (
+    MergedQuestionItem,
     ModerateAction,
     QuestionCreateRequest,
     QuestionListResponse,
@@ -47,6 +48,7 @@ from app.schemas.ai import (
     AiDedupQuestionsResponse,
     MergeQuestionsRequest,
     MergeQuestionsResponse,
+    UnmergeQuestionResponse,
 )
 from app.services import (
     ai_service,
@@ -79,7 +81,10 @@ def _to_public(
     display_name: str | None,
     my_vote: VoteDirection | None = None,
     replies: list[ReplyResponse] | None = None,
+    merged_questions: list[MergedQuestionItem] | None = None,
 ) -> QuestionPublic:
+    sub_items = merged_questions or []
+    has_manual = question.is_manual_merge or any(m.is_manual for m in sub_items)
     return QuestionPublic(
         id=question.id,
         room_id=question.room_id,
@@ -98,7 +103,42 @@ def _to_public(
         created_at=question.created_at,
         my_vote=my_vote,
         replies=replies or [],
+        merged_into_id=question.merged_into_id,
+        is_manual_merge=has_manual,
+        merged_questions=sub_items,
     )
+
+
+async def _merged_questions_by_parent(
+    db: AsyncSession,
+    parent_ids: list[uuid.UUID],
+) -> dict[uuid.UUID, list[MergedQuestionItem]]:
+    """批次載入被合併進主問題的原始問題清單（AI-002 保留原始題目供展開檢視）。"""
+    if not parent_ids:
+        return {}
+    stmt = (
+        select(Question, Participant.display_name)
+        .outerjoin(Participant, Question.participant_id == Participant.id)
+        .where(Question.merged_into_id.in_(parent_ids))
+        .order_by(Question.created_at.asc())
+    )
+    result = await db.execute(stmt)
+    grouped: dict[uuid.UUID, list[MergedQuestionItem]] = {pid: [] for pid in parent_ids}
+    for q, name in result.all():
+        if q.merged_into_id is not None:
+            display = _author_display(is_anonymous=q.is_anonymous, display_name=name)
+            grouped[q.merged_into_id].append(
+                MergedQuestionItem(
+                    id=q.id,
+                    content=q.content,
+                    author_display=display,
+                    is_anonymous=q.is_anonymous,
+                    upvote_count=q.upvote_count,
+                    is_manual=q.is_manual_merge,
+                    created_at=q.created_at,
+                )
+            )
+    return grouped
 
 
 def _to_reply(row: QuestionReply) -> ReplyResponse:
@@ -257,6 +297,7 @@ async def list_public_questions(
         .where(
             Question.room_id == room_id,
             Question.status.in_(_PUBLIC_LIST_STATUSES),
+            Question.merged_into_id.is_(None),
         )
     )
     if sort == "newest":
@@ -275,13 +316,15 @@ async def list_public_questions(
         db, [q.id for q, _ in rows], participant_id
     )
     owners = {q.id: q.participant_id for q, _ in rows}
+    q_ids = [q.id for q, _ in rows]
     replies_map = await _replies_by_question(
         db,
-        [q.id for q, _ in rows],
+        q_ids,
         for_host=False,
         viewer_participant_id=participant_id,
         question_owners=owners,
     )
+    merged_map = await _merged_questions_by_parent(db, q_ids)
     items: list[QuestionPublic] = []
     for q, name in rows:
         up, down, score = await qa_redis.get_effective_counts(db, q)
@@ -290,6 +333,7 @@ async def list_public_questions(
             display_name=name,
             my_vote=my_votes.get(q.id),
             replies=replies_map.get(q.id, []),
+            merged_questions=merged_map.get(q.id, []),
         )
         items.append(
             pub.model_copy(
@@ -463,7 +507,10 @@ async def list_moderation(
     stmt = (
         select(Question, Participant.display_name)
         .outerjoin(Participant, Question.participant_id == Participant.id)
-        .where(Question.room_id == room_id)
+        .where(
+            Question.room_id == room_id,
+            Question.merged_into_id.is_(None),
+        )
     )
     if status is not None:
         stmt = stmt.where(Question.status == status)
@@ -471,8 +518,14 @@ async def list_moderation(
     rows = (await db.execute(stmt)).all()
     qids = [q.id for q, _ in rows]
     replies_map = await _replies_by_question(db, qids, for_host=True)
+    merged_map = await _merged_questions_by_parent(db, qids)
     return [
-        _to_public(q, display_name=name, replies=replies_map.get(q.id, []))
+        _to_public(
+            q,
+            display_name=name,
+            replies=replies_map.get(q.id, []),
+            merged_questions=merged_map.get(q.id, []),
+        )
         for q, name in rows
     ]
 
@@ -750,18 +803,24 @@ async def merge_duplicate_questions(
         total_upvotes_to_add += dq.upvote_count
         merged_ids.append(dq.id)
         dq.status = QuestionStatus.DISMISSED
+        dq.merged_into_id = primary_q.id
+        dq.is_manual_merge = payload.is_manual
 
         # 加入主持人系統回覆
+        prefix = "【手動拖曳合併】" if payload.is_manual else "【AI 語意合併】"
         reply_id = uuid7()
         reply_obj = QuestionReply(
             id=reply_id,
             question_id=dq.id,
             author_type=ReplyAuthorType.HOST,
-            content=f"【AI 語意合併】此問題已由主持人合併至主提問：「{primary_q.content}」，原獲得之 {dq.upvote_count} 票已全數累計至主提問！",
+            content=f"{prefix}此問題已由主持人合併至主提問：「{primary_q.content}」，原獲得之 {dq.upvote_count} 票已全數累計至主提問！",
             is_private=False,
             created_at=dt.datetime.now(dt.UTC),
         )
         db.add(reply_obj)
+
+    if payload.is_manual:
+        primary_q.is_manual_merge = True
 
     # 3. 累計票數至主提問
     primary_q.upvote_count += total_upvotes_to_add
@@ -769,8 +828,13 @@ async def merge_duplicate_questions(
     await db.refresh(primary_q)
 
     # 4. WebSocket 廣播
+    merged_map = await _merged_questions_by_parent(db, [primary_q.id])
     primary_display = await _participant_display_name(db, primary_q.participant_id)
-    primary_public = _to_public(primary_q, display_name=primary_display)
+    primary_public = _to_public(
+        primary_q,
+        display_name=primary_display,
+        merged_questions=merged_map.get(primary_q.id, []),
+    )
     await events.publish(
         room_id,
         events.QUESTION_APPROVED,
@@ -789,25 +853,115 @@ async def merge_duplicate_questions(
     # 5. 紀錄審計日誌
     await audit_service.log(
         db,
-        actor=host,
-        action="question.merge_duplicates",
-        target_type="question",
+        room_id=room_id,
+        user=host,
+        action="question.merge",
         target_id=primary_q.id,
-        session_id=primary_q.session_id,
-        room_id=primary_q.room_id,
-        details={
+        payload={
             "merged_question_ids": [str(mid) for mid in merged_ids],
             "total_upvotes_added": total_upvotes_to_add,
-            "new_upvote_count": primary_q.upvote_count,
+            "is_manual": payload.is_manual,
         },
     )
 
+    msg_action = "手動合併" if payload.is_manual else "AI 語意合併"
     return MergeQuestionsResponse(
         primary_question_id=primary_q.id,
         merged_question_ids=merged_ids,
         new_upvote_count=primary_q.upvote_count,
         new_score=primary_q.score,
         total_upvotes_added=total_upvotes_to_add,
-        message=f"已成功合併 {len(merged_ids)} 道同義題目，主提問累計增加 {total_upvotes_to_add} 票！",
+        is_manual=payload.is_manual,
+        message=f"已成功{msg_action} {len(merged_ids)} 則提問，累計增加 {total_upvotes_to_add} 票！",
     )
 
+
+async def unmerge_question(
+    db: AsyncSession,
+    *,
+    room_id: uuid.UUID,
+    host: User,
+    question_id: uuid.UUID,
+) -> UnmergeQuestionResponse:
+    """主持人將先前被合併的特定題目解除合併（還原為獨立提問，AI-002）。"""
+    await interaction_service.ensure_room_access(db, room_id, host)
+    q = await _get_question(db, question_id)
+    if q.room_id != room_id:
+        raise AppError(ErrorCode.FORBIDDEN, "問題不屬於此房間")
+    if q.merged_into_id is None:
+        raise AppError(ErrorCode.VALIDATION_ERROR, "此問題未被合併，無需解除")
+
+    primary_id = q.merged_into_id
+    primary_q = await _get_question(db, primary_id)
+
+    # 扣除原累計至主提問的票數
+    primary_q.upvote_count = max(0, primary_q.upvote_count - q.upvote_count)
+
+    # 還原被解除之子問題
+    q.merged_into_id = None
+    q.is_manual_merge = False
+    q.status = QuestionStatus.APPROVED
+
+    # 新增系統紀錄回覆
+    reply_id = uuid7()
+    reply_obj = QuestionReply(
+        id=reply_id,
+        question_id=q.id,
+        author_type=ReplyAuthorType.HOST,
+        content=f"【解除合併】此問題已由主持人從主提問「{primary_q.content}」解除合併，還原為獨立提問。",
+        is_private=False,
+        created_at=dt.datetime.now(dt.UTC),
+    )
+    db.add(reply_obj)
+
+    await db.commit()
+    await db.refresh(primary_q)
+    await db.refresh(q)
+
+    # 檢查主問題是否仍包含其他手動合併題
+    remaining_merged = await _merged_questions_by_parent(db, [primary_q.id])
+    sub_list = remaining_merged.get(primary_q.id, [])
+    if not any(m.is_manual for m in sub_list):
+        primary_q.is_manual_merge = False
+        await db.commit()
+        await db.refresh(primary_q)
+
+    # 廣播主問題更新（扣除票數與子題目清單減少）
+    p_display = await _participant_display_name(db, primary_q.participant_id)
+    p_public = _to_public(primary_q, display_name=p_display, merged_questions=sub_list)
+    await events.publish(
+        room_id,
+        events.QUESTION_APPROVED,
+        {"question": p_public.model_dump(mode="json")},
+        target_modes=events.MODE_ALL,
+    )
+
+    # 廣播已還原的子問題（重新出現在 approved 列表）
+    q_display = await _participant_display_name(db, q.participant_id)
+    q_public = _to_public(q, display_name=q_display, merged_questions=[])
+    await events.publish(
+        room_id,
+        events.QUESTION_APPROVED,
+        {"question": q_public.model_dump(mode="json")},
+        target_modes=events.MODE_ALL,
+    )
+
+    await audit_service.log(
+        db,
+        room_id=room_id,
+        user=host,
+        action="question.unmerge",
+        target_id=q.id,
+        payload={
+            "unmerged_question_id": str(q.id),
+            "primary_question_id": str(primary_q.id),
+            "deducted_upvotes": q.upvote_count,
+        },
+    )
+
+    return UnmergeQuestionResponse(
+        unmerged_question_id=q.id,
+        primary_question_id=primary_q.id,
+        primary_new_upvote_count=primary_q.upvote_count,
+        message=f"已成功解除合併「{q.content}」，還原為獨立提問！",
+    )

@@ -18,6 +18,16 @@ export type ModerateAction =
   | "highlight"
   | "unhighlight";
 
+export interface MergedQuestionItem {
+  id: string;
+  content: string;
+  author_display: string | null;
+  is_anonymous: boolean;
+  upvote_count: number;
+  is_manual: boolean;
+  created_at: string | null;
+}
+
 export interface QuestionPublic {
   id: string;
   room_id: string;
@@ -34,6 +44,9 @@ export interface QuestionPublic {
   created_at: string;
   my_vote: "up" | "down" | null;
   replies: QuestionReply[];
+  merged_into_id?: string | null;
+  is_manual_merge?: boolean;
+  merged_questions?: MergedQuestionItem[];
 }
 
 export interface QuestionReply {

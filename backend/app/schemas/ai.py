@@ -141,6 +141,7 @@ class AiDedupQuestionsResponse(BaseModel):
 class MergeQuestionsRequest(BaseModel):
     primary_question_id: uuid.UUID
     duplicate_question_ids: list[uuid.UUID] = Field(..., min_length=1)
+    is_manual: bool = False
 
 
 class MergeQuestionsResponse(BaseModel):
@@ -149,6 +150,14 @@ class MergeQuestionsResponse(BaseModel):
     new_upvote_count: int
     new_score: int
     total_upvotes_added: int
+    is_manual: bool = False
+    message: str
+
+
+class UnmergeQuestionResponse(BaseModel):
+    unmerged_question_id: uuid.UUID
+    primary_question_id: uuid.UUID
+    primary_new_upvote_count: int
     message: str
 
 

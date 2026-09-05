@@ -7,6 +7,7 @@ from app.schemas.ai import (
     AiQuestionItem,
     MergeQuestionsRequest,
     MergeQuestionsResponse,
+    UnmergeQuestionResponse,
 )
 from app.services.ai_service import dedup_questions_local
 import uuid
@@ -111,6 +112,22 @@ def test_dedup_questions_schemas():
         new_upvote_count=15,
         new_score=15,
         total_upvotes_added=5,
-        message="成功合併同義提問",
+        is_manual=True,
+        message="成功手動合併同義提問",
     )
     assert resp.total_upvotes_added == 5
+    assert resp.is_manual is True
+
+
+def test_unmerge_question_schema():
+    p_id = uuid.uuid4()
+    u_id = uuid.uuid4()
+    resp = UnmergeQuestionResponse(
+        unmerged_question_id=u_id,
+        primary_question_id=p_id,
+        primary_new_upvote_count=10,
+        message="成功解除合併",
+    )
+    assert resp.unmerged_question_id == u_id
+    assert resp.primary_question_id == p_id
+    assert resp.primary_new_upvote_count == 10
