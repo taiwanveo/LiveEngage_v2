@@ -315,10 +315,39 @@ export function SessionWorkbenchPage({
   const running = poll ? isPollRunning(poll.status) : false;
   const locked = poll?.status === "locked";
 
+  const [autoStartOnSwitch, setAutoStartOnSwitch] = useState<boolean>(() => {
+    return localStorage.getItem("le.workbench.auto_start_switch") !== "false";
+  });
+
+  const activeRunning =
+    (poll ? isPollRunning(poll.status) : false) ||
+    Boolean(selectedItem && isSprint9Type(selectedItem.type) && selectedItem.status === "active");
+
   const sessionHeaderStatus = session ? sessionStatusBadge(session) : null;
 
-  const selectItem = (id: string): void => {
+  const selectItem = (id: string, opts?: { skipAutoStart?: boolean }): void => {
+    const shouldAutoStart =
+      !opts?.skipAutoStart &&
+      session?.status === "live" &&
+      screen.followEnabled &&
+      (autoStartOnSwitch || activeRunning);
+
     window.location.hash = `#/rooms/${roomId}/workbench/${id}`;
+
+    if (shouldAutoStart && id !== selectedId) {
+      const target = workbenchItems.find((i) => i.id === id);
+      if (target && target.status !== "active") {
+        if (isPollType(target.type)) {
+          if (target.status === "locked") {
+            actionMutation.mutate({ pollId: target.id, action: "unlock" });
+          } else {
+            actionMutation.mutate({ pollId: target.id, action: "start" });
+          }
+        } else if (isSprint9Type(target.type)) {
+          sprint9StatusMutation.mutate({ interactionId: target.id, status: "active" });
+        }
+      }
+    }
   };
 
   const handleInteractionDeleted = useCallback(
@@ -330,17 +359,24 @@ export function SessionWorkbenchPage({
         return;
       }
       const next = remaining[Math.min(idx, remaining.length - 1)]!;
-      selectItem(next.id);
+      selectItem(next.id, { skipAutoStart: true });
     },
     [roomId, workbenchItems]
   );
 
   const goPrev = (): void => {
-    if (selectedIndex > 0) selectItem(workbenchItems[selectedIndex - 1]!.id);
+    if (selectedIndex > 0 && !actionMutation.isPending && !sprint9StatusMutation.isPending) {
+      selectItem(workbenchItems[selectedIndex - 1]!.id);
+    }
   };
 
   const goNext = (): void => {
-    if (selectedIndex >= 0 && selectedIndex < workbenchItems.length - 1) {
+    if (
+      selectedIndex >= 0 &&
+      selectedIndex < workbenchItems.length - 1 &&
+      !actionMutation.isPending &&
+      !sprint9StatusMutation.isPending
+    ) {
       selectItem(workbenchItems[selectedIndex + 1]!.id);
     }
   };
@@ -367,7 +403,7 @@ export function SessionWorkbenchPage({
     <>
       <button
         type="button"
-        disabled={selectedIndex <= 0}
+        disabled={selectedIndex <= 0 || actionMutation.isPending || sprint9StatusMutation.isPending}
         onClick={goPrev}
         className="le-btn-secondary !min-h-[24px] !px-2 !py-0.5 !text-[10px]"
       >
@@ -375,7 +411,12 @@ export function SessionWorkbenchPage({
       </button>
       <button
         type="button"
-        disabled={selectedIndex < 0 || selectedIndex >= workbenchItems.length - 1}
+        disabled={
+          selectedIndex < 0 ||
+          selectedIndex >= workbenchItems.length - 1 ||
+          actionMutation.isPending ||
+          sprint9StatusMutation.isPending
+        }
         onClick={goNext}
         className="le-btn-secondary !min-h-[24px] !px-2 !py-0.5 !text-[10px]"
       >
@@ -386,6 +427,24 @@ export function SessionWorkbenchPage({
           ? `${selectedIndex + 1}/${workbenchItems.length}`
           : "—"}
       </span>
+      <label
+        className="flex cursor-pointer items-center gap-1 pl-1 text-[10px] text-muted hover:text-foreground select-none"
+        title="切換題目時自動開始作答，讓投影與手機端（Join）同步切換"
+      >
+        <input
+          type="checkbox"
+          checked={autoStartOnSwitch}
+          onChange={(e) => {
+            setAutoStartOnSwitch(e.target.checked);
+            localStorage.setItem(
+              "le.workbench.auto_start_switch",
+              e.target.checked ? "true" : "false"
+            );
+          }}
+          className="rounded border-border text-primary focus:ring-0"
+        />
+        換題同步作答
+      </label>
 
       {selectedItem && supportsLiveAggregateControls(selectedItem.type) ? (
         <LiveAggregateToggles roomId={roomId} item={selectedItem} />

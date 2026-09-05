@@ -41,7 +41,7 @@ import {
 } from "../lib/participantAuth";
 import { getPoll, getPollResults, isPollType, submitPollResponse } from "../lib/pollApi";
 import { patchQaVoteFromWs } from "../lib/qaCache";
-import { getSessionState } from "../lib/sessionApi";
+import { getSessionState, type SessionState } from "../lib/sessionApi";
 import { fetchBrandingByCode } from "../lib/brandingApi";
 import { submitQuizAnswer, getActiveQuizQuestion, mapActiveQuizQuestion, type ActiveQuizQuestion } from "../lib/sprint9Api";
 import {
@@ -222,10 +222,40 @@ export function RoomPage(): React.JSX.Element {
         }
         case INTERACTION_STARTED: {
           const type = typeof event.payload.type === "string" ? event.payload.type : "";
+          const interId =
+            typeof event.payload.interaction_id === "string"
+              ? event.payload.interaction_id
+              : typeof event.payload.id === "string"
+                ? event.payload.id
+                : null;
+          const interTitle = typeof event.payload.title === "string" ? event.payload.title : "";
           showInfo(interactionStartedMessage(event.payload), "互動已開始");
-          void queryClient.invalidateQueries({
-            queryKey: ["session-state", ctx?.sessionId],
-          });
+          if (interId && ctx?.sessionId && ctx?.roomId) {
+            queryClient.setQueryData<SessionState>(
+              ["session-state", ctx.sessionId],
+              (old) => {
+                if (!old) return old;
+                return {
+                  ...old,
+                  active_interactions: [
+                    ...(old.active_interactions ?? []).filter((i) => i.id !== interId),
+                    {
+                      id: interId,
+                      room_id: ctx.roomId,
+                      type,
+                      title: interTitle,
+                      status: "active",
+                    },
+                  ],
+                };
+              }
+            );
+          }
+          if (ctx?.sessionId) {
+            void queryClient.invalidateQueries({
+              queryKey: ["session-state", ctx.sessionId],
+            });
+          }
           if (type === "ideas") setTab("ideas");
           else if (type === "qa") setTab("qa");
           else if (type === "survey") setTab("survey");
@@ -237,42 +267,93 @@ export function RoomPage(): React.JSX.Element {
           setTab("poll");
           setPollSubmitOk(false);
           setSubmitError(null);
-          showInfo("主持人已啟動投票，請參與作答！", "投票已開始");
+          if (tab !== "poll") {
+            showInfo("主持人已啟動投票，請參與作答！", "投票已開始");
+          }
           const startedPollId =
-            typeof event.payload.poll_id === "string" ? event.payload.poll_id : activePollId;
+            typeof event.payload.poll_id === "string" ? event.payload.poll_id : null;
+          const pollType =
+            typeof event.payload.type === "string" ? event.payload.type : "multiple_choice";
+          const pollTitle =
+            typeof event.payload.title === "string" ? event.payload.title : "";
+
           if (startedPollId) {
             void queryClient.removeQueries({ queryKey: ["poll-results", startedPollId] });
+            if (ctx?.sessionId && ctx?.roomId) {
+              queryClient.setQueryData<SessionState>(
+                ["session-state", ctx.sessionId],
+                (old) => {
+                  if (!old) return old;
+                  const filtered = (old.active_interactions ?? []).filter(
+                    (i) => i.room_id !== ctx.roomId || !isPollType(i.type)
+                  );
+                  return {
+                    ...old,
+                    active_interactions: [
+                      ...filtered,
+                      {
+                        id: startedPollId,
+                        room_id: ctx.roomId,
+                        type: pollType,
+                        title: pollTitle,
+                        status: "active",
+                      },
+                    ],
+                  };
+                }
+              );
+            }
+            void queryClient.invalidateQueries({ queryKey: ["poll", startedPollId] });
           }
-          void queryClient.invalidateQueries({
-            queryKey: ["session-state", ctx?.sessionId],
-          });
-          if (activePollId) {
-            void queryClient.invalidateQueries({ queryKey: ["poll", activePollId] });
+          if (ctx?.sessionId) {
+            void queryClient.invalidateQueries({
+              queryKey: ["session-state", ctx.sessionId],
+            });
           }
           break;
         }
-        case POLL_STOPPED:
-          void queryClient.invalidateQueries({
-            queryKey: ["session-state", ctx?.sessionId],
-          });
-          if (activePollId) {
-            void queryClient.invalidateQueries({ queryKey: ["poll", activePollId] });
+        case POLL_STOPPED: {
+          const stoppedPollId =
+            typeof event.payload.poll_id === "string" ? event.payload.poll_id : null;
+          if (stoppedPollId && ctx?.sessionId) {
+            queryClient.setQueryData<SessionState>(
+              ["session-state", ctx.sessionId],
+              (old) => {
+                if (!old) return old;
+                return {
+                  ...old,
+                  active_interactions: (old.active_interactions ?? []).filter(
+                    (i) => i.id !== stoppedPollId
+                  ),
+                };
+              }
+            );
+            void queryClient.invalidateQueries({ queryKey: ["poll", stoppedPollId] });
+          }
+          if (ctx?.sessionId) {
+            void queryClient.invalidateQueries({
+              queryKey: ["session-state", ctx.sessionId],
+            });
           }
           break;
+        }
         case POLL_LOCKED:
-        case POLL_UNLOCKED:
-          if (activePollId) {
-            void queryClient.invalidateQueries({ queryKey: ["poll", activePollId] });
+        case POLL_UNLOCKED: {
+          const targetPollId =
+            typeof event.payload.poll_id === "string" ? event.payload.poll_id : activePollId;
+          if (targetPollId) {
+            void queryClient.invalidateQueries({ queryKey: ["poll", targetPollId] });
           }
           break;
+        }
         case POLL_RESULT_REVEALED:
         case POLL_RESULT_HIDDEN: {
           const pollId =
-            typeof event.payload.poll_id === "string" ? event.payload.poll_id : null;
-          if (activePollId && pollId === activePollId) {
-            void queryClient.invalidateQueries({ queryKey: ["poll", activePollId] });
+            typeof event.payload.poll_id === "string" ? event.payload.poll_id : activePollId;
+          if (pollId) {
+            void queryClient.invalidateQueries({ queryKey: ["poll", pollId] });
             void queryClient.invalidateQueries({
-              queryKey: ["poll-results", activePollId],
+              queryKey: ["poll-results", pollId],
             });
           }
           if (
@@ -408,7 +489,7 @@ export function RoomPage(): React.JSX.Element {
           break;
       }
     },
-    [queryClient, ctx?.sessionId, ctx?.roomId, activePollId, activeQuizId, activeIdeasBoardId, quizQuestion?.child_interaction_id, showInfo],
+    [queryClient, ctx?.sessionId, ctx?.roomId, activePollId, activeQuizId, activeIdeasBoardId, quizQuestion?.child_interaction_id, showInfo, tab],
   );
 
   const { connected } = useRoomWebSocket({
