@@ -86,11 +86,11 @@ export function WorkbenchInteractionActions({
         }
       >
         {editHref ? (
-          <a href={editHref} className={editClass}>
+          <a href={editHref} className={editClass} title="修改這道題目的內容或選項">
             編輯題目
           </a>
         ) : editScrollTargetId ? (
-          <button type="button" onClick={scrollToEdit} className={editClass}>
+          <button type="button" onClick={scrollToEdit} className={editClass} title="修改這道題目的內容或選項">
             編輯題目
           </button>
         ) : null}

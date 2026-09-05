@@ -152,6 +152,7 @@ export function PollWorkbenchMain({
                     clusterMutation.mutate({ enabled: false })
                   }
                   className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-surface px-3 py-1.5 text-xs font-medium text-muted transition-all hover:bg-surface-hover hover:text-foreground active:scale-95 disabled:opacity-50"
+                  title="關閉 AI 聚合，回到每個人的原始輸入詞彙"
                 >
                   🔤 顯示原始詞彙
                 </button>
@@ -164,6 +165,7 @@ export function PollWorkbenchMain({
                   clusterMutation.mutate({ enabled: true })
                 }
                 className="inline-flex items-center gap-1.5 rounded-lg bg-primary-600 px-3.5 py-1.5 text-xs font-semibold text-white shadow-sm transition-all hover:bg-primary-500 active:scale-95 disabled:opacity-50"
+                title="讓 AI 自動將意思相近的詞彙歸為同一組，使文字雲更清晰"
               >
                 <span>✨</span>
                 {isPending ? "分析運算中…" : "啟用 AI 語意聚合"}

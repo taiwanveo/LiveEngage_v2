@@ -145,6 +145,7 @@ export function ControlAction(props: {
   label: string;
   disabled?: boolean;
   size?: ControlSize;
+  title?: string;
   onClick: () => void;
 }): React.JSX.Element {
   const size = props.size ?? "default";
@@ -154,6 +155,7 @@ export function ControlAction(props: {
       type="button"
       disabled={props.disabled}
       onClick={props.onClick}
+      title={props.title}
       className={`inline-flex items-center gap-1.5 rounded-full border font-medium transition disabled:opacity-50 ${controlSizeClass(size)} ${controlInactiveClass()}`}
     >
       <span className={controlDotClass(false, "default", size)} />
@@ -173,6 +175,7 @@ export function ControlToggle(props: {
   size?: ControlSize;
   /** 預設顯示狀態圓點；Sprint9「開放」等按鈕可關閉 */
   showDot?: boolean;
+  title?: string;
   onClick: () => void;
 }): React.JSX.Element {
   const label = props.active ? props.activeLabel : props.inactiveLabel;
@@ -186,6 +189,7 @@ export function ControlToggle(props: {
       disabled={props.disabled}
       onClick={props.onClick}
       aria-pressed={props.active}
+      title={props.title}
       className={`inline-flex items-center gap-1.5 rounded-full border font-medium transition disabled:opacity-50 ${controlSizeClass(size)} ${
         props.active ? controlActiveClass(accent) : controlInactiveClass()
       }`}

@@ -406,6 +406,7 @@ export function SessionWorkbenchPage({
         disabled={selectedIndex <= 0 || actionMutation.isPending || sprint9StatusMutation.isPending}
         onClick={goPrev}
         className="le-btn-secondary !min-h-[24px] !px-2 !py-0.5 !text-[10px]"
+        title="切換到上一個互動題目"
       >
         上一題
       </button>
@@ -419,6 +420,7 @@ export function SessionWorkbenchPage({
         }
         onClick={goNext}
         className="le-btn-secondary !min-h-[24px] !px-2 !py-0.5 !text-[10px]"
+        title="切換到下一個互動題目"
       >
         下一題
       </button>
@@ -459,6 +461,7 @@ export function SessionWorkbenchPage({
             disabled={!poll || actionMutation.isPending}
             accent={running ? "danger" : "default"}
             size="compact"
+            title={running ? "結束本題的作答，參與者將無法繼續提交" : "開放本題讓參與者開始作答"}
             onClick={() => runPollAction(running ? "stop" : "start")}
           />
           <ControlToggle
@@ -467,6 +470,7 @@ export function SessionWorkbenchPage({
             inactiveLabel="鎖定"
             disabled={!poll || actionMutation.isPending || !running}
             size="compact"
+            title={locked ? "重新允許參與者修改或新增作答" : "暫時鎖定作答，參與者無法提交新內容"}
             onClick={() => runPollAction(locked ? "unlock" : "lock")}
           />
           <ControlToggle
@@ -484,12 +488,14 @@ export function SessionWorkbenchPage({
               ? { disabledHint: POLL_REVEAL_REQUIRES_STARTED_HINT }
               : {})}
             size="compact"
+            title={poll?.result_visible ? "隱藏投影畫面上的結果" : "在投影畫面上公開顯示作答結果"}
             onClick={() => runPollAction(poll?.result_visible ? "hide" : "reveal")}
           />
           <ControlAction
             label="重設"
             disabled={!poll || actionMutation.isPending}
             size="compact"
+            title="清除所有作答紀錄，將本題回到未開始狀態"
             onClick={() => runPollAction("reset", true)}
           />
         </>
@@ -505,6 +511,7 @@ export function SessionWorkbenchPage({
               disabled={sprint9StatusMutation.isPending}
               showDot={false}
               size="compact"
+              title="開放此互動，讓參與者可以開始回應"
               onClick={() => sprint9StatusMutation.mutate({ interactionId: selectedItem.id, status: "active" })}
             />
           ) : (
@@ -516,6 +523,7 @@ export function SessionWorkbenchPage({
               accent="danger"
               showDot={false}
               size="compact"
+              title="結束此互動，參與者將無法再回應"
               onClick={() => sprint9StatusMutation.mutate({ interactionId: selectedItem.id, status: "stopped" })}
             />
           )}

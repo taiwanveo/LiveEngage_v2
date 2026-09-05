@@ -45,6 +45,7 @@ export function LiveAggregateToggles({ roomId, item }: Props): React.JSX.Element
         disabled={pending}
         accent={screen ? "success" : "default"}
         size="compact"
+        title={screen ? "關閉投影畫面的即時結果更新" : "開啟後，投影畫面會即時顯示最新作答結果"}
         onClick={() =>
           mutation.mutate({ [LIVE_AGGREGATE_SCREEN]: !screen })
         }
@@ -56,6 +57,7 @@ export function LiveAggregateToggles({ roomId, item }: Props): React.JSX.Element
         disabled={pending}
         accent={join ? "success" : "default"}
         size="compact"
+        title={join ? "關閉參與者手機端的即時結果更新" : "開啟後，參與者在手機上也能即時看到作答結果"}
         onClick={() => mutation.mutate({ [LIVE_AGGREGATE_JOIN]: !join })}
       />
     </>

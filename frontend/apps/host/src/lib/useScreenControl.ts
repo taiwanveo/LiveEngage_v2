@@ -146,7 +146,7 @@ export function useScreenControl(roomId: string) {
   const openScreen = useCallback((): Window | null => {
     const href = buildScreenHref();
     if (!href) return null;
-    const win = window.open(href, "liveengage-screen");
+    const win = window.open(href, "liveengage-screen", "popup");
     if (win) screenWindowRef.current = win;
     return win;
   }, [buildScreenHref]);
@@ -155,7 +155,7 @@ export function useScreenControl(roomId: string) {
     (theme: ThemeId): Window | null => {
       const href = buildScreenHref(theme);
       if (!href) return null;
-      const win = window.open(href, "liveengage-screen");
+      const win = window.open(href, "liveengage-screen", "popup");
       if (win) screenWindowRef.current = win;
       return win;
     },

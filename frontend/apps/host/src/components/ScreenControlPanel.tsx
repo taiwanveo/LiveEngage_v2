@@ -160,7 +160,10 @@ export function ScreenControlPanel({
           >
             Q&A 投影
           </button>
-          <label className="flex cursor-pointer items-center gap-1 text-[10px] font-medium text-foreground">
+          <label
+            className="flex cursor-pointer items-center gap-1 text-[10px] font-medium text-foreground"
+            title="勾選後，投影畫面會自動跟隨工作台切換的題目"
+          >
             <input
               type="checkbox"
               checked={screen.followEnabled}
@@ -197,6 +200,7 @@ export function ScreenControlPanel({
             type="button"
             onClick={() => setShareOpen(true)}
             className="le-btn-secondary le-btn-present-compact"
+            title="分享加入連結或 QR Code 給參與者"
           >
             <ShareIcon size={14} />
             <span>分享</span>

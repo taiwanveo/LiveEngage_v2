@@ -213,6 +213,7 @@ export function WorkbenchInteractionSidebar(props: Props): React.JSX.Element {
               className="le-btn-primary flex-1 !min-h-[32px] !py-1.5 !text-[11px]"
               onClick={props.onCreate}
               disabled={props.creating}
+              title="新增一道互動題目到目前的場次中"
             >
               {props.creating ? "…" : "新增互動"}
             </button>
