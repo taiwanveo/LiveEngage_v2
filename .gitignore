@@ -33,3 +33,4 @@ dist/
 .vite/
 .wrangler/
 .playwright-cli/
+logs/
