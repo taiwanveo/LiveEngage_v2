@@ -141,3 +141,19 @@ export function interactionMetaLine(
   const base = `${interactionTypeLabel(type)} · ${interactionStatusLabel(status)}`;
   return extra ? `${base} · ${extra}` : base;
 }
+
+/** 互動狀態文字語意色彩（支援 Tailwind 深淺主題） */
+export function interactionStatusTextColor(status: InteractionStatus | string): string {
+  switch (status) {
+    case "active":
+      return "text-emerald-600 dark:text-emerald-400 font-semibold";
+    case "locked":
+      return "text-amber-600 dark:text-amber-400 font-medium";
+    case "stopped":
+      return "text-neutral-500 dark:text-neutral-400";
+    case "idle":
+      return "text-sky-600 dark:text-sky-400 font-medium";
+    default:
+      return "text-muted";
+  }
+}
