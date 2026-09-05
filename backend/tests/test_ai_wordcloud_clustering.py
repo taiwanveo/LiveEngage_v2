@@ -47,15 +47,32 @@ def test_cluster_words_substring_matching():
     assert clusters[0]["count"] == 3
 
 
+def test_cluster_words_mario_synonyms():
+    """測試 Mario、Super Mario、瑪莉歐跨語言同義詞群聚合成單一代表詞與加總票數。"""
+    raw_words = [
+        {"word": "Mario", "count": 1},
+        {"word": "Super Mario", "count": 1},
+        {"word": "瑪莉歐", "count": 1},
+    ]
+    clusters = cluster_words_local(raw_words)
+    assert len(clusters) == 1
+    c = clusters[0]
+    assert c["word"] == "瑪利歐"
+    assert c["count"] == 3
+    assert len(c["variants"]) == 3
+    variant_words = {v["word"] for v in c["variants"]}
+    assert variant_words == {"Mario", "Super Mario", "瑪莉歐"}
+
+
 def test_cluster_words_unrelated_remain_separate():
     """測試無關聯詞彙各自獨立成群。"""
     raw_words = [
         {"word": "紅蘿蔔", "count": 2},
-        {"word": "瑪莉歐", "count": 1},
+        {"word": "太空漫遊", "count": 1},
     ]
     clusters = cluster_words_local(raw_words)
     assert len(clusters) == 2
-    assert {c["word"] for c in clusters} == {"紅蘿蔔", "瑪莉歐"}
+    assert {c["word"] for c in clusters} == {"紅蘿蔔", "太空漫遊"}
 
 
 @pytest.mark.asyncio

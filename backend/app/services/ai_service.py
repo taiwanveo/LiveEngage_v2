@@ -91,6 +91,13 @@ _ENTITY_ALIASES: list[tuple[str, list[str]]] = [
     ("富邦金控", ["fubon", "富邦金控", "富邦"]),
     ("人工智慧", ["ai", "人工智慧", "智慧"]),
     ("Kubernetes", ["k8s", "kubernetes"]),
+    ("瑪利歐", ["mario", "super mario", "瑪利歐", "瑪莉歐", "馬力歐", "超級瑪利歐", "超級瑪莉歐", "超級馬力歐"]),
+    ("任天堂", ["nintendo", "任天堂"]),
+    ("寶可夢", ["pokemon", "pokémon", "寶可夢", "神奇寶貝", "皮卡丘", "pikachu"]),
+    ("Apple", ["apple", "iphone", "ipad", "mac", "蘋果", "蘋果公司"]),
+    ("Tesla", ["tesla", "特斯拉"]),
+    ("Meta", ["meta", "facebook", "fb", "臉書"]),
+    ("AWS", ["aws", "amazon", "亞馬遜"]),
 ]
 
 _COMMON_ALIASES_MAP: dict[str, str] = {}
