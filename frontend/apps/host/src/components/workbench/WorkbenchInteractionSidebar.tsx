@@ -4,6 +4,7 @@ import * as React from "react";
 import { useCallback, useRef, useState } from "react";
 import {
   interactionStatusLabel,
+  interactionStatusTextColor,
   interactionTypeLabel,
   type InteractionSummary,
 } from "../../lib/pollTypes";
@@ -241,9 +242,17 @@ export function WorkbenchInteractionSidebar(props: Props): React.JSX.Element {
           <li className="p-3 text-center text-[11px] text-muted">尚無互動項目</li>
         ) : (
           props.items.map((item, index) => {
-            const active = item.id === props.selectedId;
+            const isSelected = item.id === props.selectedId;
+            const isLive = item.status === "active";
             const isDragging = dragIndex === index;
             const isOver = overIndex === index && dragIndex !== null && dragIndex !== index;
+            const cardStyles = isLive
+              ? isSelected
+                ? "border-2 border-emerald-500 bg-emerald-500/10 dark:bg-emerald-950/30 shadow-[0_0_12px_rgba(16,185,129,0.3)] ring-2 ring-emerald-500/40"
+                : "border-2 border-emerald-500 dark:border-emerald-400 bg-emerald-500/10 dark:bg-emerald-950/25 shadow-[0_0_10px_rgba(16,185,129,0.2)] hover:bg-emerald-500/15"
+              : isSelected
+                ? "border-accent bg-accent-muted shadow-sm"
+                : "border-border bg-surface hover:border-accent/40";
             return (
               <li
                 key={item.id}
@@ -267,11 +276,7 @@ export function WorkbenchInteractionSidebar(props: Props): React.JSX.Element {
                 }}
               >
                 <div
-                  className={`flex items-stretch overflow-hidden rounded-lg border transition-colors ${
-                    active
-                      ? "border-accent bg-accent-muted shadow-sm"
-                      : "border-border bg-surface hover:border-accent/40"
-                  }`}
+                  className={`flex items-stretch overflow-hidden rounded-lg border transition-colors ${cardStyles}`}
                 >
                   <DragHandle
                     disabled={!reorderable}
@@ -303,12 +308,22 @@ export function WorkbenchInteractionSidebar(props: Props): React.JSX.Element {
                     onClick={() => props.onSelect(item.id)}
                     className="min-w-0 flex-1 px-2 py-2 text-left select-text"
                   >
-                    <p className="truncate text-xs font-medium text-foreground">
-                      {item.title ?? "未命名"}
-                    </p>
+                    <div className="flex items-center gap-1.5 min-w-0">
+                      {isLive ? (
+                        <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-emerald-500/20 px-1.5 py-0.5 text-[9px] font-bold text-emerald-600 dark:text-emerald-300">
+                          <span className="le-status-dot le-status-dot-live !h-1.5 !w-1.5" />
+                          進行中
+                        </span>
+                      ) : null}
+                      <p className="truncate text-xs font-medium text-foreground">
+                        {item.title ?? "未命名"}
+                      </p>
+                    </div>
                     <p className="mt-0.5 text-[10px] text-muted">
                       {interactionTypeLabel(item.type)} ·{" "}
-                      {interactionStatusLabel(item.status)}
+                      <span className={interactionStatusTextColor(item.status)}>
+                        {interactionStatusLabel(item.status)}
+                      </span>
                     </p>
                   </button>
                   {reorderable ? (
