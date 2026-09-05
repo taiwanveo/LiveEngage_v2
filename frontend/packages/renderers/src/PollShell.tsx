@@ -27,7 +27,7 @@ export function PollShell({
     <article
       className={
         isPresent
-          ? "flex min-h-0 flex-1 flex-col text-white"
+          ? "flex min-h-0 flex-1 flex-col text-foreground"
           : "le-card p-6"
       }
     >
@@ -54,7 +54,7 @@ export function PollShell({
         <h2
           className={
             isPresent
-              ? "text-[1.625rem] font-bold tracking-tight md:text-[2rem]"
+              ? "text-[1.625rem] font-bold tracking-tight text-foreground md:text-[2rem]"
               : "text-xl font-semibold text-foreground"
           }
         >
@@ -64,7 +64,7 @@ export function PollShell({
           <p
             className={
               isPresent
-                ? "text-lg text-slate-300"
+                ? "text-lg text-muted"
                 : "text-sm text-muted"
             }
           >

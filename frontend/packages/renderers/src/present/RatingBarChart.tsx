@@ -35,11 +35,11 @@ export function RatingBarChart({
   return (
     <div className="space-y-4">
       {average != null ? (
-        <p className={large ? "text-5xl font-bold text-white" : "text-3xl font-bold"}>
+        <p className={large ? "text-5xl font-bold text-foreground" : "text-3xl font-bold text-foreground"}>
           {average.toFixed(1)}
           <span
             className={
-              large ? "ml-2 text-2xl text-slate-300" : "ml-2 text-base text-slate-500"
+              large ? "ml-2 text-2xl text-muted" : "ml-2 text-base text-muted"
             }
           >
             / {max}

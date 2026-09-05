@@ -37,7 +37,7 @@ export function ResultBars({
             <div
               className={
                 large
-                  ? "h-4 overflow-hidden rounded-full bg-white/10"
+                  ? "h-4 overflow-hidden rounded-full bg-border/60"
                   : "h-2 overflow-hidden rounded-full bg-surface-elevated"
               }
             >

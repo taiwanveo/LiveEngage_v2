@@ -26,18 +26,24 @@ export function statusLabel(status: InteractionStatus): string {
 
 /** 投影模式狀態膠囊（高對比、依狀態配色）。 */
 export function presentStatusBadgeClass(status: InteractionStatus): string {
-  const isLightTheme =
+  const theme =
+    typeof document !== "undefined"
+      ? document.documentElement.getAttribute("data-theme")
+      : null;
+  const isDark =
     typeof document !== "undefined" &&
-    document.documentElement.getAttribute("data-theme") === "light";
+    document.documentElement.classList.contains("dark");
+  const isLightTheme =
+    !isDark && (theme === "light" || theme === "slido" || theme === "claude");
 
   if (isLightTheme) {
     switch (status) {
       case "active":
-        return "rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-700 ring-1 ring-emerald-300";
+        return "rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-800 ring-1 ring-emerald-300";
       case "locked":
-        return "rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-700 ring-1 ring-amber-300";
+        return "rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-800 ring-1 ring-amber-300";
       case "stopped":
-        return "rounded-full bg-rose-100 px-3 py-1 text-xs font-semibold text-rose-700 ring-1 ring-rose-300";
+        return "rounded-full bg-rose-100 px-3 py-1 text-xs font-semibold text-rose-800 ring-1 ring-rose-300";
       case "idle":
         return "rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700 ring-1 ring-slate-300";
     }
