@@ -175,7 +175,7 @@ export function PollWorkbenchMain({
         </div>
       )}
 
-      <div className="le-card overflow-hidden p-4">
+      <div className="le-card overflow-hidden p-4 lg:sticky lg:top-[var(--workbench-header-offset,136px)] lg:max-h-[calc(100vh-var(--workbench-header-offset,136px)-1.5rem)] lg:overflow-y-auto">
         <div className="mb-3 flex items-center justify-between">
           <h3 className="text-sm font-semibold text-foreground">投影預覽</h3>
           {isWordCloud && isClustered && (
