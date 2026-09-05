@@ -17,14 +17,17 @@ export function WorkbenchLayout({
   preview,
 }: WorkbenchLayoutProps): React.JSX.Element {
   const [headerHeight, setHeaderHeight] = useState<number>(252);
-  const headerRef = useRef<HTMLDivElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const el = headerRef.current;
+    const el = containerRef.current;
     if (!el) return;
 
+    const headerEl = el.querySelector("header");
+    if (!headerEl) return;
+
     const measure = () => {
-      const h = el.offsetHeight;
+      const h = headerEl.offsetHeight;
       if (h > 0) {
         setHeaderHeight(h);
       }
@@ -35,7 +38,7 @@ export function WorkbenchLayout({
     let ro: ResizeObserver | null = null;
     if (typeof ResizeObserver !== "undefined") {
       ro = new ResizeObserver(measure);
-      ro.observe(el);
+      ro.observe(headerEl);
     }
     window.addEventListener("resize", measure);
 
@@ -47,14 +50,13 @@ export function WorkbenchLayout({
 
   return (
     <div
+      ref={containerRef}
       className="le-page-bg flex min-h-full flex-col"
       style={{ "--workbench-header-offset": `${headerHeight}px` } as React.CSSProperties}
     >
-      <div ref={headerRef}>
-        {toolbar}
-      </div>
-      {/* 左欄為原 25% 的 2/3；釋出寬度全給右側預覽欄 */}
-      <div className="relative grid min-h-0 flex-1 grid-cols-1 lg:grid-cols-[50fr_165fr_85fr]">
+      {toolbar}
+      {/* 右欄（預覽參與者畫面）縮減為 3/4 寬度（約 32fr）；剩餘寬度由左欄（互動項目）與中欄（投影預覽）各佔一半（各 59fr） */}
+      <div className="relative grid min-h-0 flex-1 grid-cols-1 lg:grid-cols-[59fr_59fr_32fr]">
         <aside className="flex min-h-0 flex-col border-b border-border bg-surface lg:sticky lg:top-[var(--workbench-header-offset,252px)] lg:self-start lg:max-h-[calc(100vh-var(--workbench-header-offset,252px))] lg:overflow-y-auto lg:border-b-0 lg:border-r">
           {sidebar}
         </aside>
