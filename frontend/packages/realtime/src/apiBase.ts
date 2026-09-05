@@ -61,7 +61,14 @@ export function getCustomApiBase(): string | null {
   if (typeof window === "undefined") return null;
   try {
     const val = window.localStorage.getItem(STORAGE_KEY_API_BASE);
-    return val ? normalizeBase(val) : null;
+    if (!val) return null;
+    const normalized = normalizeBase(val);
+    // 自動清理過期的臨時 Cloudflare Tunnel (trycloudflare.com)
+    if (normalized.includes("trycloudflare.com")) {
+      window.localStorage.removeItem(STORAGE_KEY_API_BASE);
+      return null;
+    }
+    return normalized;
   } catch {
     return null;
   }

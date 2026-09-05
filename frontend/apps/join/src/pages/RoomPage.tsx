@@ -1,7 +1,7 @@
 /** 參與者房間：顯示 active Poll 並作答（P-3 E2E）+ WS 即時推送（P-4/P-WS-1）。 */
 
 import * as React from "react";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   POLL_RESULT_HIDDEN,
@@ -131,6 +131,59 @@ export function RoomPage(): React.JSX.Element {
     return hit?.id ?? null;
   }, [ctx, stateQuery.data]);
 
+  // 追蹤已知 active interactions，防止輪詢時重複彈出已通知項目
+  const knownActiveInteractionsRef = useRef<Set<string>>(new Set());
+  const initialSyncDoneRef = useRef(false);
+
+  useEffect(() => {
+    if (!stateQuery.data?.active_interactions || !ctx) return;
+    const activeList = stateQuery.data.active_interactions.filter(
+      (i) => i.room_id === ctx.roomId && (i.status === "active" || i.status === "locked")
+    );
+
+    const activeIds = new Set(activeList.map((i) => i.id));
+    // 清理已結束的互動項目，以便後續重新開啟時能再次通知
+    for (const id of Array.from(knownActiveInteractionsRef.current)) {
+      if (!activeIds.has(id)) {
+        knownActiveInteractionsRef.current.delete(id);
+      }
+    }
+
+    if (!initialSyncDoneRef.current) {
+      initialSyncDoneRef.current = true;
+      for (const item of activeList) {
+        knownActiveInteractionsRef.current.add(item.id);
+      }
+      // 首次進入房間：若當前預設 poll 頁面無進行中 poll，但有其他進行中互動，自動切換至該互動
+      const hasActivePoll = activeList.some((i) => isPollType(i.type));
+      if (!hasActivePoll && activeList.length > 0) {
+        const first = activeList[0];
+        if (first.type === "qa") setTab("qa");
+        else if (first.type === "ideas") setTab("ideas");
+        else if (first.type === "survey") setTab("survey");
+        else if (first.type === "quiz") setTab("quiz");
+      }
+      return;
+    }
+
+    // 後續輪詢（WS 斷線備援／手機休眠喚醒後狀態同步）：
+    for (const item of activeList) {
+      if (!knownActiveInteractionsRef.current.has(item.id)) {
+        knownActiveInteractionsRef.current.add(item.id);
+        if (isPollType(item.type)) {
+          showInfo("主持人已啟動投票，請參與作答！", "投票已開始");
+          setTab("poll");
+        } else {
+          showInfo(interactionStartedMessage(item), "互動已開始");
+          if (item.type === "ideas") setTab("ideas");
+          else if (item.type === "qa") setTab("qa");
+          else if (item.type === "survey") setTab("survey");
+          else if (item.type === "quiz") setTab("quiz");
+        }
+      }
+    }
+  }, [stateQuery.data?.active_interactions, ctx, showInfo]);
+
   const pollQuery = useQuery({
     queryKey: ["poll", activePollId],
     queryFn: () => getPoll(activePollId!),
@@ -229,6 +282,9 @@ export function RoomPage(): React.JSX.Element {
                 ? event.payload.id
                 : null;
           const interTitle = typeof event.payload.title === "string" ? event.payload.title : "";
+          if (interId) {
+            knownActiveInteractionsRef.current.add(interId);
+          }
           showInfo(interactionStartedMessage(event.payload), "互動已開始");
           if (interId && ctx?.sessionId && ctx?.roomId) {
             queryClient.setQueryData<SessionState>(
@@ -267,9 +323,7 @@ export function RoomPage(): React.JSX.Element {
           setTab("poll");
           setPollSubmitOk(false);
           setSubmitError(null);
-          if (tab !== "poll") {
-            showInfo("主持人已啟動投票，請參與作答！", "投票已開始");
-          }
+          showInfo("主持人已啟動投票，請參與作答！", "投票已開始");
           const startedPollId =
             typeof event.payload.poll_id === "string" ? event.payload.poll_id : null;
           const pollType =
@@ -278,6 +332,7 @@ export function RoomPage(): React.JSX.Element {
             typeof event.payload.title === "string" ? event.payload.title : "";
 
           if (startedPollId) {
+            knownActiveInteractionsRef.current.add(startedPollId);
             void queryClient.removeQueries({ queryKey: ["poll-results", startedPollId] });
             if (ctx?.sessionId && ctx?.roomId) {
               queryClient.setQueryData<SessionState>(
@@ -315,6 +370,9 @@ export function RoomPage(): React.JSX.Element {
         case POLL_STOPPED: {
           const stoppedPollId =
             typeof event.payload.poll_id === "string" ? event.payload.poll_id : null;
+          if (stoppedPollId) {
+            knownActiveInteractionsRef.current.delete(stoppedPollId);
+          }
           if (stoppedPollId && ctx?.sessionId) {
             queryClient.setQueryData<SessionState>(
               ["session-state", ctx.sessionId],

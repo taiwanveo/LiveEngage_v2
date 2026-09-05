@@ -55,6 +55,8 @@ export function useRoomWebSocket({
   const backoffRef = useRef<number>(INITIAL_BACKOFF_MS);
   // 最後收到的事件 ID，用於重連 replay
   const lastEventIdRef = useRef<string | null>(null);
+  // 最後收到訊息時間戳記（用於心跳逾時檢測）
+  const lastMessageTimeRef = useRef<number>(Date.now());
   // 是否「主動」關閉（unmount 或 deps 改變）——主動關閉不觸發重連
   const intentionalCloseRef = useRef(false);
 
@@ -75,9 +77,11 @@ export function useRoomWebSocket({
     ws.onopen = () => {
       setConnected(true);
       backoffRef.current = INITIAL_BACKOFF_MS;
+      lastMessageTimeRef.current = Date.now();
     };
 
     ws.onmessage = (evt: MessageEvent) => {
+      lastMessageTimeRef.current = Date.now();
       try {
         const data = JSON.parse(evt.data as string) as WsEvent;
         // 回應 ping，保持連線
@@ -110,6 +114,95 @@ export function useRoomWebSocket({
       // error 後緊接 close，由 onclose 負責重連
     };
   }, [roomId, token, mode]);
+
+  // 行動裝置生命週期處理：螢幕喚醒（visibilitychange）、網路恢復（online）、分頁切換（pageshow/focus）
+  useEffect(() => {
+    if (!enabled || !roomId || !token) return;
+
+    const forceReconnectNow = () => {
+      backoffRef.current = INITIAL_BACKOFF_MS;
+      if (timerRef.current !== null) {
+        clearTimeout(timerRef.current);
+        timerRef.current = null;
+      }
+      if (wsRef.current) {
+        try {
+          wsRef.current.close();
+        } catch {
+          // ignore
+        }
+        wsRef.current = null;
+      }
+      connect();
+    };
+
+    const handleVisibilityOrWake = () => {
+      if (typeof document !== "undefined" && document.visibilityState === "visible") {
+        const ws = wsRef.current;
+        const now = Date.now();
+        // 若連線尚未建立、非 OPEN 狀態、或已逾 30 秒無任何伺服端訊息，立即重連
+        if (!ws || ws.readyState !== WebSocket.OPEN || now - lastMessageTimeRef.current > 30_000) {
+          forceReconnectNow();
+        }
+      }
+    };
+
+    const handleOnline = () => {
+      forceReconnectNow();
+    };
+
+    if (typeof document !== "undefined") {
+      document.addEventListener("visibilitychange", handleVisibilityOrWake);
+    }
+    if (typeof window !== "undefined") {
+      window.addEventListener("pageshow", handleVisibilityOrWake);
+      window.addEventListener("focus", handleVisibilityOrWake);
+      window.addEventListener("online", handleOnline);
+    }
+
+    return () => {
+      if (typeof document !== "undefined") {
+        document.removeEventListener("visibilitychange", handleVisibilityOrWake);
+      }
+      if (typeof window !== "undefined") {
+        window.removeEventListener("pageshow", handleVisibilityOrWake);
+        window.removeEventListener("focus", handleVisibilityOrWake);
+        window.removeEventListener("online", handleOnline);
+      }
+    };
+  }, [connect, enabled, roomId, token]);
+
+  // 客戶端心跳看門狗（watchdog）：每 15 秒檢查，發送 keepalive pong 避免行動網絡閘道切斷連線
+  useEffect(() => {
+    if (!enabled || !roomId || !token) return;
+
+    const watchdog = setInterval(() => {
+      const ws = wsRef.current;
+      if (!ws) return;
+      if (ws.readyState === WebSocket.OPEN) {
+        const now = Date.now();
+        // 逾 35 秒無任何伺服端心跳，視為殭屍連線，強制重連
+        if (now - lastMessageTimeRef.current > 35_000) {
+          try {
+            ws.close();
+          } catch {
+            // ignore
+          }
+          return;
+        }
+        // 發送 keepalive
+        try {
+          ws.send("pong");
+        } catch {
+          // ignore
+        }
+      }
+    }, 15_000);
+
+    return () => {
+      clearInterval(watchdog);
+    };
+  }, [enabled, roomId, token]);
 
   useEffect(() => {
     if (!enabled || !roomId || !token) return;
