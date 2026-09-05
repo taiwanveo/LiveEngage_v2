@@ -14,6 +14,9 @@ export function WordCloudPoll({
   onSubmit,
   submitting = false,
   submitError,
+  enableDragDrop = false,
+  onManualMerge,
+  onManualSplit,
 }: PollRendererProps): React.JSX.Element {
   const maxLen = readNumber(poll.settings_public, "max_word_length", 25);
   const interactive = mode === "answer";
@@ -88,7 +91,13 @@ export function WordCloudPoll({
     >
       {showResults ? (
         <div className={mode === "present" ? "flex min-h-0 flex-1 flex-col" : undefined}>
-          <WordCloudDisplay words={results?.word_counts ?? []} large={mode === "present"} />
+          <WordCloudDisplay
+            words={results?.word_counts ?? []}
+            large={mode === "present"}
+            enableDragDrop={enableDragDrop}
+            onManualMerge={onManualMerge}
+            onManualSplit={onManualSplit}
+          />
         </div>
       ) : mode === "preview" ? (
         <p className="text-sm text-muted">參與者將輸入關鍵字詞</p>

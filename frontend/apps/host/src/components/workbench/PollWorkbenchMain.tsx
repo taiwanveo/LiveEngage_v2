@@ -8,7 +8,11 @@ import {
   type PollResults,
 } from "@liveengage/renderers";
 import { pollTypeLabel } from "../../lib/pollTypes";
-import { toggleAiCluster } from "../../lib/pollApi";
+import {
+  toggleAiCluster,
+  manualMergeCluster,
+  manualSplitCluster,
+} from "../../lib/pollApi";
 import { WorkbenchInteractionStatusBadge } from "./WorkbenchInteractionStatusBadge";
 import { WorkbenchInteractionTitle } from "./WorkbenchInteractionTitle";
 
@@ -45,7 +49,40 @@ export function PollWorkbenchMain({
     },
   });
 
-  const isPending = clusterMutation.isPending;
+  const mergeMutation = useMutation({
+    mutationFn: ({
+      sourceWord,
+      targetWord,
+    }: {
+      sourceWord: string;
+      targetWord: string;
+    }) => manualMergeCluster(poll.id, sourceWord, targetWord),
+    onSuccess: (updatedResults) => {
+      qc.setQueryData(["poll-results", poll.id], updatedResults);
+      void qc.invalidateQueries({ queryKey: ["poll-results", poll.id] });
+      void qc.invalidateQueries({ queryKey: ["poll", poll.id] });
+    },
+  });
+
+  const splitMutation = useMutation({
+    mutationFn: ({
+      clusterWord,
+      variantWord,
+    }: {
+      clusterWord: string;
+      variantWord: string;
+    }) => manualSplitCluster(poll.id, clusterWord, variantWord),
+    onSuccess: (updatedResults) => {
+      qc.setQueryData(["poll-results", poll.id], updatedResults);
+      void qc.invalidateQueries({ queryKey: ["poll-results", poll.id] });
+      void qc.invalidateQueries({ queryKey: ["poll", poll.id] });
+    },
+  });
+
+  const isPending =
+    clusterMutation.isPending ||
+    mergeMutation.isPending ||
+    splitMutation.isPending;
 
   return (
     <>
@@ -140,12 +177,36 @@ export function PollWorkbenchMain({
         <div className="mb-3 flex items-center justify-between">
           <h3 className="text-sm font-semibold text-foreground">投影預覽</h3>
           {isWordCloud && isClustered && (
-            <span className="inline-flex items-center gap-1 text-xs text-primary-500 font-medium">
-              <span>✨</span> 目前顯示 AI 聚合結果
-            </span>
+            <div className="flex items-center gap-2">
+              <span className="inline-flex items-center gap-1 text-xs text-primary-500 font-medium">
+                <span>✨</span> AI 聚合模式
+              </span>
+              {results?.word_counts?.some((w) => w.is_manual) && (
+                <span className="inline-flex items-center gap-1 rounded-full bg-purple-500/15 px-2 py-0.5 text-[11px] font-medium text-purple-600 dark:text-purple-400">
+                  <span>👤</span> 含人工手動聚合
+                </span>
+              )}
+            </div>
           )}
         </div>
-        <PollRenderer mode="present" poll={poll} results={results} />
+        <PollRenderer
+          mode="present"
+          poll={poll}
+          results={results}
+          enableDragDrop={isWordCloud}
+          onManualMerge={async (source, target) => {
+            await mergeMutation.mutateAsync({
+              sourceWord: source,
+              targetWord: target,
+            });
+          }}
+          onManualSplit={async (cluster, variant) => {
+            await splitMutation.mutateAsync({
+              clusterWord: cluster,
+              variantWord: variant,
+            });
+          }}
+        />
       </div>
     </>
   );

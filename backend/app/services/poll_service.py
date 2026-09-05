@@ -57,6 +57,8 @@ from app.schemas.poll import (
     WordCount,
     WordVariant,
     AiClusterRequest,
+    ManualClusterMergeRequest,
+    ManualClusterSplitRequest,
     parse_answer,
     parse_settings,
 )
@@ -1108,6 +1110,9 @@ async def get_poll_results(
             clustered = await ai_service.cluster_word_cloud(
                 db, org_id=session.org_id, words=raw_words
             )
+            merges = settings.get("manual_merges") or []
+            if merges:
+                clustered = _apply_manual_merges(clustered, merges)
             settings["ai_cluster_cache"] = [c.model_dump() for c in clustered]
             settings["ai_cluster_cache_count"] = response_count
             interaction.settings_jsonb = dict(settings)
@@ -1662,6 +1667,7 @@ async def toggle_word_cloud_ai_cluster(
         settings["ai_cluster"] = False
         settings.pop("ai_cluster_cache", None)
         settings.pop("ai_cluster_cache_count", None)
+        settings.pop("manual_merges", None)
         interaction.settings_jsonb = dict(settings)
         await db.commit()
 
@@ -1681,9 +1687,16 @@ async def toggle_word_cloud_ai_cluster(
         )
 
     # 啟用 AI 語意聚合或強制刷新
+    if payload.force_refresh:
+        settings.pop("manual_merges", None)
+
     clustered = await ai_service.cluster_word_cloud(
         db, user=host, org_id=org_id, words=raw_words, ai_override=ai_override
     )
+    merges = settings.get("manual_merges") or []
+    if merges:
+        clustered = _apply_manual_merges(clustered, merges)
+
     settings["ai_cluster"] = True
     settings["ai_cluster_cache"] = [c.model_dump() for c in clustered]
     settings["ai_cluster_cache_count"] = response_count
@@ -1702,6 +1715,250 @@ async def toggle_word_cloud_ai_cluster(
         status=interaction.status,
         response_count=response_count,
         word_counts=clustered,
+        is_ai_clustered=True,
+    )
+
+
+def _apply_manual_merges(
+    clustered: list[WordCount],
+    merges: list[dict[str, str]],
+) -> list[WordCount]:
+    """將記錄在 settings 中的手動聚合規則套用於詞彙清單。"""
+    for m in merges:
+        src = m.get("source")
+        tgt = m.get("target")
+        if not src or not tgt or src == tgt:
+            continue
+        src_idx = next((i for i, w in enumerate(clustered) if w.word == src), None)
+        tgt_idx = next((i for i, w in enumerate(clustered) if w.word == tgt), None)
+        if src_idx is not None and tgt_idx is not None:
+            s_item = clustered[src_idx]
+            t_item = clustered[tgt_idx]
+            t_item.count += s_item.count
+            t_item.is_manual = True
+            t_item.is_ai_clustered = True
+            if not t_item.variants:
+                t_item.variants = [
+                    WordVariant(
+                        word=t_item.word,
+                        count=t_item.count - s_item.count,
+                        is_manual=False,
+                    )
+                ]
+            s_vars = s_item.variants or [
+                WordVariant(word=s_item.word, count=s_item.count, is_manual=False)
+            ]
+            for sv in s_vars:
+                ev = next((v for v in t_item.variants if v.word == sv.word), None)
+                if ev:
+                    ev.count += sv.count
+                    ev.is_manual = True
+                else:
+                    t_item.variants.append(
+                        WordVariant(word=sv.word, count=sv.count, is_manual=True)
+                    )
+            clustered.pop(src_idx)
+    return clustered
+
+
+async def manual_merge_cluster(
+    db: AsyncSession,
+    interaction_id: uuid.UUID,
+    host: User,
+    payload: ManualClusterMergeRequest,
+) -> PollResults:
+    """主持人手動將一個詞彙/詞群合併至另一個詞群。"""
+    interaction, room_id, org_id = await _load_poll_for_host(db, interaction_id, host)
+    if interaction.type != InteractionType.WORD_CLOUD:
+        raise AppError(ErrorCode.VALIDATION_ERROR, "只有文字雲互動支援手動聚合")
+    assert_can_edit_content(host)
+
+    source_word = payload.source_word.strip()
+    target_word = payload.target_word.strip()
+    if not source_word or not target_word:
+        raise AppError(ErrorCode.VALIDATION_ERROR, "聚合詞彙不能為空")
+    if source_word == target_word:
+        raise AppError(ErrorCode.VALIDATION_ERROR, "不能將詞彙聚合至自身")
+
+    settings = dict(interaction.settings_jsonb or {})
+    response_count = await _count_responses(db, interaction_id)
+
+    # 取得目前呈現的詞彙清單（若有 cache 則用 cache，否則自 raw_words 初始）
+    cached = settings.get("ai_cluster_cache")
+    if cached and isinstance(cached, list) and len(cached) > 0:
+        current_words = [WordCount.model_validate(c) for c in cached]
+    else:
+        raw_words = await _get_word_counts(db, interaction_id)
+        current_words = [
+            WordCount(
+                word=w.word,
+                count=w.count,
+                variants=[WordVariant(word=w.word, count=w.count, is_manual=False)],
+                is_ai_clustered=False,
+                is_manual=False,
+            )
+            for w in raw_words
+        ]
+
+    source_idx = next((i for i, w in enumerate(current_words) if w.word == source_word), None)
+    target_idx = next((i for i, w in enumerate(current_words) if w.word == target_word), None)
+
+    if source_idx is None or target_idx is None:
+        raise AppError(ErrorCode.NOT_FOUND, "找不到欲聚合的詞彙")
+
+    source_item = current_words[source_idx]
+    target_item = current_words[target_idx]
+
+    if not target_item.variants:
+        target_item.variants = [
+            WordVariant(
+                word=target_item.word,
+                count=target_item.count,
+                is_manual=target_item.is_manual,
+            )
+        ]
+
+    source_variants = source_item.variants or [
+        WordVariant(
+            word=source_item.word,
+            count=source_item.count,
+            is_manual=False,
+        )
+    ]
+
+    target_item.count += source_item.count
+    target_item.is_manual = True
+    target_item.is_ai_clustered = True
+
+    for sv in source_variants:
+        existing_variant = next(
+            (v for v in target_item.variants if v.word == sv.word), None
+        )
+        if existing_variant:
+            existing_variant.count += sv.count
+            existing_variant.is_manual = True
+        else:
+            target_item.variants.append(
+                WordVariant(word=sv.word, count=sv.count, is_manual=True)
+            )
+
+    current_words.pop(source_idx)
+
+    # 記錄手動聚合規則
+    manual_merges = list(settings.get("manual_merges") or [])
+    manual_merges.append({"source": source_word, "target": target_word})
+    settings["manual_merges"] = manual_merges
+
+    settings["ai_cluster"] = True
+    settings["ai_cluster_cache"] = [c.model_dump() for c in current_words]
+    settings["ai_cluster_cache_count"] = response_count
+    interaction.settings_jsonb = dict(settings)
+    await db.commit()
+
+    await events.publish(
+        interaction.room_id,
+        events.POLL_RESULT_REVEALED,
+        {"poll_id": str(interaction_id), "ai_cluster": True},
+    )
+
+    return PollResults(
+        interaction_id=interaction_id,
+        type=interaction.type,
+        status=interaction.status,
+        response_count=response_count,
+        word_counts=current_words,
+        is_ai_clustered=True,
+    )
+
+
+async def manual_split_cluster(
+    db: AsyncSession,
+    interaction_id: uuid.UUID,
+    host: User,
+    payload: ManualClusterSplitRequest,
+) -> PollResults:
+    """主持人手動將子詞彙從詞群中解除分離。"""
+    interaction, room_id, org_id = await _load_poll_for_host(db, interaction_id, host)
+    if interaction.type != InteractionType.WORD_CLOUD:
+        raise AppError(ErrorCode.VALIDATION_ERROR, "只有文字雲互動支援手動聚合")
+    assert_can_edit_content(host)
+
+    cluster_word = payload.cluster_word.strip()
+    variant_word = payload.variant_word.strip()
+    if not cluster_word or not variant_word:
+        raise AppError(ErrorCode.VALIDATION_ERROR, "詞彙不能為空")
+
+    settings = dict(interaction.settings_jsonb or {})
+    response_count = await _count_responses(db, interaction_id)
+
+    cached = settings.get("ai_cluster_cache")
+    if not cached or not isinstance(cached, list):
+        raise AppError(ErrorCode.NOT_FOUND, "目前無聚合記錄可解除")
+
+    current_words = [WordCount.model_validate(c) for c in cached]
+    cluster_idx = next((i for i, w in enumerate(current_words) if w.word == cluster_word), None)
+    if cluster_idx is None:
+        raise AppError(ErrorCode.NOT_FOUND, f"找不到詞群「{cluster_word}」")
+
+    cluster_item = current_words[cluster_idx]
+    if not cluster_item.variants or len(cluster_item.variants) <= 1:
+        raise AppError(ErrorCode.VALIDATION_ERROR, "該詞群僅有一個詞彙，無法分離")
+
+    variant_idx = next((i for i, v in enumerate(cluster_item.variants) if v.word == variant_word), None)
+    if variant_idx is None:
+        raise AppError(ErrorCode.NOT_FOUND, f"詞群中找不到詞彙「{variant_word}」")
+
+    split_variant = cluster_item.variants.pop(variant_idx)
+    cluster_item.count = max(0, cluster_item.count - split_variant.count)
+
+    # 若被分離的詞彙剛好是代表詞，更新代表詞為剩餘中票數最高者
+    if cluster_item.word == variant_word and cluster_item.variants:
+        top_v = max(cluster_item.variants, key=lambda v: v.count)
+        cluster_item.word = top_v.word
+
+    # 檢查是否剩餘手動標記
+    has_manual_remaining = any(v.is_manual for v in cluster_item.variants)
+    cluster_item.is_manual = has_manual_remaining
+
+    # 若剩餘僅 1 個 variant 且與 cluster_item.word 相同，解除標記
+    if len(cluster_item.variants) == 1 and cluster_item.variants[0].word == cluster_item.word:
+        cluster_item.is_ai_clustered = False
+        cluster_item.is_manual = False
+
+    # 建立分離出的獨立 WordCount
+    new_standalone = WordCount(
+        word=split_variant.word,
+        count=split_variant.count,
+        variants=[WordVariant(word=split_variant.word, count=split_variant.count, is_manual=False)],
+        is_ai_clustered=False,
+        is_manual=False,
+    )
+    current_words.append(new_standalone)
+
+    # 更新 manual_merges
+    manual_merges = list(settings.get("manual_merges") or [])
+    settings["manual_merges"] = [
+        m for m in manual_merges
+        if not (m.get("source") == variant_word and m.get("target") == cluster_word)
+    ]
+
+    settings["ai_cluster_cache"] = [c.model_dump() for c in current_words]
+    settings["ai_cluster_cache_count"] = response_count
+    interaction.settings_jsonb = dict(settings)
+    await db.commit()
+
+    await events.publish(
+        interaction.room_id,
+        events.POLL_RESULT_REVEALED,
+        {"poll_id": str(interaction_id), "ai_cluster": True},
+    )
+
+    return PollResults(
+        interaction_id=interaction_id,
+        type=interaction.type,
+        status=interaction.status,
+        response_count=response_count,
+        word_counts=current_words,
         is_ai_clustered=True,
     )
 

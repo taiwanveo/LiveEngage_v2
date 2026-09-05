@@ -60,3 +60,26 @@ export async function toggleAiCluster(
   });
 }
 
+export async function manualMergeCluster(
+  pollId: string,
+  sourceWord: string,
+  targetWord: string
+): Promise<PollResults> {
+  return api<PollResults>(`/api/v1/polls/${pollId}/clusters/merge`, {
+    method: "POST",
+    body: { source_word: sourceWord, target_word: targetWord },
+  });
+}
+
+export async function manualSplitCluster(
+  pollId: string,
+  clusterWord: string,
+  variantWord: string
+): Promise<PollResults> {
+  return api<PollResults>(`/api/v1/polls/${pollId}/clusters/split`, {
+    method: "POST",
+    body: { cluster_word: clusterWord, variant_word: variantWord },
+  });
+}
+
+

@@ -23,6 +23,8 @@ from app.services import screen_service
 from app.models.user import User
 from app.schemas.poll import (
     AiClusterRequest,
+    ManualClusterMergeRequest,
+    ManualClusterSplitRequest,
     PollActionRequest,
     PollActionResponse,
     PollDetail,
@@ -160,6 +162,32 @@ async def toggle_ai_cluster(
     ai_override = get_ai_override(request)
     return await poll_service.toggle_word_cloud_ai_cluster(
         db, interaction_id, host, payload, ai_override=ai_override
+    )
+
+
+@router.post("/polls/{interaction_id}/clusters/merge", response_model=PollResults)
+async def manual_merge_cluster(
+    interaction_id: uuid.UUID,
+    payload: ManualClusterMergeRequest,
+    db: Annotated[AsyncSession, Depends(get_session)],
+    host: Annotated[User, Depends(get_current_user)],
+) -> PollResults:
+    """主持人手動將一個詞彙/詞群合併至另一個詞群。"""
+    return await poll_service.manual_merge_cluster(
+        db, interaction_id, host, payload
+    )
+
+
+@router.post("/polls/{interaction_id}/clusters/split", response_model=PollResults)
+async def manual_split_cluster(
+    interaction_id: uuid.UUID,
+    payload: ManualClusterSplitRequest,
+    db: Annotated[AsyncSession, Depends(get_session)],
+    host: Annotated[User, Depends(get_current_user)],
+) -> PollResults:
+    """主持人手動將子詞彙從詞群中解除分離。"""
+    return await poll_service.manual_split_cluster(
+        db, interaction_id, host, payload
     )
 
 

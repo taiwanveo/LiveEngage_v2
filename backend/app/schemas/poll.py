@@ -245,10 +245,11 @@ class RankingOrderCount(BaseModel):
 
 
 class WordVariant(BaseModel):
-    """AI 語意聚合之原始詞彙與票數明細。"""
+    """AI 語意聚合或人工微調之原始詞彙與票數明細。"""
 
     word: str
     count: int
+    is_manual: bool = False
 
 
 class WordCount(BaseModel):
@@ -256,6 +257,7 @@ class WordCount(BaseModel):
     count: int
     variants: list[WordVariant] | None = None
     is_ai_clustered: bool = False
+    is_manual: bool = False
 
 
 class TextEntry(BaseModel):
@@ -291,6 +293,20 @@ class AiClusterRequest(BaseModel):
 
     enabled: bool = True
     force_refresh: bool = False
+
+
+class ManualClusterMergeRequest(BaseModel):
+    """主持人手動將 source_word 聚合合併至 target_word。"""
+
+    source_word: str
+    target_word: str
+
+
+class ManualClusterSplitRequest(BaseModel):
+    """主持人手動將 variant_word 從 cluster_word 中解除分離。"""
+
+    cluster_word: str
+    variant_word: str
 
 
 

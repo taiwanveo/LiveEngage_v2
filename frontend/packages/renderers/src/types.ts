@@ -48,6 +48,7 @@ export interface RankingOrderCount {
 export interface WordVariant {
   word: string;
   count: number;
+  is_manual?: boolean;
 }
 
 export interface WordCount {
@@ -55,6 +56,7 @@ export interface WordCount {
   count: number;
   variants?: WordVariant[] | null;
   is_ai_clustered?: boolean;
+  is_manual?: boolean;
 }
 
 export interface TextEntry {
@@ -87,4 +89,8 @@ export interface PollRendererProps {
   onSubmit?: (answer: Record<string, unknown>) => void;
   submitting?: boolean;
   submitError?: string | null;
+  /** 文字雲主持人手動拖曳聚合支援 */
+  enableDragDrop?: boolean | undefined;
+  onManualMerge?: ((sourceWord: string, targetWord: string) => void | Promise<void>) | undefined;
+  onManualSplit?: ((clusterWord: string, variantWord: string) => void | Promise<void>) | undefined;
 }
