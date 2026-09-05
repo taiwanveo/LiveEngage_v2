@@ -9,7 +9,7 @@ import {
   setParticipantSession,
 } from "../lib/participantAuth";
 import { joinSession, resolveSessionByCode } from "../lib/sessionApi";
-import { AUTH_INPUT_CLASS, BrandedAuthShell, useSystemNotice } from "@liveengage/ui";
+import { AUTH_INPUT_CLASS, BrandedAuthShell, ServerConfigTrigger, useSystemNotice } from "@liveengage/ui";
 import { fetchSsoConfig, ssoAuthorizeUrl } from "../lib/authApi";
 import { fetchBrandingByCode } from "../lib/brandingApi";
 
@@ -102,9 +102,18 @@ export function JoinPage({ code }: Props): React.JSX.Element {
     return (
       <>
         <CenteredMessage>
-          <a href="#/join" className="inline-block text-sm text-accent hover:underline">
-            重新輸入代碼
-          </a>
+          <div className="space-y-4">
+            <p className="text-sm text-danger">
+              {formatUserFacingError(sessionQuery.error, "無法載入活動資訊")}
+            </p>
+            <div className="flex items-center justify-center gap-4 text-xs">
+              <a href="#/join" className="text-accent hover:underline">
+                重新輸入代碼
+              </a>
+              <span className="text-border">|</span>
+              <ServerConfigTrigger />
+            </div>
+          </div>
         </CenteredMessage>
         {systemNoticeModal}
       </>
@@ -127,9 +136,12 @@ export function JoinPage({ code }: Props): React.JSX.Element {
         subtitle={`狀態：${statusLabel(session.status)}`}
         branding={brandingQuery.data ?? null}
         footer={
-          <a href="#/join" className="text-accent hover:underline">
-            使用其他代碼
-          </a>
+          <div className="flex items-center justify-between text-xs text-muted">
+            <a href="#/join" className="text-accent hover:underline">
+              使用其他代碼
+            </a>
+            <ServerConfigTrigger />
+          </div>
         }
       >
         <p className="-mt-4 mb-2 font-mono text-xs text-muted">{session.code}</p>

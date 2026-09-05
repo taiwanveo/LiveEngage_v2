@@ -73,9 +73,16 @@ if [ -z "$TUNNEL_URL" ] && [ -f "$PROJECT_ROOT/frontend/packages/realtime/src/ap
     TUNNEL_URL="$(grep -oP 'DEFAULT_PRODUCTION_API_BASE\s*=\s*"\K[^"]+' "$PROJECT_ROOT/frontend/packages/realtime/src/apiBase.ts" || true)"
 fi
 
-# 同步更新 DEFAULT_PRODUCTION_API_BASE，確保生產環境預設指向最新通道
-if [ -n "$TUNNEL_URL" ] && [ -f "$PROJECT_ROOT/frontend/packages/realtime/src/apiBase.ts" ]; then
-    sed -i -E "s|DEFAULT_PRODUCTION_API_BASE\s*=\s*\"[^\"]+\"|DEFAULT_PRODUCTION_API_BASE = \"$TUNNEL_URL\"|" "$PROJECT_ROOT/frontend/packages/realtime/src/apiBase.ts"
+# 同步更新 DEFAULT_PRODUCTION_API_BASE 與 .env.production，確保生產環境預設指向最新通道
+if [ -n "$TUNNEL_URL" ]; then
+    if [ -f "$PROJECT_ROOT/frontend/packages/realtime/src/apiBase.ts" ]; then
+        sed -i -E "s|DEFAULT_PRODUCTION_API_BASE\s*=\s*\"[^\"]+\"|DEFAULT_PRODUCTION_API_BASE = \"$TUNNEL_URL\"|" "$PROJECT_ROOT/frontend/packages/realtime/src/apiBase.ts"
+    fi
+    for env_file in "$PROJECT_ROOT"/frontend/apps/*/.env.production; do
+        if [ -f "$env_file" ]; then
+            sed -i -E "s|VITE_API_BASE=.*|VITE_API_BASE=$TUNNEL_URL|" "$env_file"
+        fi
+    done
 fi
 
 echo ""

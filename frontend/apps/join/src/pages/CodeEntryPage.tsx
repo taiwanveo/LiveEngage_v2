@@ -4,7 +4,7 @@ import * as React from "react";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { fetchSiteBranding } from "@liveengage/realtime";
-import { AUTH_INPUT_CLASS, BrandedAuthShell } from "@liveengage/ui";
+import { AUTH_INPUT_CLASS, BrandedAuthShell, ServerConfigTrigger } from "@liveengage/ui";
 
 export function CodeEntryPage(): React.JSX.Element {
   const [code, setCode] = useState("");
@@ -28,6 +28,12 @@ export function CodeEntryPage(): React.JSX.Element {
       title="加入活動"
       subtitle="請輸入活動主辦方提供的活動代碼（例如 ABC123）"
       branding={brandingQuery.data ?? null}
+      footer={
+        <div className="flex items-center justify-between text-xs text-muted">
+          <span>LiveEngage 互動平台</span>
+          <ServerConfigTrigger />
+        </div>
+      }
     >
       <form onSubmit={handleSubmit} className="space-y-4">
         <label className="block space-y-1.5 text-sm">
