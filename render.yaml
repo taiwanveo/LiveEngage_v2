@@ -1,0 +1,20 @@
+services:
+  - type: web
+    name: liveengage-api
+    runtime: docker
+    plan: free
+    region: singapore
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    healthCheckPath: /health
+    envVars:
+      - key: LE_ENV
+        value: production
+      - key: LE_CELERY_TASK_ALWAYS_EAGER
+        value: "true"
+      - key: LE_JWT_SECRET
+        value: liveengage-production-secret-2026-secure
+      - key: LE_DATABASE_URL
+        value: postgresql+asyncpg://neondb_owner:npg_8eGtAEsoIC6v@ep-ancient-scene-aoly3j4y-pooler.c-2.ap-southeast-1.aws.neon.tech/neondb?ssl=require
+      - key: LE_DATABASE_URL_SYNC
+        value: postgresql+psycopg://neondb_owner:npg_8eGtAEsoIC6v@ep-ancient-scene-aoly3j4y-pooler.c-2.ap-southeast-1.aws.neon.tech/neondb?sslmode=require
