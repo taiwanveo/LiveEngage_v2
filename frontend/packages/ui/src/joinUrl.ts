@@ -1,5 +1,7 @@
 /** 參與者加入連結（分享 QR／代碼用）。 */
 
+import { getApiBase } from "@liveengage/realtime";
+
 function resolveJoinBase(): string {
   const configured = (import.meta.env?.VITE_JOIN_BASE as string | undefined)?.trim();
   if (configured) {
@@ -48,7 +50,19 @@ function resolveJoinBase(): string {
 
 export function joinUrl(code: string): string {
   const base = resolveJoinBase();
-  return `${base}/#/join/${encodeURIComponent(code)}`;
+  const codeParam = encodeURIComponent(code);
+  let apiBase = "";
+  try {
+    apiBase = getApiBase();
+  } catch {
+    // ignore
+  }
+
+  if (apiBase && (apiBase.startsWith("http://") || apiBase.startsWith("https://"))) {
+    return `${base}/?api=${encodeURIComponent(apiBase)}#/join/${codeParam}`;
+  }
+
+  return `${base}/#/join/${codeParam}`;
 }
 
 /** @deprecated 使用 joinUrl */
