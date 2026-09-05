@@ -1,5 +1,6 @@
 import * as React from "react";
 import { useState, useEffect } from "react";
+import { DEFAULT_PRODUCTION_API_BASE } from "@liveengage/realtime";
 import { Modal } from "./Modal";
 
 export interface ServerConfigModalProps {
@@ -9,7 +10,7 @@ export interface ServerConfigModalProps {
 }
 
 const STORAGE_KEY = "liveengage_api_base";
-const FALLBACK_DEFAULT = "https://theft-him-runs-feel.trycloudflare.com";
+const FALLBACK_DEFAULT = DEFAULT_PRODUCTION_API_BASE;
 
 export function ServerConfigModal({
   open,
