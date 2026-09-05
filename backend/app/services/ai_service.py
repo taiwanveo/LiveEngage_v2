@@ -72,10 +72,77 @@ def _extract_json(text: str) -> dict[str, Any]:
         raise
 
 
+# 常用品牌、電信、公司與架構術語同義詞對照表（保證離線與無金鑰時 100% 精準聚合）
+_ENTITY_ALIASES: list[tuple[str, list[str]]] = [
+    ("中華電信", ["cht", "中華電信", "中華電", "chunghwa", "chunghwatelecom"]),
+    ("台灣大哥大", ["twm", "台灣大哥大", "台哥大", "台灣大", "taiwan mobile"]),
+    ("遠傳電信", ["fet", "遠傳電信", "遠傳", "fareastone"]),
+    ("台積電", ["tsmc", "台積電", "台積", "台灣積體電路"]),
+    ("聯發科", ["mtk", "聯發科", "聯發科技", "發哥", "mediatek"]),
+    ("鴻海", ["foxconn", "hon hai", "鴻海", "富士康"]),
+    ("華碩", ["asus", "華碩"]),
+    ("宏碁", ["acer", "宏碁"]),
+    ("微軟", ["msft", "microsoft", "微軟"]),
+    ("Google", ["goog", "google", "谷歌"]),
+    ("NVIDIA", ["nvda", "nvidia", "輝達"]),
+    ("AMD", ["amd", "超微"]),
+    ("中信金控", ["ctbc", "中信金控", "中信", "中國信託"]),
+    ("國泰金控", ["cathay", "國泰金控", "國泰"]),
+    ("富邦金控", ["fubon", "富邦金控", "富邦"]),
+    ("人工智慧", ["ai", "人工智慧", "智慧"]),
+    ("Kubernetes", ["k8s", "kubernetes"]),
+]
+
+_COMMON_ALIASES_MAP: dict[str, str] = {}
+for _canon, _aliases in _ENTITY_ALIASES:
+    for _a in _aliases:
+        _COMMON_ALIASES_MAP[_a.casefold()] = _canon
+
+
+def _resolve_canonical_name(word: str) -> str | None:
+    wf = word.casefold()
+    if wf in _COMMON_ALIASES_MAP:
+        return _COMMON_ALIASES_MAP[wf]
+    for alias, canon in sorted(_COMMON_ALIASES_MAP.items(), key=lambda x: -len(x[0])):
+        if len(alias) >= 2 and alias in wf:
+            return canon
+    return None
+
+
 def cluster_words_local(raw_words: list[dict[str, Any]]) -> list[dict[str, Any]]:
     """離線降級／無金鑰時的語意聚合演算法（保證現場展示 100% 穩定可用）。"""
     if not raw_words:
         return []
+
+    clusters: list[dict[str, Any]] = []
+    assigned_indices: set[int] = set()
+
+    # 1. 先用常見實體/品牌同義詞庫分群（如 CHT / 中華電信公司 / 中華電信 聚合）
+    alias_groups: dict[str, list[dict[str, Any]]] = {}
+    for i, item in enumerate(raw_words):
+        w = str(item.get("word", "")).strip()
+        cnt = int(item.get("count", 1))
+        canon = _resolve_canonical_name(w)
+        if canon:
+            alias_groups.setdefault(canon, []).append({"word": w, "count": cnt})
+            assigned_indices.add(i)
+
+    for canon, group in alias_groups.items():
+        group.sort(
+            key=lambda x: (
+                -x["count"],
+                0 if x["word"].casefold() == canon.casefold() else 1,
+                len(x["word"]),
+            )
+        )
+        total_cnt = sum(v["count"] for v in group)
+        clusters.append(
+            {
+                "word": canon,
+                "count": total_cnt,
+                "variants": group,
+            }
+        )
 
     # 內建活動常用主題語意同義庫（支援繁中、簡中、英文常見詞彙）
     THEMES: list[tuple[str, list[str]]] = [
@@ -181,10 +248,7 @@ def cluster_words_local(raw_words: list[dict[str, Any]]) -> list[dict[str, Any]]
         ),
     ]
 
-    clusters: list[dict[str, Any]] = []
-    assigned_indices: set[int] = set()
-
-    # 1. 先用主題同義庫分群
+    # 2. 次用主題同義庫分群
     for theme_name, keywords in THEMES:
         matched_variants: list[dict[str, Any]] = []
         for i, item in enumerate(raw_words):
@@ -199,7 +263,7 @@ def cluster_words_local(raw_words: list[dict[str, Any]]) -> list[dict[str, Any]]
                 assigned_indices.add(i)
 
         if matched_variants:
-            matched_variants.sort(key=lambda x: -x["count"])
+            matched_variants.sort(key=lambda x: (-x["count"], len(x["word"])))
             total_cnt = sum(v["count"] for v in matched_variants)
             clusters.append(
                 {
@@ -209,7 +273,7 @@ def cluster_words_local(raw_words: list[dict[str, Any]]) -> list[dict[str, Any]]
                 }
             )
 
-    # 2. 對於未歸類的詞彙，進行子字串或前綴聚合
+    # 3. 對於未歸類的詞彙，進行子字串或前綴聚合
     unassigned = [
         (i, raw_words[i])
         for i in range(len(raw_words))
@@ -237,7 +301,7 @@ def cluster_words_local(raw_words: list[dict[str, Any]]) -> list[dict[str, Any]]
             sub_clusters.append([{"word": word_text, "count": cnt}])
 
     for group in sub_clusters:
-        group.sort(key=lambda x: -x["count"])
+        group.sort(key=lambda x: (-x["count"], len(x["word"])))
         total_cnt = sum(v["count"] for v in group)
         rep_word = group[0]["word"]
         clusters.append(
@@ -248,7 +312,7 @@ def cluster_words_local(raw_words: list[dict[str, Any]]) -> list[dict[str, Any]]
             }
         )
 
-    # 3. 依總票數降序排序
+    # 4. 依總票數降序排序
     clusters.sort(key=lambda x: -x["count"])
     return clusters
 
@@ -1374,21 +1438,29 @@ async def _real_llm_call(
         headers["X-Title"] = "LiveEngage v2"
 
     async with httpx.AsyncClient(timeout=9.0) as client:
+        req_body = {
+            "model": model,
+            "messages": [
+                {
+                    "role": "system",
+                    "content": "You are a helpful assistant that outputs only valid JSON.",
+                },
+                {"role": "user", "content": prompt},
+            ],
+            "response_format": {"type": "json_object"},
+        }
         resp = await client.post(
             f"{base_url.rstrip('/')}/chat/completions",
             headers=headers,
-            json={
-                "model": model,
-                "messages": [
-                    {
-                        "role": "system",
-                        "content": "You are a helpful assistant that outputs only valid JSON.",
-                    },
-                    {"role": "user", "content": prompt},
-                ],
-                "response_format": {"type": "json_object"},
-            },
+            json=req_body,
         )
+        if resp.status_code == 400 and "response_format" in resp.text:
+            req_body.pop("response_format", None)
+            resp = await client.post(
+                f"{base_url.rstrip('/')}/chat/completions",
+                headers=headers,
+                json=req_body,
+            )
         resp.raise_for_status()
         content = resp.json()["choices"][0]["message"]["content"]
         return _extract_json(content)
@@ -1704,6 +1776,7 @@ async def cluster_word_cloud(
     )
 
     # 轉為 WordCount schema 列表，確保資料完整與型別安全
+    raw_counts = {str(w.word).strip(): int(w.count) for w in words}
     results: list[WordCount] = []
     for item in clusters_data:
         cluster_word = str(item.get("word", "")).strip()
@@ -1713,9 +1786,13 @@ async def cluster_word_cloud(
             for v in variants_raw:
                 if isinstance(v, dict):
                     v_word = str(v.get("word", "")).strip()
-                    v_cnt = int(v.get("count", 1))
+                    v_cnt = int(v.get("count", raw_counts.get(v_word, 1)))
                     if v_word:
                         variants.append(WordVariant(word=v_word, count=v_cnt))
+                elif isinstance(v, str) and v.strip():
+                    v_word = v.strip()
+                    v_cnt = int(raw_counts.get(v_word, 1))
+                    variants.append(WordVariant(word=v_word, count=v_cnt))
 
         # 若 cluster 內無 variants，則將自身作為單一 variant
         if not variants and cluster_word:

@@ -146,8 +146,8 @@ PostCommitHook = Callable[[], Awaitable[None]]
 
 async def _load_poll_for_host(
     db: AsyncSession, interaction_id: uuid.UUID, host: User
-) -> tuple[Interaction, uuid.UUID]:
-    """載入 Poll 並驗 host 權限；回 (interaction, room_id)。"""
+) -> tuple[Interaction, uuid.UUID, uuid.UUID]:
+    """載入 Poll 並驗 host 權限；回 (interaction, room_id, session.org_id)。"""
     result = await db.execute(
         select(Interaction, Room, Session)
         .join(Room, Interaction.room_id == Room.id)
@@ -164,7 +164,7 @@ async def _load_poll_for_host(
         raise AppError(
             ErrorCode.VALIDATION_ERROR, f"此互動項目（{interaction.type}）不是 Poll 題型"
         )
-    return interaction, room.id
+    return interaction, room.id, session.org_id
 
 
 async def load_poll_for_participant(
@@ -443,7 +443,7 @@ async def execute_poll_action(
         raise AppError(ErrorCode.VALIDATION_ERROR, f"不支援的動作：{action}")
 
     allowed_sources, target_status = transition
-    interaction, room_id = await _load_poll_for_host(db, interaction_id, host)
+    interaction, room_id, _ = await _load_poll_for_host(db, interaction_id, host)
 
     if interaction.status not in allowed_sources:
         raise AppError(
@@ -573,9 +573,11 @@ async def get_poll_detail(
 
 
 def _public_settings(interaction: Interaction) -> dict[str, Any]:
-    """settings_jsonb，但移除 host-only 欄位（如 has_correct）。"""
+    """settings_jsonb，但移除 host-only 欄位（如 has_correct、快取）。"""
     settings = dict(interaction.settings_jsonb or {})
     settings.pop("has_correct", None)
+    settings.pop("ai_cluster_cache", None)
+    settings.pop("ai_cluster_cache_count", None)
     return settings
 
 
@@ -625,7 +627,7 @@ async def upsert_poll_options(
 ) -> list[PollOptionPublic]:
     """取代當前 poll 所有選項（Builder UI 儲存）；Host-only。"""
     assert_can_edit_content(host)
-    _, _ = await _load_poll_for_host(db, interaction_id, host)
+    _, _, _ = await _load_poll_for_host(db, interaction_id, host)
 
     # 刪舊選項
     await db.execute(
@@ -1041,11 +1043,15 @@ async def get_poll_results(
 ) -> PollResults:
     """讀取結果；participant 受 ``result_visible`` 控制。"""
     result = await db.execute(
-        select(Interaction).where(Interaction.id == interaction_id)
+        select(Interaction, Room, Session)
+        .join(Room, Interaction.room_id == Room.id)
+        .join(Session, Room.session_id == Session.id)
+        .where(Interaction.id == interaction_id)
     )
-    interaction = result.scalars().first()
-    if interaction is None:
+    row = result.first()
+    if row is None:
         raise AppError(ErrorCode.NOT_FOUND, "找不到互動項目")
+    interaction, room, session = row[0], row[1], row[2]
     if screen_room_id is not None and interaction.room_id != screen_room_id:
         raise AppError(ErrorCode.FORBIDDEN, "無權讀取此 Poll 結果")
     if interaction.type not in POLL_TYPES:
@@ -1100,11 +1106,11 @@ async def get_poll_results(
                     pass
 
             clustered = await ai_service.cluster_word_cloud(
-                db, org_id=interaction.org_id, words=raw_words
+                db, org_id=session.org_id, words=raw_words
             )
             settings["ai_cluster_cache"] = [c.model_dump() for c in clustered]
             settings["ai_cluster_cache_count"] = response_count
-            interaction.settings_jsonb = settings
+            interaction.settings_jsonb = dict(settings)
             await db.commit()
             return PollResults(
                 interaction_id=interaction_id,
@@ -1643,17 +1649,10 @@ async def toggle_word_cloud_ai_cluster(
     ai_override: Any = None,
 ) -> PollResults:
     """控場端切換或手動重整文字雲 AI 語意聚合。"""
-    result = await db.execute(
-        select(Interaction).where(Interaction.id == interaction_id)
-    )
-    interaction = result.scalars().first()
-    if interaction is None:
-        raise AppError(ErrorCode.NOT_FOUND, "找不到互動項目")
+    interaction, room_id, org_id = await _load_poll_for_host(db, interaction_id, host)
     if interaction.type != InteractionType.WORD_CLOUD:
         raise AppError(ErrorCode.VALIDATION_ERROR, "只有文字雲互動支援語意聚合")
     assert_can_edit_content(host)
-    if interaction.org_id != host.org_id:
-        raise AppError(ErrorCode.FORBIDDEN, "無權操作此互動項目")
 
     settings = dict(interaction.settings_jsonb or {})
     response_count = await _count_responses(db, interaction_id)
@@ -1663,7 +1662,7 @@ async def toggle_word_cloud_ai_cluster(
         settings["ai_cluster"] = False
         settings.pop("ai_cluster_cache", None)
         settings.pop("ai_cluster_cache_count", None)
-        interaction.settings_jsonb = settings
+        interaction.settings_jsonb = dict(settings)
         await db.commit()
 
         await events.publish(
@@ -1683,12 +1682,12 @@ async def toggle_word_cloud_ai_cluster(
 
     # 啟用 AI 語意聚合或強制刷新
     clustered = await ai_service.cluster_word_cloud(
-        db, user=host, org_id=interaction.org_id, words=raw_words, ai_override=ai_override
+        db, user=host, org_id=org_id, words=raw_words, ai_override=ai_override
     )
     settings["ai_cluster"] = True
     settings["ai_cluster_cache"] = [c.model_dump() for c in clustered]
     settings["ai_cluster_cache_count"] = response_count
-    interaction.settings_jsonb = settings
+    interaction.settings_jsonb = dict(settings)
     await db.commit()
 
     await events.publish(
