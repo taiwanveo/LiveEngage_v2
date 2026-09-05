@@ -26,7 +26,7 @@
 **Interfaces:**
 - Produces: `interactionStatusTextColor(status: InteractionStatus | string): string`
 
-- [ ] **Step 1: 在 `pollTypes.ts` 實作 `interactionStatusTextColor`**
+- [x] **Step 1: 在 `pollTypes.ts` 實作 `interactionStatusTextColor`**
 
 在 `frontend/apps/host/src/lib/pollTypes.ts` 中新增以下輔助函式：
 ```typescript
@@ -47,12 +47,12 @@ export function interactionStatusTextColor(status: InteractionStatus | string): 
 }
 ```
 
-- [ ] **Step 2: 驗證 `pollTypes.ts` 建置**
+- [x] **Step 2: 驗證 `pollTypes.ts` 建置**
 
 執行：`cd /home/administrator/projs/LiveEngage/frontend/apps/host && npm run build`
 預期：PASS
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add frontend/apps/host/src/lib/pollTypes.ts
@@ -69,11 +69,11 @@ git commit -m "feat(host): add interactionStatusTextColor helper for semantic st
 **Interfaces:**
 - Consumes: `interactionStatusTextColor`, `interactionStatusLabel`, `interactionTypeLabel` from `../../lib/pollTypes`
 
-- [ ] **Step 1: 匯入 `interactionStatusTextColor`**
+- [x] **Step 1: 匯入 `interactionStatusTextColor`**
 
 在 `WorkbenchInteractionSidebar.tsx` 的匯入清單加入 `interactionStatusTextColor`。
 
-- [ ] **Step 2: 改寫卡片樣式邏輯以區分 `isLive` 與 `isSelected`**
+- [x] **Step 2: 改寫卡片樣式邏輯以區分 `isLive` 與 `isSelected`**
 
 在 `props.items.map((item, index) => { ... })` 中：
 ```typescript
@@ -93,7 +93,7 @@ const cardStyles = isLive
     : "border-border bg-surface hover:border-accent/40";
 ```
 
-- [ ] **Step 3: 卡片內部呈現「進行中」動態光點徽章與狀態文字色彩**
+- [x] **Step 3: 卡片內部呈現「進行中」動態光點徽章與狀態文字色彩**
 
 在標題處加入：
 ```tsx
@@ -116,12 +116,12 @@ const cardStyles = isLive
 </p>
 ```
 
-- [ ] **Step 4: 驗證建置**
+- [x] **Step 4: 驗證建置**
 
 執行：`cd /home/administrator/projs/LiveEngage/frontend/apps/host && npm run build`
 預期：PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add frontend/apps/host/src/components/workbench/WorkbenchInteractionSidebar.tsx
@@ -139,7 +139,7 @@ git commit -m "feat(host): highlight active question card with vibrant emerald s
 **Interfaces:**
 - Consumes: CSS variable `--workbench-header-offset`
 
-- [ ] **Step 1: 在 `WorkbenchLayout.tsx` 優化側邊與預覽欄位的滾動結構**
+- [x] **Step 1: 在 `WorkbenchLayout.tsx` 優化側邊與預覽欄位的滾動結構**
 
 在 `WorkbenchLayout.tsx` 中：
 1. 確保外層容器定義 `--workbench-header-offset: 136px;`（或自適應計算）。
@@ -148,12 +148,12 @@ git commit -m "feat(host): highlight active question card with vibrant emerald s
 3. 確保 `section`（中欄）在桌面端不會有不必要的 overflow 截斷：
    `min-h-[320px] min-w-0 bg-background p-4 sm:p-5 lg:overflow-visible`
 
-- [ ] **Step 2: 驗證建置**
+- [x] **Step 2: 驗證建置**
 
 執行：`cd /home/administrator/projs/LiveEngage/frontend/apps/host && npm run build`
 預期：PASS
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add frontend/packages/ui/src/WorkbenchLayout.tsx
@@ -167,7 +167,7 @@ git commit -m "feat(ui): support sticky preview sidebar and non-blocking layout 
 **Files:**
 - Modify: `frontend/apps/host/src/components/workbench/PollWorkbenchMain.tsx:175-215`
 
-- [ ] **Step 1: 為「投影預覽」卡片加入 `sticky` 與全貌最大高度**
+- [x] **Step 1: 為「投影預覽」卡片加入 `sticky` 與全貌最大高度**
 
 在 `PollWorkbenchMain.tsx` 中的「投影預覽」卡片容器：
 ```tsx
@@ -182,12 +182,12 @@ git commit -m "feat(ui): support sticky preview sidebar and non-blocking layout 
 </div>
 ```
 
-- [ ] **Step 2: 驗證建置**
+- [x] **Step 2: 驗證建置**
 
 執行：`cd /home/administrator/projs/LiveEngage/frontend/apps/host && npm run build`
 預期：PASS
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add frontend/apps/host/src/components/workbench/PollWorkbenchMain.tsx
@@ -201,16 +201,16 @@ git commit -m "feat(host): make projection preview card sticky with viewport-bou
 **Files:**
 - All modified files in `frontend/apps/host` and `frontend/packages/ui`
 
-- [ ] **Step 1: 執行完整前端 Build 驗證**
+- [x] **Step 1: 執行完整前端 Build 驗證**
 
 執行：`cd /home/administrator/projs/LiveEngage/frontend/apps/host && npm run build`
 預期：0 errors, clean bundle output.
 
-- [ ] **Step 2: 審視 Git diff 確認無未預期變更**
+- [x] **Step 2: 審視 Git diff 確認無未預期變更**
 
 執行：`git status` 及 `git diff`
 預期：所有修改皆符合規格書 AC-01 至 AC-05。
 
-- [ ] **Step 3: Final Commit & Summary**
+- [x] **Step 3: Final Commit & Summary**
 
 若有任何微調，完成最後 Commit 並回報使用者。
