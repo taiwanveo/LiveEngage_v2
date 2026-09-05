@@ -66,12 +66,21 @@ export function joinUrl(code: string): string {
   }
 
   // 參與者端由外部裝置（手機）掃描，API 必須是公開可連線網址。
-  // 若目前 host 的 apiBase 是本機 (localhost) 或私有 IP，則一律使用公開 Tunnel (DEFAULT_PRODUCTION_API_BASE)。
+  // 若目前 host 的 apiBase 是本機 (localhost) 或私有 IP，則一律使用公開預設伺服器 (DEFAULT_PRODUCTION_API_BASE)。
   const effectiveApi = isPublicHttpUrl(apiBase)
     ? apiBase
     : DEFAULT_PRODUCTION_API_BASE;
 
-  if (effectiveApi && (effectiveApi.startsWith("http://") || effectiveApi.startsWith("https://"))) {
+  // 若當前 API 即為預設生產環境（https://liveengage.onrender.com），
+  // 則不需在網址帶入冗長的 ?api= 參數，直接產生乾淨好讀的簡短參與連結。
+  const isDefaultProduction =
+    effectiveApi.replace(/\/$/, "") === DEFAULT_PRODUCTION_API_BASE.replace(/\/$/, "");
+
+  if (
+    effectiveApi &&
+    !isDefaultProduction &&
+    (effectiveApi.startsWith("http://") || effectiveApi.startsWith("https://"))
+  ) {
     return `${base}/?api=${encodeURIComponent(effectiveApi)}#/join/${codeParam}`;
   }
 
