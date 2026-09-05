@@ -51,8 +51,8 @@ export function WordCloudDisplay({
       <p
         className={
           large
-            ? "text-center text-lg text-slate-500"
-            : "text-sm text-slate-500"
+            ? "text-center text-lg text-muted"
+            : "text-sm text-muted"
         }
       >
         尚無詞彙
@@ -63,12 +63,12 @@ export function WordCloudDisplay({
   return (
     <div className="relative flex min-h-0 w-full flex-1 flex-col">
       {isAnyClustered && (
-        <div className="mb-2 flex items-center justify-between text-xs text-primary-400">
+        <div className="mb-2 flex items-center justify-between text-xs text-accent">
           <span className="inline-flex items-center gap-1.5 font-medium">
             <span className="inline-block animate-pulse">✨</span>
             AI 語意聚合已啟用（點擊詞彙查看原始輸入）
           </span>
-          <span className="text-slate-400 opacity-80">
+          <span className="text-muted opacity-80">
             共 {sorted.length} 個主題詞群
           </span>
         </div>
@@ -100,15 +100,15 @@ export function WordCloudDisplay({
               className={
                 large
                   ? compact
-                    ? "group relative rounded-md bg-white/10 px-2.5 py-1 font-semibold text-white transition-all hover:scale-105 hover:bg-white/20 active:scale-95"
-                    : "group relative rounded-lg bg-white/10 px-4 py-2 font-semibold text-white shadow-sm transition-all hover:scale-105 hover:bg-white/20 active:scale-95"
+                    ? "group relative rounded-md border border-border/60 bg-surface-elevated/80 px-2.5 py-1 font-semibold text-foreground shadow-sm transition-all hover:scale-105 hover:bg-surface-elevated active:scale-95"
+                    : "group relative rounded-lg border border-border/60 bg-surface-elevated/80 px-4 py-2 font-semibold text-foreground shadow-sm transition-all hover:scale-105 hover:bg-surface-elevated active:scale-95"
                   : "group relative rounded-lg bg-accent-muted px-3 py-1.5 font-medium text-accent transition-all hover:bg-accent/20 hover:shadow active:scale-95"
               }
               style={{ fontSize, lineHeight: 1.25 }}
               title={hasVariants ? "點擊查看原始詞彙明細" : undefined}
             >
               {hasVariants && (
-                <span className="mr-1 inline-block text-[0.75em] text-amber-300 drop-shadow-sm">
+                <span className="mr-1 inline-block text-[0.75em] text-amber-500 dark:text-amber-300 drop-shadow-sm">
                   ✨
                 </span>
               )}
@@ -128,20 +128,20 @@ export function WordCloudDisplay({
           onClick={() => setSelectedWord(null)}
         >
           <div
-            className="w-full max-w-md rounded-2xl border border-slate-700/60 bg-slate-900/95 p-6 text-slate-100 shadow-2xl"
+            className="w-full max-w-md rounded-2xl border border-border bg-surface p-6 text-foreground shadow-2xl"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex items-start justify-between border-b border-slate-800 pb-3">
+            <div className="flex items-start justify-between border-b border-border pb-3">
               <div>
                 <div className="flex items-center gap-2">
-                  <span className="text-amber-400">✨</span>
-                  <h3 className="text-lg font-bold text-white">
+                  <span className="text-amber-500 dark:text-amber-400">✨</span>
+                  <h3 className="text-lg font-bold text-foreground">
                     {selectedWord.word}
                   </h3>
                 </div>
-                <p className="mt-1 text-xs text-slate-400">
+                <p className="mt-1 text-xs text-muted">
                   語意聚合總計{" "}
-                  <span className="font-bold text-primary-400">
+                  <span className="font-bold text-accent">
                     {selectedWord.count}
                   </span>{" "}
                   票
@@ -153,7 +153,7 @@ export function WordCloudDisplay({
               <button
                 type="button"
                 onClick={() => setSelectedWord(null)}
-                className="rounded-lg p-1.5 text-slate-400 transition-colors hover:bg-slate-800 hover:text-white"
+                className="rounded-lg p-1.5 text-muted transition-colors hover:bg-surface-elevated hover:text-foreground"
                 aria-label="關閉"
               >
                 ✕
@@ -167,24 +167,24 @@ export function WordCloudDisplay({
                   return (
                     <div
                       key={idx}
-                      className="rounded-xl border border-slate-800/80 bg-slate-800/40 p-3"
+                      className="rounded-xl border border-border bg-surface-elevated/70 p-3"
                     >
                       <div className="flex items-center justify-between text-sm">
-                        <span className="font-medium text-slate-200">
+                        <span className="font-medium text-foreground">
                           {v.word}
                         </span>
                         <div className="flex items-center gap-2">
-                          <span className="font-semibold text-primary-400">
+                          <span className="font-semibold text-accent">
                             {v.count} 票
                           </span>
-                          <span className="font-mono text-xs text-slate-400">
+                          <span className="font-mono text-xs text-muted">
                             {pct}%
                           </span>
                         </div>
                       </div>
-                      <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-slate-700/50">
+                      <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-border/60">
                         <div
-                          className="h-full rounded-full bg-primary-500 transition-all duration-500"
+                          className="h-full rounded-full bg-accent transition-all duration-500"
                           style={{ width: `${pct}%` }}
                         />
                       </div>
@@ -192,10 +192,10 @@ export function WordCloudDisplay({
                   );
                 })
               ) : (
-                <div className="rounded-xl border border-slate-800/80 bg-slate-800/40 p-3 text-sm text-slate-300">
+                <div className="rounded-xl border border-border bg-surface-elevated/70 p-3 text-sm text-foreground">
                   <div className="flex items-center justify-between">
                     <span>原始輸入：{selectedWord.word}</span>
-                    <span className="font-semibold text-primary-400">
+                    <span className="font-semibold text-accent">
                       {selectedWord.count} 票
                     </span>
                   </div>
@@ -207,7 +207,7 @@ export function WordCloudDisplay({
               <button
                 type="button"
                 onClick={() => setSelectedWord(null)}
-                className="rounded-lg bg-slate-800 px-4 py-2 text-xs font-semibold text-white transition-colors hover:bg-slate-700"
+                className="rounded-lg border border-border bg-surface-elevated px-4 py-2 text-xs font-semibold text-foreground transition-colors hover:bg-surface"
               >
                 關閉
               </button>
