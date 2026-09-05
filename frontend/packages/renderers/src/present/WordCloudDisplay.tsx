@@ -1,5 +1,6 @@
 import * as React from "react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { createPortal } from "react-dom";
 import type { WordCount } from "../types";
 
 interface WordCloudDisplayProps {
@@ -33,6 +34,20 @@ export function WordCloudDisplay({
   const [draggedWord, setDraggedWord] = useState<string | null>(null);
   const [dragOverWord, setDragOverWord] = useState<string | null>(null);
   const [isActionLoading, setIsActionLoading] = useState(false);
+
+  useEffect(() => {
+    if (!selectedWord) return;
+    const onKey = (e: KeyboardEvent): void => {
+      if (e.key === "Escape") setSelectedWord(null);
+    };
+    window.addEventListener("keydown", onKey);
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      document.body.style.overflow = prev;
+    };
+  }, [selectedWord]);
 
   const max = Math.max(1, ...words.map((w) => w.count));
   const density = large ? presentDensityScale(words) : 1;
@@ -211,141 +226,150 @@ export function WordCloudDisplay({
       </div>
 
       {/* 點擊詞彙展開的聚合明細 Modal */}
-      {selectedWord && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm animate-in fade-in duration-200"
-          onClick={() => setSelectedWord(null)}
-        >
-          <div
-            className="w-full max-w-md rounded-2xl border border-border bg-surface p-6 text-foreground shadow-2xl"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex items-start justify-between border-b border-border pb-3">
-              <div>
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className={selectedWord.is_manual ? "text-purple-500 text-base" : "text-amber-500 dark:text-amber-400 text-base"}>
-                    {selectedWord.is_manual ? "👤✨" : "✨"}
-                  </span>
-                  <h3 className="text-lg font-bold text-foreground">
-                    {selectedWord.word}
-                  </h3>
-                  {selectedWord.is_manual && (
-                    <span className="rounded-full bg-purple-500/15 border border-purple-500/30 px-2 py-0.5 text-[11px] font-medium text-purple-600 dark:text-purple-400">
-                      含主持人手動聚合
-                    </span>
-                  )}
-                </div>
-                <p className="mt-1 text-xs text-muted">
-                  語意聚合總計{" "}
-                  <span className="font-bold text-accent">
-                    {selectedWord.count}
-                  </span>{" "}
-                  票
-                  {selectedWord.variants?.length
-                    ? `（涵蓋 ${selectedWord.variants.length} 種表達）`
-                    : ""}
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={() => setSelectedWord(null)}
-                className="rounded-lg p-1.5 text-muted transition-colors hover:bg-surface-elevated hover:text-foreground"
-                aria-label="關閉"
+      {selectedWord &&
+        (() => {
+          const modalNode = (
+            <div
+              className="fixed inset-0 z-[200] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm animate-in fade-in duration-200"
+              onClick={() => setSelectedWord(null)}
+              role="dialog"
+              aria-modal="true"
+            >
+              <div
+                className="w-full max-w-md rounded-2xl border border-border bg-surface p-6 text-foreground shadow-2xl"
+                onClick={(e) => e.stopPropagation()}
               >
-                ✕
-              </button>
-            </div>
+                <div className="flex items-start justify-between border-b border-border pb-3">
+                  <div>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className={selectedWord.is_manual ? "text-purple-500 text-base" : "text-amber-500 dark:text-amber-400 text-base"}>
+                        {selectedWord.is_manual ? "👤✨" : "✨"}
+                      </span>
+                      <h3 className="text-lg font-bold text-foreground">
+                        {selectedWord.word}
+                      </h3>
+                      {selectedWord.is_manual && (
+                        <span className="rounded-full bg-purple-500/15 border border-purple-500/30 px-2 py-0.5 text-[11px] font-medium text-purple-600 dark:text-purple-400">
+                          含主持人手動聚合
+                        </span>
+                      )}
+                    </div>
+                    <p className="mt-1 text-xs text-muted">
+                      語意聚合總計{" "}
+                      <span className="font-bold text-accent">
+                        {selectedWord.count}
+                      </span>{" "}
+                      票
+                      {selectedWord.variants?.length
+                        ? `（涵蓋 ${selectedWord.variants.length} 種表達）`
+                        : ""}
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedWord(null)}
+                    className="rounded-lg p-1.5 text-muted transition-colors hover:bg-surface-elevated hover:text-foreground"
+                    aria-label="關閉"
+                  >
+                    ✕
+                  </button>
+                </div>
 
-            <div className="mt-4 max-h-[60vh] space-y-2.5 overflow-y-auto pr-1">
-              {selectedWord.variants && selectedWord.variants.length > 0 ? (
-                selectedWord.variants.map((v, idx) => {
-                  const pct = Math.round((v.count / selectedWord.count) * 100);
-                  const canSplit = Boolean(onManualSplit && selectedWord.variants && selectedWord.variants.length > 1);
-                  return (
-                    <div
-                      key={idx}
-                      className={`rounded-xl border p-3 ${
-                        v.is_manual
-                          ? "border-purple-500/40 bg-purple-500/5 dark:bg-purple-950/20"
-                          : "border-border bg-surface-elevated/70"
-                      }`}
-                    >
-                      <div className="flex items-center justify-between text-sm">
-                        <div className="flex items-center gap-2">
-                          <span className="font-medium text-foreground">
-                            {v.word}
-                          </span>
-                          {v.is_manual && (
-                            <span className="rounded-full bg-purple-500/20 px-1.5 py-0.5 text-[10px] font-semibold text-purple-600 dark:text-purple-400">
-                              👤 主持人合併
-                            </span>
-                          )}
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <span className="font-semibold text-accent">
-                            {v.count} 票
-                          </span>
-                          <span className="font-mono text-xs text-muted">
-                            {pct}%
-                          </span>
-                          {canSplit && (
-                            <button
-                              type="button"
-                              disabled={isActionLoading}
-                              onClick={async (e) => {
-                                e.stopPropagation();
-                                if (isActionLoading || !onManualSplit) return;
-                                setIsActionLoading(true);
-                                try {
-                                  await onManualSplit(selectedWord.word, v.word);
-                                  setSelectedWord(null);
-                                } finally {
-                                  setIsActionLoading(false);
-                                }
-                              }}
-                              className="ml-1 rounded border border-rose-500/30 bg-rose-500/10 px-2 py-0.5 text-[11px] font-medium text-rose-600 transition hover:bg-rose-500/20 active:scale-95 disabled:opacity-50 dark:text-rose-400"
-                              title="解除此詞彙聚合"
-                            >
-                              ✕ 解除
-                            </button>
-                          )}
-                        </div>
-                      </div>
-                      <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-border/60">
+                <div className="mt-4 max-h-[60vh] space-y-2.5 overflow-y-auto pr-1">
+                  {selectedWord.variants && selectedWord.variants.length > 0 ? (
+                    selectedWord.variants.map((v, idx) => {
+                      const pct = Math.round((v.count / selectedWord.count) * 100);
+                      const canSplit = Boolean(onManualSplit && selectedWord.variants && selectedWord.variants.length > 1);
+                      return (
                         <div
-                          className={`h-full rounded-full transition-all duration-500 ${
-                            v.is_manual ? "bg-purple-500 dark:bg-purple-400" : "bg-accent"
+                          key={idx}
+                          className={`rounded-xl border p-3 ${
+                            v.is_manual
+                              ? "border-purple-500/40 bg-purple-500/5 dark:bg-purple-950/20"
+                              : "border-border bg-surface-elevated/70"
                           }`}
-                          style={{ width: `${pct}%` }}
-                        />
+                        >
+                          <div className="flex items-center justify-between text-sm">
+                            <div className="flex items-center gap-2">
+                              <span className="font-medium text-foreground">
+                                {v.word}
+                              </span>
+                              {v.is_manual && (
+                                <span className="rounded-full bg-purple-500/20 px-1.5 py-0.5 text-[10px] font-semibold text-purple-600 dark:text-purple-400">
+                                  👤 主持人合併
+                                </span>
+                              )}
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <span className="font-semibold text-accent">
+                                {v.count} 票
+                              </span>
+                              <span className="font-mono text-xs text-muted">
+                                {pct}%
+                              </span>
+                              {canSplit && (
+                                <button
+                                  type="button"
+                                  disabled={isActionLoading}
+                                  onClick={async (e) => {
+                                    e.stopPropagation();
+                                    if (isActionLoading || !onManualSplit) return;
+                                    setIsActionLoading(true);
+                                    try {
+                                      await onManualSplit(selectedWord.word, v.word);
+                                      setSelectedWord(null);
+                                    } finally {
+                                      setIsActionLoading(false);
+                                    }
+                                  }}
+                                  className="ml-1 rounded border border-rose-500/30 bg-rose-500/10 px-2 py-0.5 text-[11px] font-medium text-rose-600 transition hover:bg-rose-500/20 active:scale-95 disabled:opacity-50 dark:text-rose-400"
+                                  title="解除此詞彙聚合"
+                                >
+                                  ✕ 解除
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                          <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-border/60">
+                            <div
+                              className={`h-full rounded-full transition-all duration-500 ${
+                                v.is_manual ? "bg-purple-500 dark:bg-purple-400" : "bg-accent"
+                              }`}
+                              style={{ width: `${pct}%` }}
+                            />
+                          </div>
+                        </div>
+                      );
+                    })
+                  ) : (
+                    <div className="rounded-xl border border-border bg-surface-elevated/70 p-3 text-sm text-foreground">
+                      <div className="flex items-center justify-between">
+                        <span>原始輸入：{selectedWord.word}</span>
+                        <span className="font-semibold text-accent">
+                          {selectedWord.count} 票
+                        </span>
                       </div>
                     </div>
-                  );
-                })
-              ) : (
-                <div className="rounded-xl border border-border bg-surface-elevated/70 p-3 text-sm text-foreground">
-                  <div className="flex items-center justify-between">
-                    <span>原始輸入：{selectedWord.word}</span>
-                    <span className="font-semibold text-accent">
-                      {selectedWord.count} 票
-                    </span>
-                  </div>
+                  )}
                 </div>
-              )}
-            </div>
 
-            <div className="mt-5 flex justify-end">
-              <button
-                type="button"
-                onClick={() => setSelectedWord(null)}
-                className="rounded-lg border border-border bg-surface-elevated px-4 py-2 text-xs font-semibold text-foreground transition-colors hover:bg-surface"
-              >
-                關閉
-              </button>
+                <div className="mt-5 flex justify-end">
+                  <button
+                    type="button"
+                    onClick={() => setSelectedWord(null)}
+                    className="rounded-lg border border-border bg-surface-elevated px-4 py-2 text-xs font-semibold text-foreground transition-colors hover:bg-surface"
+                  >
+                    關閉
+                  </button>
+                </div>
+              </div>
             </div>
-          </div>
-        </div>
-      )}
+          );
+
+          return typeof document !== "undefined"
+            ? createPortal(modalNode, document.body)
+            : modalNode;
+        })()}
     </div>
   );
 }
