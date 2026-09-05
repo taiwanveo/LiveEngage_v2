@@ -85,6 +85,12 @@ class Question(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     is_manual_merge: Mapped[bool] = mapped_column(
         Boolean, nullable=False, server_default="false", default=False
     )
+
+    @property
+    def is_answered(self) -> bool:
+        """判定提問是否已被解答。"""
+        return self.status == QuestionStatus.ANSWERED or self.answered_at is not None
+
     # 排序熱點索引 idx_questions_room_status_score（room_id, status, score DESC,
     # created_at DESC）為運算式索引，於 migration 以原生 DDL 建立。
 

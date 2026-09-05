@@ -29,6 +29,7 @@ export class ApiException extends Error {
 export interface RequestOptions {
   method?: "GET" | "POST" | "PATCH" | "PUT" | "DELETE";
   body?: unknown;
+  headers?: Record<string, string>;
   idempotencyKey?: string;
   _retried?: boolean;
 }
@@ -100,16 +101,24 @@ export async function api<T>(
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
     ...getAiHeaders(),
+    ...(options.headers ?? {}),
   };
   if (token) headers["Authorization"] = `Bearer ${token}`;
   if (options.idempotencyKey) headers["Idempotency-Key"] = options.idempotencyKey;
+
+  const requestBody =
+    options.body === undefined || options.body === null
+      ? null
+      : typeof options.body === "string"
+        ? options.body
+        : JSON.stringify(options.body);
 
   let res: Response;
   try {
     res = await fetch(apiUrl(path), {
       method: options.method ?? "GET",
       headers,
-      body: options.body !== undefined ? JSON.stringify(options.body) : null,
+      body: requestBody,
     });
   } catch (err: unknown) {
     throw new ApiException(0, {

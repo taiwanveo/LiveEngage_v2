@@ -14,6 +14,7 @@ interface Props {
   sessionId: string;
   sessionTitle: string;
   isOpen: boolean;
+  forceRefresh?: boolean;
   onClose: () => void;
 }
 
@@ -21,6 +22,7 @@ export function AiDecisionReportModal({
   sessionId,
   sessionTitle,
   isOpen,
+  forceRefresh = false,
   onClose,
 }: Props): React.JSX.Element | null {
   const [report, setReport] = useState<AiDecisionReport | null>(null);
@@ -29,7 +31,7 @@ export function AiDecisionReportModal({
   const [activeTab, setActiveTab] = useState<"visual" | "markdown">("visual");
   const [copied, setCopied] = useState<boolean>(false);
 
-  // 當開啟時，先查詢是否已有現成報告；若無則自動生成
+  // 當開啟時，先查詢是否已有現成報告；若無或要求強制重新整理則生成新報告
   useEffect(() => {
     if (!isOpen || !sessionId) return;
     let isMounted = true;
@@ -38,14 +40,16 @@ export function AiDecisionReportModal({
       setLoading(true);
       setError(null);
       try {
-        const existing = await getAiDecisionReport(sessionId);
-        if (isMounted && existing) {
-          setReport(existing);
-          setLoading(false);
-          return;
+        if (!forceRefresh) {
+          const existing = await getAiDecisionReport(sessionId);
+          if (isMounted && existing) {
+            setReport(existing);
+            setLoading(false);
+            return;
+          }
         }
-        // 若無現成報告，自動初次生成
-        const fresh = await generateAiDecisionReport(sessionId, false);
+        // 若強制重新整理或無現成報告，自動生成
+        const fresh = await generateAiDecisionReport(sessionId, forceRefresh);
         if (isMounted) {
           setReport(fresh);
         }
@@ -64,7 +68,7 @@ export function AiDecisionReportModal({
     return () => {
       isMounted = false;
     };
-  }, [isOpen, sessionId]);
+  }, [isOpen, sessionId, forceRefresh]);
 
   if (!isOpen) return null;
 

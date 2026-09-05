@@ -1,6 +1,7 @@
 /** Session Overview API（Host 即時總覽）。 */
 
 import { api } from "./api";
+import { apiUrl } from "@liveengage/realtime";
 import type { PollResults } from "@liveengage/renderers";
 import type { SessionStatus } from "./sessionApi";
 
@@ -179,13 +180,11 @@ export async function generateAiDecisionReport(
 ): Promise<AiDecisionReport> {
   return api<AiDecisionReport>(`/api/v1/sessions/${sessionId}/ai-report`, {
     method: "POST",
-    body: JSON.stringify({ force_refresh: forceRefresh }),
-    headers: { "Content-Type": "application/json" },
+    body: { force_refresh: forceRefresh },
   });
 }
 
 export function getAiDecisionReportDownloadUrl(sessionId: string): string {
-  const base = import.meta.env.VITE_API_URL || "";
-  return `${base}/api/v1/sessions/${sessionId}/ai-report/download`;
+  return apiUrl(`/api/v1/sessions/${sessionId}/ai-report/download`);
 }
 

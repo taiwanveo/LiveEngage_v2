@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import uuid
+from typing import Any
 
 from sqlalchemy import func, or_, select, union
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -10,10 +11,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.errors import AppError, ErrorCode
 from app.core.screen_reader_auth import ensure_screen_session
 from app.core.tokens import ScreenTokenClaims
-from app.models.enums import InteractionStatus, InteractionType
+from app.models.enums import InteractionStatus, InteractionType, QuestionStatus
 from app.models.interaction import Interaction
 from app.models.participant import Participant
-from app.models.poll import PollOption, PollResponse as PollResponseRow
+from app.models.poll import PollOption
+from app.models.poll import PollResponse as PollResponseRow
 from app.models.question import Question
 from app.models.room import Room
 from app.models.session import Session
@@ -569,15 +571,20 @@ async def extract_session_analytics_data(
 
     for q in q_rows:
         up, _, score = await qa_redis.get_effective_counts(db, q)
+        is_ans = bool(
+            getattr(q, "is_answered", False)
+            or getattr(q, "answered_at", None) is not None
+            or getattr(q, "status", None) == QuestionStatus.ANSWERED
+        )
         q_item = {
             "id": str(q.id),
             "content": q.content,
             "score": score,
             "upvotes": up,
-            "is_answered": q.is_answered,
+            "is_answered": is_ans,
         }
         questions_data.append(q_item)
-        if q.is_answered:
+        if is_ans:
             answered_questions.append(q_item)
         else:
             unanswered_questions.append(q_item)
