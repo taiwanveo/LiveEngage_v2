@@ -2,6 +2,7 @@
 
 /** @type {import('tailwindcss').Config} */
 export default {
+  darkMode: ["selector", ':is([data-theme="dark"], [data-theme="cursor"], .dark)'],
   theme: {
     extend: {
       fontFamily: {

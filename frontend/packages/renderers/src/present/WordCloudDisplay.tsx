@@ -102,7 +102,7 @@ export function WordCloudDisplay({
                   ? compact
                     ? "group relative rounded-md bg-white/10 px-2.5 py-1 font-semibold text-white transition-all hover:scale-105 hover:bg-white/20 active:scale-95"
                     : "group relative rounded-lg bg-white/10 px-4 py-2 font-semibold text-white shadow-sm transition-all hover:scale-105 hover:bg-white/20 active:scale-95"
-                  : "group relative rounded-lg bg-primary-50 px-3 py-1.5 font-medium text-primary-800 transition-all hover:bg-primary-100 hover:shadow active:scale-95 dark:bg-primary-950/40 dark:text-primary-300 dark:hover:bg-primary-900/50"
+                  : "group relative rounded-lg bg-accent-muted px-3 py-1.5 font-medium text-accent transition-all hover:bg-accent/20 hover:shadow active:scale-95"
               }
               style={{ fontSize, lineHeight: 1.25 }}
               title={hasVariants ? "點擊查看原始詞彙明細" : undefined}

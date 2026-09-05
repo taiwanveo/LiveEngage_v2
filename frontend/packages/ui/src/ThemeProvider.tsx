@@ -25,6 +25,11 @@ function readStoredTheme(): ThemeId {
 
 function applyTheme(id: ThemeId): void {
   document.documentElement.setAttribute("data-theme", id);
+  if (id === "dark" || id === "cursor") {
+    document.documentElement.classList.add("dark");
+  } else {
+    document.documentElement.classList.remove("dark");
+  }
   syncBrandingThemeColors();
   localStorage.setItem(THEME_STORAGE_KEY, id);
 }

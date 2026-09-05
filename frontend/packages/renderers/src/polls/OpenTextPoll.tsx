@@ -60,9 +60,9 @@ export function OpenTextPoll({
         <OpenTextList entries={results?.entries ?? []} large={mode === "present"} />
       ) : mode === "preview" ? (
         multiline ? (
-          <div className="h-24 rounded-lg border border-dashed border-slate-300 bg-slate-50" />
+          <div className="h-24 rounded-lg border border-dashed border-border bg-surface-elevated/40" />
         ) : (
-          <div className="h-10 rounded-lg border border-dashed border-slate-300 bg-slate-50" />
+          <div className="h-10 rounded-lg border border-dashed border-border bg-surface-elevated/40" />
         )
       ) : interactive && answerable ? (
         multiline ? (
@@ -72,7 +72,7 @@ export function OpenTextPoll({
             onChange={(e) => setText(e.target.value)}
             rows={4}
             placeholder="輸入您的回答…"
-            className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+            className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-foreground placeholder:text-muted focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/25 transition-colors"
           />
         ) : (
           <input
@@ -81,11 +81,11 @@ export function OpenTextPoll({
             maxLength={maxLength}
             onChange={(e) => setText(e.target.value)}
             placeholder="輸入您的回答…"
-            className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+            className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-foreground placeholder:text-muted focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/25 transition-colors"
           />
         )
       ) : interactive && !answerable ? (
-        <p className="rounded-lg bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-700">
+        <p className="rounded-lg bg-success/15 border border-success/30 px-4 py-3 text-sm font-medium text-success">
           {poll.status !== "active"
             ? "✓ 此題目目前不開放作答"
             : "✓ 您已作答完成，感謝參與！"}

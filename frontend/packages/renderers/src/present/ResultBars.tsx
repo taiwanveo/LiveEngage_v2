@@ -31,21 +31,21 @@ export function ResultBars({
                 {showCorrectAnswer && opt.is_correct ? (
                   <span className="text-xs text-emerald-600">正解</span>
                 ) : null}
-                <span className="tabular-nums text-slate-500">{count}</span>
+                <span className="tabular-nums text-muted">{count}</span>
               </span>
             </div>
             <div
               className={
                 large
                   ? "h-4 overflow-hidden rounded-full bg-white/10"
-                  : "h-2 overflow-hidden rounded-full bg-slate-100"
+                  : "h-2 overflow-hidden rounded-full bg-surface-elevated"
               }
             >
               <div
                 className={
                   large
                     ? "h-full rounded-full bg-primary-500 transition-all"
-                    : "h-full rounded-full bg-primary-500 transition-all"
+                    : "h-full rounded-full bg-accent transition-all"
                 }
                 style={{ width: `${pct}%` }}
               />

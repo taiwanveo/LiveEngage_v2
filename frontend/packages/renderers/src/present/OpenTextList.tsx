@@ -18,14 +18,14 @@ export function OpenTextList({
           className={
             large
               ? "rounded-xl border border-white/10 bg-white/5 p-4"
-              : "rounded-lg border border-slate-200 bg-slate-50 p-4"
+              : "rounded-lg border border-border bg-surface-elevated/60 p-4"
           }
         >
-          <p className={large ? "text-xl text-white" : "text-base text-slate-800"}>
+          <p className={large ? "text-xl text-white" : "text-base text-foreground"}>
             {entry.text}
           </p>
           {entry.author_display ? (
-            <p className={large ? "mt-2 text-sm text-slate-400" : "mt-2 text-xs text-slate-500"}>
+            <p className={large ? "mt-2 text-sm text-slate-400" : "mt-2 text-xs text-muted"}>
               — {entry.author_display}
             </p>
           ) : null}

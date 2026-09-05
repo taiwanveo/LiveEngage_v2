@@ -60,10 +60,10 @@ function RankMoveButton(props: {
         e.stopPropagation();
         onClick();
       }}
-      className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-md border text-slate-600 transition-colors ${
+      className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-md border text-foreground transition-colors ${
         disabled
-          ? "cursor-not-allowed border-slate-100 text-slate-300"
-          : "border-slate-200 bg-white hover:border-primary-300 hover:bg-primary-50 hover:text-primary-700 active:bg-primary-100"
+          ? "cursor-not-allowed border-border/40 text-muted/40"
+          : "border-border bg-surface hover:border-accent/40 hover:bg-accent-muted hover:text-accent active:bg-accent/20"
       }`}
     >
       <svg
@@ -153,11 +153,11 @@ export function RankingSortableList({
   return (
     <div className="space-y-2">
       {showRankCutoff ? (
-        <p className="text-xs text-slate-500">
+        <p className="text-xs text-muted">
           拖曳把手或使用右側箭頭調整順序；前 {rankedCount} 名為您的排序結果。
         </p>
       ) : (
-        <p className="text-xs text-slate-500">
+        <p className="text-xs text-muted">
           拖曳把手或使用右側箭頭，調整由上到下的優先順序。
         </p>
       )}
@@ -171,12 +171,12 @@ export function RankingSortableList({
             <li
               key={id}
               data-rank-index={index}
-              className={`rounded-lg border transition-opacity ${
+              className={`rounded-lg border transition-all ${
                 isDragging ? "opacity-40" : ""
-              } ${isOver ? "ring-2 ring-primary-400/60" : ""} ${
+              } ${isOver ? "ring-2 ring-accent/60" : ""} ${
                 inRanked
-                  ? "border-primary-200 bg-primary-50/60"
-                  : "border-slate-200 bg-slate-50/50 opacity-80"
+                  ? "border-accent/40 bg-accent-muted/40"
+                  : "border-border bg-surface-elevated/40 opacity-80"
               }`}
               onDragOver={(e) => {
                 if (disabled) return;
@@ -193,7 +193,7 @@ export function RankingSortableList({
               <div className="flex items-center gap-2 px-2 py-2.5">
                 <span
                   className={`w-7 shrink-0 text-center text-sm font-semibold ${
-                    inRanked ? "text-primary-700" : "text-slate-400"
+                    inRanked ? "text-accent" : "text-muted"
                   }`}
                 >
                   {inRanked ? `#${index + 1}` : "·"}
@@ -224,7 +224,7 @@ export function RankingSortableList({
                 >
                   <DragGrip disabled={disabled} />
                 </span>
-                <span className="min-w-0 flex-1 text-sm text-slate-800">
+                <span className="min-w-0 flex-1 text-sm font-medium text-foreground">
                   {opt?.text ?? "選項"}
                 </span>
                 {!disabled ? (
@@ -245,7 +245,7 @@ export function RankingSortableList({
                 ) : null}
               </div>
               {showRankCutoff && index === rankedCount - 1 ? (
-                <div className="border-t border-dashed border-primary-300/60 px-2 py-1 text-[10px] text-primary-700/80">
+                <div className="border-t border-dashed border-accent/30 px-2 py-1 text-[10px] text-accent font-medium">
                   以上為排序結果
                 </div>
               ) : null}

@@ -13,6 +13,11 @@
           var ok = ["slido", "light", "dark", "cursor", "claude"];
           if (!t || ok.indexOf(t) < 0) t = "slido";
           document.documentElement.setAttribute("data-theme", t);
+          if (t === "dark" || t === "cursor") {
+            document.documentElement.classList.add("dark");
+          } else {
+            document.documentElement.classList.remove("dark");
+          }
         } catch (e) {}
       })();
     </script>

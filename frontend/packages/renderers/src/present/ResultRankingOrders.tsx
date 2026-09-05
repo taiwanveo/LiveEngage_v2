@@ -35,12 +35,12 @@ export function ResultRankingOrders({
           <li key={order.order_key}>
             <div className="mb-1 flex flex-wrap items-baseline justify-between gap-2">
               <span className="font-medium">
-                <span className="mr-2 font-mono text-xs text-slate-500">
+                <span className="mr-2 font-mono text-xs text-muted">
                   {formatOrderKey(order.order_key)}
                 </span>
                 {labelText}
               </span>
-              <span className="shrink-0 tabular-nums text-slate-500">
+              <span className="shrink-0 tabular-nums text-muted">
                 {order.count} 票（{pct}%）
               </span>
             </div>
@@ -48,11 +48,15 @@ export function ResultRankingOrders({
               className={
                 large
                   ? "h-4 overflow-hidden rounded-full bg-white/10"
-                  : "h-2 overflow-hidden rounded-full bg-slate-100"
+                  : "h-2 overflow-hidden rounded-full bg-surface-elevated"
               }
             >
               <div
-                className="h-full rounded-full bg-primary-500 transition-all"
+                className={
+                  large
+                    ? "h-full rounded-full bg-primary-500 transition-all"
+                    : "h-full rounded-full bg-accent transition-all"
+                }
                 style={{ width: `${barPct}%` }}
               />
             </div>

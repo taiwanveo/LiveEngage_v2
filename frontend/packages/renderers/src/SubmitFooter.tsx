@@ -21,7 +21,7 @@ export function SubmitFooter({
         type="button"
         onClick={onSubmit}
         disabled={disabled || submitting}
-        className="w-full rounded-lg bg-primary-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-primary-700 disabled:cursor-not-allowed disabled:opacity-50"
+        className="le-btn-primary w-full disabled:cursor-not-allowed disabled:opacity-50"
       >
         {submitting ? "提交中…" : label}
       </button>

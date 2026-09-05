@@ -81,7 +81,7 @@ export function MultipleChoicePoll({
       }
     >
       {interactive && !answerable && !showResults ? (
-        <p className="rounded-lg bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-700">
+        <p className="rounded-lg bg-success/15 border border-success/30 px-4 py-3 text-sm font-medium text-success">
           {poll.status !== "active"
             ? "✓ 此題目目前不開放作答"
             : "✓ 您已作答完成，感謝參與！"}
@@ -115,10 +115,10 @@ export function MultipleChoicePoll({
                   className={
                     mode === "present"
                       ? "flex items-center gap-3 rounded-lg px-2 py-2 text-2xl"
-                      : `flex cursor-pointer items-center gap-3 rounded-lg border px-4 py-3 transition ${
+                      : `flex cursor-pointer items-center gap-3 rounded-lg border px-4 py-3 transition-colors ${
                           isOn
-                            ? "border-primary-500 bg-primary-50"
-                            : "border-slate-200 hover:border-slate-300"
+                            ? "border-accent bg-accent-muted text-accent font-medium shadow-sm"
+                            : "border-border bg-surface text-foreground hover:border-accent/40"
                         } ${preview ? "opacity-80" : ""}`
                   }
                 >
@@ -129,12 +129,12 @@ export function MultipleChoicePoll({
                       checked={isOn}
                       disabled={!answerable && !preview}
                       onChange={() => toggle(opt.id)}
-                      className="h-4 w-4 text-primary-600"
+                      className="h-4 w-4 accent-accent text-accent"
                     />
                   ) : null}
                   <span>{opt.text}</span>
                   {shouldShowCorrectAnswer(mode, poll) && opt.is_correct ? (
-                    <span className="ml-auto text-xs text-emerald-600">正解</span>
+                    <span className="ml-auto text-xs font-semibold text-success">正解</span>
                   ) : null}
                 </label>
               </li>

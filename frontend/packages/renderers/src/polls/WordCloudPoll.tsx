@@ -55,7 +55,7 @@ export function WordCloudPoll({
       <button
         type="button"
         onClick={clearWords}
-        className="inline-flex items-center rounded-lg border border-slate-300 bg-slate-50 px-2.5 py-1 text-xs font-medium text-rose-600 shadow-sm transition-colors hover:bg-slate-100 hover:border-slate-400 active:scale-95 dark:border-slate-700 dark:bg-slate-800 dark:text-rose-400 dark:hover:bg-slate-700 dark:hover:border-slate-600"
+        className="inline-flex items-center rounded-lg border border-border bg-surface-elevated px-2.5 py-1 text-xs font-medium text-danger shadow-sm transition-colors hover:bg-surface hover:border-danger/40 active:scale-95"
       >
         清除已加入詞彙
       </button>
@@ -78,7 +78,7 @@ export function WordCloudPoll({
               submitError={submitError}
             />
             {chips.length > 0 ? (
-              <p className="text-center text-xs font-semibold text-amber-600 dark:text-amber-400">
+              <p className="text-center text-xs font-semibold text-warning">
                 請記得按下提交按鈕才算正式送出。
               </p>
             ) : null}
@@ -91,7 +91,7 @@ export function WordCloudPoll({
           <WordCloudDisplay words={results?.word_counts ?? []} large={mode === "present"} />
         </div>
       ) : mode === "preview" ? (
-        <p className="text-sm text-slate-500">參與者將輸入關鍵字詞</p>
+        <p className="text-sm text-muted">參與者將輸入關鍵字詞</p>
       ) : interactive && answerable ? (
         <div className="w-full min-w-0 space-y-3">
           <input
@@ -106,12 +106,12 @@ export function WordCloudPoll({
               }
             }}
             placeholder={`輸入詞彙（最多 ${maxLen} 字）`}
-            className="box-border w-full min-w-0 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary-500"
+            className="box-border w-full min-w-0 rounded-lg border border-border bg-surface px-3 py-2 text-sm text-foreground placeholder:text-muted focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/25 transition-colors"
           />
           <button
             type="button"
             onClick={addWord}
-            className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-3 py-2 text-sm font-medium text-foreground hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
+            className="w-full rounded-lg border border-border bg-surface-elevated px-3 py-2 text-sm font-medium text-foreground hover:bg-surface active:scale-[0.99] transition-all"
           >
             加入
           </button>
@@ -120,13 +120,13 @@ export function WordCloudPoll({
               {chips.map((w, i) => (
                 <span
                   key={`${w}-${i}`}
-                  className="relative inline-flex items-center gap-1.5 rounded-full bg-primary-50 dark:bg-primary-950/40 border border-primary-200 dark:border-primary-800 px-3 py-1 text-sm font-medium text-primary-800 dark:text-primary-200"
+                  className="relative inline-flex items-center gap-1.5 rounded-full bg-accent-muted border border-accent/30 px-3 py-1 text-sm font-medium text-accent"
                 >
                   <span>{w}</span>
                   <button
                     type="button"
                     onClick={() => removeWord(i)}
-                    className="flex h-4 w-4 items-center justify-center rounded-full text-primary-600 hover:bg-primary-200/70 hover:text-primary-900 transition-colors"
+                    className="flex h-4 w-4 items-center justify-center rounded-full text-accent hover:bg-accent/20 transition-colors"
                     title={`取消加入「${w}」`}
                     aria-label={`取消加入「${w}」`}
                   >
@@ -144,7 +144,7 @@ export function WordCloudPoll({
           ) : null}
         </div>
       ) : interactive && !answerable ? (
-        <p className="rounded-lg bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-700">
+        <p className="rounded-lg bg-success/15 border border-success/30 px-4 py-3 text-sm font-medium text-success">
           {poll.status !== "active"
             ? "✓ 此題目目前不開放作答"
             : "✓ 您已作答完成，感謝參與！"}

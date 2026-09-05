@@ -32,7 +32,7 @@ function RatingInput({
   if (mode === "select") {
     return (
       <label className="block text-sm">
-        <span className="font-medium text-slate-700">選擇評分</span>
+        <span className="font-medium text-foreground">選擇評分</span>
         <select
           disabled={disabled}
           value={value ?? ""}
@@ -57,7 +57,7 @@ function RatingInput({
   if (mode === "number") {
     return (
       <label className="block text-sm">
-        <span className="font-medium text-slate-700">輸入評分</span>
+        <span className="font-medium text-foreground">輸入評分</span>
         <input
           type="number"
           min={min}
@@ -77,7 +77,7 @@ function RatingInput({
           className="le-input mt-2 w-full max-w-xs"
           aria-label="評分"
         />
-        <span className="mt-1 block text-xs text-slate-500">
+        <span className="mt-1 block text-xs text-muted">
           請輸入 {min} 到 {max} 的分數
         </span>
       </label>
@@ -94,10 +94,10 @@ function RatingInput({
             type="button"
             disabled={disabled}
             onClick={() => onChange(v)}
-            className={`flex h-12 w-12 items-center justify-center rounded-full border text-lg font-semibold transition ${
+            className={`flex h-12 w-12 items-center justify-center rounded-full border text-lg font-semibold transition-all ${
               selected
-                ? "border-amber-400 bg-amber-50 text-amber-700"
-                : "border-slate-200 text-slate-700 hover:border-slate-300"
+                ? "border-accent bg-accent-muted text-accent ring-2 ring-accent/30 shadow-sm"
+                : "border-border bg-surface text-foreground hover:border-accent/40"
             } disabled:opacity-50`}
           >
             {v}
@@ -155,7 +155,7 @@ export function RatingPoll({
       }
     >
       {interactive && !answerable && !showResults ? (
-        <p className="rounded-lg bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-700">
+        <p className="rounded-lg bg-success/15 border border-success/30 px-4 py-3 text-sm font-medium text-success">
           ✓ 您已完成評分，感謝參與！
         </p>
       ) : null}
